@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 60" fill="none">
+  <!-- TODO: substituir por logo oficial MoneyGo em SVG -->
+  <!-- Placeholder baseado na análise visual do site -->
+  <g transform="translate(0, 8)">
+    <!-- Ícone (símbolo de moeda estilizado) -->
+    <rect x="2" y="2" width="8" height="40" rx="2" fill="#C9A84C"/>
+    <rect x="14" y="2" width="8" height="40" rx="2" fill="#C9A84C"/>
+    <rect x="2" y="10" width="20" height="6" rx="1" fill="#C9A84C"/>
+    <rect x="2" y="26" width="20" height="6" rx="1" fill="#C9A84C"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="38" y="38" font-family="Montserrat, Arial, sans-serif" font-size="28" font-weight="700" letter-spacing="2" fill="#0A0A0A">MONEYGO</text>
+  <text x="39" y="52" font-family="Montserrat, Arial, sans-serif" font-size="9" font-weight="400" letter-spacing="3" fill="#0A0A0A">SOLUÇÕES EM CRÉDITO</text>
+</svg>
