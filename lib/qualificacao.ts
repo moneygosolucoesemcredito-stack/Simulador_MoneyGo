@@ -72,7 +72,76 @@ export function qualificarHomeEquity(params: {
 
   const ltvMaximo = params.valor_imovel * cfg.ltv
   if (params.valor_solicitado > ltvMaximo) {
-    motivos.push("Valor solicitado superior a 60% do valor do imóvel")
+    motivos.push("Valor solicitado superior a 55% do valor do imóvel")
+  }
+
+  const idade = calcularIdade(params.data_nascimento)
+  if (idade < cfg.idadeMinima || idade > cfg.idadeMaxima) {
+    motivos.push(`Idade fora da faixa permitida (${cfg.idadeMinima}–${cfg.idadeMaxima} anos)`)
+  }
+
+  return { qualificado: motivos.length === 0, motivos }
+}
+
+export function qualificarFinanciamentoImobiliario(params: {
+  valor_imovel: number
+  tipo_imovel: TipoImovel
+  valor_solicitado: number
+  cidade: string
+  uf: string
+  data_nascimento: string
+}): ResultadoQualificacao {
+  const { financiamentoImobiliario: cfg } = CONFIG
+  const motivos: string[] = []
+
+  if (params.valor_imovel < cfg.valorImovelMinimo) {
+    motivos.push(`Valor do imóvel abaixo do mínimo de ${cfg.valorImovelMinimo.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`)
+  }
+
+  if (!isCidadeQualificada(params.cidade, params.uf)) {
+    motivos.push("Cidade não atendida (município com menos de 50.000 habitantes)")
+  }
+
+  if (params.tipo_imovel === ("rural" as TipoImovel)) {
+    motivos.push("Imóvel rural não aceito nesta modalidade")
+  }
+
+  const ltvMaximo = params.valor_imovel * cfg.ltv
+  if (params.valor_solicitado > ltvMaximo) {
+    motivos.push("Valor solicitado superior a 55% do valor do imóvel")
+  }
+
+  const idade = calcularIdade(params.data_nascimento)
+  if (idade < cfg.idadeMinima || idade > cfg.idadeMaxima) {
+    motivos.push(`Idade fora da faixa permitida (${cfg.idadeMinima}–${cfg.idadeMaxima} anos)`)
+  }
+
+  return { qualificado: motivos.length === 0, motivos }
+}
+
+export function qualificarCreditoConstrucao(params: {
+  valor_terreno: number
+  valor_obra: number
+  valor_solicitado: number
+  cidade: string
+  uf: string
+  data_nascimento: string
+}): ResultadoQualificacao {
+  const { creditoConstrucao: cfg } = CONFIG
+  const motivos: string[] = []
+
+  if (params.valor_obra < cfg.valorObraMinimo) {
+    motivos.push(`Valor da obra abaixo do mínimo de ${cfg.valorObraMinimo.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`)
+  }
+
+  if (!isCidadeQualificada(params.cidade, params.uf)) {
+    motivos.push("Cidade não atendida (município com menos de 50.000 habitantes)")
+  }
+
+  const garantia = params.valor_terreno + params.valor_obra
+  const ltvMaximo = garantia * cfg.ltv
+  if (params.valor_solicitado > ltvMaximo) {
+    motivos.push("Valor solicitado superior a 55% do valor total (terreno + obra)")
   }
 
   const idade = calcularIdade(params.data_nascimento)

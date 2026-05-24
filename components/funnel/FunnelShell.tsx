@@ -11,7 +11,7 @@ interface FunnelShellProps {
   onBack?: () => void
   showBack?: boolean
   children: React.ReactNode
-  produto: "Home Equity" | "Auto Equity"
+  produto: string
 }
 
 export function FunnelShell({

@@ -35,7 +35,7 @@ export function Step5ValorDesejado({ onNext }: { onNext: () => void }) {
       <div className="space-y-2">
         <h2 className="text-2xl font-bold tracking-tight">Quanto você precisa?</h2>
         <p className="text-muted-foreground text-sm">
-          Você pode solicitar até {formatarMoeda(valorMaximo)} (60% do valor do imóvel).
+          Você pode solicitar até {formatarMoeda(valorMaximo)} (55% do valor do imóvel).
         </p>
       </div>
 
@@ -51,7 +51,7 @@ export function Step5ValorDesejado({ onNext }: { onNext: () => void }) {
           max={valorMaximo}
           step={5_000}
           value={[valor]}
-          onValueChange={([v]) => setValor(v)}
+          onValueChange={(vals) => setValor(Array.isArray(vals) ? vals[0] : vals)}
           
         />
 

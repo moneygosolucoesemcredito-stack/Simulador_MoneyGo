@@ -8,26 +8,26 @@ import { formatarMoeda } from "@/lib/simulacao"
 import { CONFIG } from "@/lib/config"
 import { pushDataLayer } from "@/components/tracking/GTM"
 
-const MIN = CONFIG.homeEquity.valorImovelMinimo
-const MAX = 5_000_000
+const MIN = CONFIG.creditoConstrucao.valorObraMinimo
+const MAX = 20_000_000
 const STEP = 10_000
 
-export function Step1ValorImovel({ onNext }: { onNext: () => void }) {
-  const { homeEquity, setHomeEquity } = useFunnelStore()
-  const [valor, setValor] = useState(homeEquity.valor_imovel || MIN)
+export function Step2ValorObra({ onNext }: { onNext: () => void }) {
+  const { creditoConstrucao, setCreditoConstrucao } = useFunnelStore()
+  const [valor, setValor] = useState(creditoConstrucao.valor_obra || MIN)
 
   function handleNext() {
-    setHomeEquity({ valor_imovel: valor })
-    pushDataLayer("step_completed", { funil: "home_equity", step: 1, valor_imovel: valor })
+    setCreditoConstrucao({ valor_obra: valor })
+    pushDataLayer("step_completed", { funil: "credito_construcao", step: 2, valor_obra: valor })
     onNext()
   }
 
   return (
     <div className="space-y-8">
       <div className="space-y-2">
-        <h2 className="text-2xl font-bold tracking-tight">Qual o valor do seu imóvel?</h2>
+        <h2 className="text-2xl font-bold tracking-tight">Qual o valor total da obra?</h2>
         <p className="text-muted-foreground text-sm">
-          Informe o valor de mercado estimado. Valor mínimo: {formatarMoeda(MIN)}.
+          Informe o custo total previsto da construção conforme orçamento. Mínimo: {formatarMoeda(MIN)}.
         </p>
       </div>
 
@@ -44,7 +44,6 @@ export function Step1ValorImovel({ onNext }: { onNext: () => void }) {
           step={STEP}
           value={[valor]}
           onValueChange={(vals) => setValor(Array.isArray(vals) ? vals[0] : vals)}
-          
         />
 
         <div className="flex justify-between text-xs text-muted-foreground">

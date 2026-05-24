@@ -8,26 +8,26 @@ import { formatarMoeda } from "@/lib/simulacao"
 import { CONFIG } from "@/lib/config"
 import { pushDataLayer } from "@/components/tracking/GTM"
 
-const MIN = CONFIG.homeEquity.valorImovelMinimo
+const MIN = CONFIG.financiamentoImobiliario.valorImovelMinimo
 const MAX = 5_000_000
 const STEP = 10_000
 
 export function Step1ValorImovel({ onNext }: { onNext: () => void }) {
-  const { homeEquity, setHomeEquity } = useFunnelStore()
-  const [valor, setValor] = useState(homeEquity.valor_imovel || MIN)
+  const { financiamentoImobiliario, setFinanciamentoImobiliario } = useFunnelStore()
+  const [valor, setValor] = useState(financiamentoImobiliario.valor_imovel || MIN)
 
   function handleNext() {
-    setHomeEquity({ valor_imovel: valor })
-    pushDataLayer("step_completed", { funil: "home_equity", step: 1, valor_imovel: valor })
+    setFinanciamentoImobiliario({ valor_imovel: valor })
+    pushDataLayer("step_completed", { funil: "financiamento_imobiliario", step: 1, valor_imovel: valor })
     onNext()
   }
 
   return (
     <div className="space-y-8">
       <div className="space-y-2">
-        <h2 className="text-2xl font-bold tracking-tight">Qual o valor do seu imóvel?</h2>
+        <h2 className="text-2xl font-bold tracking-tight">Qual o valor do imóvel?</h2>
         <p className="text-muted-foreground text-sm">
-          Informe o valor de mercado estimado. Valor mínimo: {formatarMoeda(MIN)}.
+          Informe o valor de avaliação do imóvel a ser financiado. Mínimo: {formatarMoeda(MIN)}.
         </p>
       </div>
 
@@ -44,7 +44,6 @@ export function Step1ValorImovel({ onNext }: { onNext: () => void }) {
           step={STEP}
           value={[valor]}
           onValueChange={(vals) => setValor(Array.isArray(vals) ? vals[0] : vals)}
-          
         />
 
         <div className="flex justify-between text-xs text-muted-foreground">

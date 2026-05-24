@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { Building2, Car, ArrowRight, TrendingDown, Clock } from "lucide-react"
+import { Building2, Car, ArrowRight, TrendingDown, Clock, HardHat, Home } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -18,10 +18,36 @@ const produtos = [
     descricao:
       "Use o valor do seu imóvel para obter crédito com as menores taxas do mercado. Ideal para quitar dívidas, investir no seu negócio ou realizar projetos.",
     taxa: formatarPercentual(CONFIG.homeEquity.taxaMensal),
-    modalidade: "Pós-fixada (IPCA/IGP-M)",
+    modalidade: "Pós-fixada + IPCA",
     prazo: "até 240 meses",
-    ltv: "até 60% do valor",
+    ltv: "até 55% do valor",
     destaque: true,
+  },
+  {
+    href: "/financiamento-imobiliario",
+    icon: Home,
+    titulo: "Financiamento Imobiliário",
+    subtitulo: "Compra ou refinanciamento de imóvel",
+    descricao:
+      "Financie a compra do seu imóvel residencial ou comercial com as melhores condições. Prazo de até 30 anos e taxa a partir de " + formatarPercentual(CONFIG.financiamentoImobiliario.taxaMensal) + ".",
+    taxa: formatarPercentual(CONFIG.financiamentoImobiliario.taxaMensal),
+    modalidade: "Pós-fixada + IPCA",
+    prazo: "até 360 meses",
+    ltv: "até 55% do valor",
+    destaque: false,
+  },
+  {
+    href: "/credito-construcao",
+    icon: HardHat,
+    titulo: "Crédito de Construção",
+    subtitulo: "Financiamento para construção em terreno próprio",
+    descricao:
+      "Construa no seu terreno com crédito liberado em tranches conforme o avanço da obra. Carência durante a construção e até 20 anos para pagar.",
+    taxa: formatarPercentual(CONFIG.creditoConstrucao.taxaMensal),
+    modalidade: "Pós-fixada + IPCA",
+    prazo: "até 240 meses",
+    ltv: "até 55% do valor",
+    destaque: false,
   },
   {
     href: "/auto-equity",
@@ -41,15 +67,15 @@ const produtos = [
 export function ProductCards() {
   return (
     <section className="py-16 px-4 bg-background" id="produtos">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <div className="text-center mb-10 space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">Escolha sua modalidade</h2>
           <p className="text-muted-foreground">
-            Duas formas de acessar crédito com garantia e as melhores taxas.
+            Soluções de crédito com garantia para cada necessidade.
           </p>
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-5">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-2 gap-5">
           {produtos.map((p, i) => {
             const Icon = p.icon
             return (

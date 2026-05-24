@@ -10,19 +10,21 @@ import { pushDataLayer } from "@/components/tracking/GTM"
 import { cn } from "@/lib/utils"
 
 export function Step4ValorDesejado({ onNext }: { onNext: () => void }) {
-  const { autoEquity, setAutoEquity } = useFunnelStore()
-  const valorMaximo = Math.floor(autoEquity.valor_veiculo * CONFIG.autoEquity.ltv)
-  const valorMinimo = 5_000
+  const { financiamentoImobiliario, setFinanciamentoImobiliario } = useFunnelStore()
+  const valorMaximo = Math.floor(financiamentoImobiliario.valor_imovel * CONFIG.financiamentoImobiliario.ltv)
+  const valorMinimo = CONFIG.financiamentoImobiliario.valorCreditoMinimo
 
   const [valor, setValor] = useState(
-    Math.min(autoEquity.valor_solicitado || valorMinimo, valorMaximo)
+    Math.min(financiamentoImobiliario.valor_solicitado, valorMaximo) || valorMinimo
   )
-  const [prazo, setPrazo] = useState(autoEquity.prazo_meses || CONFIG.autoEquity.prazoDefault)
+  const [prazo, setPrazo] = useState(
+    financiamentoImobiliario.prazo_meses || CONFIG.financiamentoImobiliario.prazoDefault
+  )
 
   function handleNext() {
-    setAutoEquity({ valor_solicitado: valor, prazo_meses: prazo })
+    setFinanciamentoImobiliario({ valor_solicitado: valor, prazo_meses: prazo })
     pushDataLayer("step_completed", {
-      funil: "auto_equity",
+      funil: "financiamento_imobiliario",
       step: 4,
       valor_solicitado: valor,
       prazo_meses: prazo,
@@ -33,9 +35,9 @@ export function Step4ValorDesejado({ onNext }: { onNext: () => void }) {
   return (
     <div className="space-y-8">
       <div className="space-y-2">
-        <h2 className="text-2xl font-bold tracking-tight">Quanto você precisa?</h2>
+        <h2 className="text-2xl font-bold tracking-tight">Quanto você precisa financiar?</h2>
         <p className="text-muted-foreground text-sm">
-          Você pode solicitar até {formatarMoeda(valorMaximo)} (50% do valor do veículo).
+          Você pode financiar até {formatarMoeda(valorMaximo)} (55% do valor do imóvel).
         </p>
       </div>
 
@@ -49,10 +51,9 @@ export function Step4ValorDesejado({ onNext }: { onNext: () => void }) {
         <Slider
           min={valorMinimo}
           max={valorMaximo}
-          step={1_000}
+          step={5_000}
           value={[valor]}
           onValueChange={(vals) => setValor(Array.isArray(vals) ? vals[0] : vals)}
-          
         />
 
         <div className="flex justify-between text-xs text-muted-foreground">
@@ -64,7 +65,7 @@ export function Step4ValorDesejado({ onNext }: { onNext: () => void }) {
       <div className="space-y-3">
         <p className="text-sm font-medium">Prazo de pagamento</p>
         <div className="grid grid-cols-5 gap-2">
-          {CONFIG.autoEquity.prazosDisponiveis.map((p) => (
+          {CONFIG.financiamentoImobiliario.prazosDisponiveis.map((p) => (
             <button
               key={p}
               onClick={() => setPrazo(p)}
@@ -75,10 +76,13 @@ export function Step4ValorDesejado({ onNext }: { onNext: () => void }) {
                   : "border-border text-muted-foreground hover:border-[var(--gold)]/50"
               )}
             >
-              {p}x
+              {p / 12}a
             </button>
           ))}
         </div>
+        <p className="text-xs text-muted-foreground text-center">
+          {prazo / 12} anos ({prazo} parcelas)
+        </p>
       </div>
 
       <Button

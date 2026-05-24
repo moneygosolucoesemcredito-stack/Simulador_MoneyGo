@@ -1,5 +1,5 @@
 import { CONFIG } from "./config"
-import type { LeadPayload } from "@/types"
+import type { LeadPayload, Produto } from "@/types"
 
 const BASE_URL = `https://${CONFIG.kommo.subdomain}.kommo.com/api/v4`
 
@@ -44,13 +44,17 @@ async function withRetry<T>(
   throw lastError
 }
 
+const STAGE_BY_PRODUTO: Record<Produto, number> = {
+  home_equity: CONFIG.kommo.homeEquityStageId,
+  auto_equity: CONFIG.kommo.autoEquityStageId,
+  financiamento_imobiliario: CONFIG.kommo.financiamentoImobiliarioStageId,
+  credito_construcao: CONFIG.kommo.creditoConstrucaoStageId,
+}
+
 function buildKommoPayload(payload: LeadPayload) {
   const { produto, simulacao, contato, tracking, qualificado } = payload
 
-  const stageId =
-    produto === "home_equity"
-      ? CONFIG.kommo.homeEquityStageId
-      : CONFIG.kommo.autoEquityStageId
+  const stageId = STAGE_BY_PRODUTO[produto]
 
   const tags = [
     produto,
@@ -103,8 +107,16 @@ function buildCustomFields(
   if ("valor_imovel" in simulacao) {
     addField("CF_VALOR_IMOVEL", simulacao.valor_imovel)
     addField("CF_TIPO_IMOVEL", simulacao.tipo_imovel)
-    addField("CF_SITUACAO_IMOVEL", simulacao.situacao)
-    if (simulacao.saldo_devedor) addField("CF_SALDO_DEVEDOR", simulacao.saldo_devedor)
+    if ("situacao" in simulacao) addField("CF_SITUACAO_IMOVEL", (simulacao as { situacao: string }).situacao)
+    if ("saldo_devedor" in simulacao && (simulacao as { saldo_devedor?: number }).saldo_devedor) {
+      addField("CF_SALDO_DEVEDOR", (simulacao as { saldo_devedor: number }).saldo_devedor)
+    }
+  }
+
+  if ("valor_terreno" in simulacao) {
+    addField("CF_VALOR_TERRENO", (simulacao as { valor_terreno: number }).valor_terreno)
+    addField("CF_VALOR_OBRA", (simulacao as { valor_obra: number }).valor_obra)
+    addField("CF_NUMERO_TRANCHES", (simulacao as { numero_tranches: number }).numero_tranches)
   }
 
   if ("valor_veiculo" in simulacao) {

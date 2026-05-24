@@ -5,29 +5,30 @@ import { Slider } from "@/components/ui/slider"
 import { Button } from "@/components/ui/button"
 import { useFunnelStore } from "@/stores/funnel-store"
 import { formatarMoeda } from "@/lib/simulacao"
-import { CONFIG } from "@/lib/config"
 import { pushDataLayer } from "@/components/tracking/GTM"
+import { Info } from "lucide-react"
 
-const MIN = CONFIG.homeEquity.valorImovelMinimo
-const MAX = 5_000_000
+const MIN = 100_000
+const MAX = 10_000_000
 const STEP = 10_000
 
-export function Step1ValorImovel({ onNext }: { onNext: () => void }) {
-  const { homeEquity, setHomeEquity } = useFunnelStore()
-  const [valor, setValor] = useState(homeEquity.valor_imovel || MIN)
+export function Step1ValorTerreno({ onNext }: { onNext: () => void }) {
+  const { creditoConstrucao, setCreditoConstrucao } = useFunnelStore()
+  const [valor, setValor] = useState(creditoConstrucao.valor_terreno || MIN)
 
   function handleNext() {
-    setHomeEquity({ valor_imovel: valor })
-    pushDataLayer("step_completed", { funil: "home_equity", step: 1, valor_imovel: valor })
+    setCreditoConstrucao({ valor_terreno: valor })
+    pushDataLayer("step_completed", { funil: "credito_construcao", step: 1, valor_terreno: valor })
     onNext()
   }
 
   return (
     <div className="space-y-8">
       <div className="space-y-2">
-        <h2 className="text-2xl font-bold tracking-tight">Qual o valor do seu imóvel?</h2>
+        <h2 className="text-2xl font-bold tracking-tight">Qual o valor do terreno?</h2>
         <p className="text-muted-foreground text-sm">
-          Informe o valor de mercado estimado. Valor mínimo: {formatarMoeda(MIN)}.
+          Informe o valor de mercado do terreno que você já possui (quitado).
+          Ele será a garantia inicial do crédito.
         </p>
       </div>
 
@@ -44,13 +45,17 @@ export function Step1ValorImovel({ onNext }: { onNext: () => void }) {
           step={STEP}
           value={[valor]}
           onValueChange={(vals) => setValor(Array.isArray(vals) ? vals[0] : vals)}
-          
         />
 
         <div className="flex justify-between text-xs text-muted-foreground">
           <span>{formatarMoeda(MIN)}</span>
           <span>{formatarMoeda(MAX)}</span>
         </div>
+      </div>
+
+      <div className="flex gap-2 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+        <Info className="w-4 h-4 shrink-0 mt-0.5" />
+        <p>O terreno precisa estar quitado e registrado em seu nome para ser utilizado como garantia.</p>
       </div>
 
       <Button

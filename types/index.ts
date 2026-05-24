@@ -1,4 +1,4 @@
-export type Produto = "home_equity" | "auto_equity"
+export type Produto = "home_equity" | "auto_equity" | "financiamento_imobiliario" | "credito_construcao"
 
 export type TipoImovel = "casa" | "apartamento" | "comercial" | "terreno_condominio"
 export type SituacaoImovel = "quitado" | "financiado"
@@ -43,6 +43,62 @@ export interface SimulacaoAutoEquity {
   modalidade_taxa: ModalidadeTaxa
 }
 
+export interface SimulacaoFinanciamentoImobiliario {
+  valor_imovel: number
+  tipo_imovel: TipoImovel
+  valor_solicitado: number
+  prazo_meses: number
+  parcela_price: number
+  primeira_parcela_sac: number
+  ultima_parcela_sac: number
+  taxa_mensal: number
+  modalidade_taxa: ModalidadeTaxa
+}
+
+export interface SimulacaoCreditoConstrucao {
+  valor_terreno: number
+  valor_obra: number
+  valor_solicitado: number
+  prazo_meses: number
+  parcela_price: number
+  primeira_parcela_sac: number
+  ultima_parcela_sac: number
+  taxa_mensal: number
+  modalidade_taxa: ModalidadeTaxa
+  numero_tranches: number
+  valor_por_tranche: number
+}
+
+export interface FinanciamentoImobiliarioFunnelState {
+  produto: "financiamento_imobiliario"
+  step: number
+  valor_imovel: number
+  tipo_imovel: TipoImovel | ""
+  cep: string
+  logradouro: string
+  bairro: string
+  cidade: string
+  uf: string
+  valor_solicitado: number
+  prazo_meses: number
+  simulacao?: SimulacaoFinanciamentoImobiliario
+}
+
+export interface CreditoConstrucaoFunnelState {
+  produto: "credito_construcao"
+  step: number
+  valor_terreno: number
+  valor_obra: number
+  valor_solicitado: number
+  prazo_meses: number
+  cep: string
+  logradouro: string
+  bairro: string
+  cidade: string
+  uf: string
+  simulacao?: SimulacaoCreditoConstrucao
+}
+
 export interface Contato {
   nome: string
   data_nascimento: string
@@ -67,7 +123,7 @@ export interface TrackingData {
 export interface LeadPayload {
   produto: Produto
   qualificado: boolean
-  simulacao: SimulacaoHomeEquity | SimulacaoAutoEquity
+  simulacao: SimulacaoHomeEquity | SimulacaoAutoEquity | SimulacaoFinanciamentoImobiliario | SimulacaoCreditoConstrucao
   contato: Contato
   tracking: TrackingData
   consentimento_lgpd: boolean
