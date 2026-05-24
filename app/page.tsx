@@ -11,14 +11,15 @@ export default function HomePage() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Nav */}
-      <header className="absolute top-0 left-0 right-0 z-20 px-4 h-16 flex items-center justify-between max-w-5xl mx-auto w-full">
-        <Link href="/">
+      <header className="absolute top-0 left-0 right-0 z-20 px-4 h-16 sm:h-20 flex items-center justify-between max-w-5xl mx-auto w-full">
+        <Link href="/" className="shrink-0">
           <Image
-            src="/logo.svg"
+            src="/logo-full.png"
             alt="MoneyGo Soluções em Crédito"
-            width={140}
-            height={38}
+            width={1024}
+            height={324}
             priority
+            className="h-9 w-auto sm:h-11"
           />
         </Link>
         <Link

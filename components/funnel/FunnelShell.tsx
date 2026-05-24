@@ -29,11 +29,12 @@ export function FunnelShell({
         <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/" className="shrink-0">
             <Image
-              src="/logo.svg"
+              src="/logo-full.png"
               alt="MoneyGo Soluções em Crédito"
-              width={130}
-              height={36}
+              width={1024}
+              height={324}
               priority
+              className="h-12 w-auto"
             />
           </Link>
           <span className="text-xs font-medium text-muted-foreground hidden sm:block">
