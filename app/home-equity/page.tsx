@@ -64,7 +64,7 @@ export default function HomeEquityPage() {
       currentStep={step}
       totalSteps={TOTAL_STEPS}
       onBack={() => goTo(Math.max(1, step - 1))}
-      showBack={step > 1 && step < 7}
+      showBack={step > 1}
       produto="Home Equity"
     >
       <StepWrapper stepKey={step}>{content()}</StepWrapper>

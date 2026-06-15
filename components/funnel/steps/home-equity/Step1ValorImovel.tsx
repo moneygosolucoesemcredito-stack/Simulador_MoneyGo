@@ -9,7 +9,7 @@ import { CONFIG } from "@/lib/config"
 import { pushDataLayer } from "@/components/tracking/GTM"
 
 const MIN = CONFIG.homeEquity.valorImovelMinimo
-const MAX = 5_000_000
+const MAX = CONFIG.homeEquity.valorImovelMaximo
 const STEP = 10_000
 
 export function Step1ValorImovel({ onNext }: { onNext: () => void }) {
@@ -44,12 +44,10 @@ export function Step1ValorImovel({ onNext }: { onNext: () => void }) {
           step={STEP}
           value={[valor]}
           onValueChange={(vals) => setValor(Array.isArray(vals) ? vals[0] : vals)}
-          
         />
 
-        <div className="flex justify-between text-xs text-muted-foreground">
-          <span>{formatarMoeda(MIN)}</span>
-          <span>{formatarMoeda(MAX)}</span>
+        <div className="flex text-xs text-muted-foreground">
+          <span>Mínimo {formatarMoeda(MIN)}</span>
         </div>
       </div>
 

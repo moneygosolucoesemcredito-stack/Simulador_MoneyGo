@@ -10,6 +10,7 @@ export interface HomeEquityState {
   tipo_imovel: string
   situacao: string
   saldo_devedor: number
+  tipo_pessoa: "PF" | "PJ" | ""
   cep: string
   logradouro: string
   numero: string
@@ -19,6 +20,8 @@ export interface HomeEquityState {
   uf: string
   valor_solicitado: number
   prazo_meses: number
+  /** taxa a.m. escolhida pelo cliente (0 = ainda não selecionada) */
+  taxa_mensal: number
 }
 
 export interface AutoEquityState {
@@ -86,6 +89,7 @@ const defaultHomeEquity: HomeEquityState = {
   tipo_imovel: "",
   situacao: "",
   saldo_devedor: 0,
+  tipo_pessoa: "",
   cep: "",
   logradouro: "",
   numero: "",
@@ -95,6 +99,7 @@ const defaultHomeEquity: HomeEquityState = {
   uf: "",
   valor_solicitado: 150_000,
   prazo_meses: 180,
+  taxa_mensal: 0,
 }
 
 const defaultAutoEquity: AutoEquityState = {

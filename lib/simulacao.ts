@@ -57,6 +57,177 @@ export function formatarMoeda(valor: number): string {
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
 }
 
-export function formatarPercentual(valor: number): string {
-  return (valor * 100).toFixed(2).replace(".", ",") + "% a.m."
+export function formatarPercentual(valor: number, sufixo = "% a.m."): string {
+  return (valor * 100).toFixed(2).replace(".", ",") + sufixo
+}
+
+export function formatarPercentualAnual(valor: number): string {
+  return formatarPercentual(valor, "% a.a.")
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Home Equity — modelo financeiro fiel à planilha "Simulacao HE.xlsx".
+// Validado contra a planilha: principal, IOF, parcela com seguro e CET batem
+// centavo a centavo no cenário-base (crédito 2.750.000 / imóvel 5.000.000 /
+// 1,09% a.m. / 240m / PJ → principal 2.949.959,23 · CET 14,5984% a.a.).
+// ──────────────────────────────────────────────────────────────────────────
+
+export type TipoPessoa = "PF" | "PJ"
+export type TabelaAmortizacao = "PRICE" | "SAC"
+
+export interface ParametrosHomeEquity {
+  valorCredito: number
+  valorImovel: number
+  prazoMeses: number
+  taxaMensal: number
+  tipoPessoa: TipoPessoa
+  /** alíquotas/constantes (default = planilha) */
+  estruturacaoPercentual?: number
+  taxaRegistro?: number
+  iofPF?: number
+  iofPJ?: number
+  mip?: number
+  dfi?: number
+  dfiAcima10M?: number
+  dfiLimiteImovel?: number
+  txAdminMensal?: number
+  comprometimentoRenda?: number
+}
+
+export interface ResultadoTabelaHE {
+  primeiraParcela: number
+  ultimaParcela: number
+  parcelaMedia: number
+  rendaSugerida: number
+  cetMensal: number
+  cetAnual: number
+  totalPago: number
+}
+
+export interface ResultadoHomeEquity {
+  principalFinanciado: number
+  iofValor: number
+  cacTotal: number
+  taxaMensal: number
+  taxaAnual: number
+  price: ResultadoTabelaHE
+  sac: ResultadoTabelaHE
+}
+
+const HE_DEFAULTS = {
+  estruturacaoPercentual: 0.05,
+  taxaRegistro: 7_000,
+  iofPF: 0.0338,
+  iofPJ: 0.0188,
+  mip: 0.00035,
+  dfi: 0.000065,
+  dfiAcima10M: 0.000085,
+  dfiLimiteImovel: 10_000_000.01,
+  txAdminMensal: 25,
+  comprometimentoRenda: 0.3,
+}
+
+function simularTabelaHE(
+  principal: number,
+  valorImovel: number,
+  taxaMensal: number,
+  prazoMeses: number,
+  tabela: TabelaAmortizacao,
+  c: typeof HE_DEFAULTS
+): ResultadoTabelaHE {
+  const i = taxaMensal
+  const n = prazoMeses
+  const mipRate = c.mip
+  const dfiRate = valorImovel > c.dfiLimiteImovel ? c.dfiAcima10M : c.dfi
+  const dfiMensal = valorImovel * dfiRate
+  const adm = c.txAdminMensal
+
+  const amortSAC = principal / n
+  const pmtPrice = calcularPrice(principal, i, n)
+
+  let saldo = principal
+  let somaSaldo = 0
+  let totalSeguros = 0
+  let totalPago = 0
+  let primeira = 0
+  let ultima = 0
+
+  for (let k = 1; k <= n; k++) {
+    const juros = saldo * i
+    const amort = tabela === "PRICE" ? pmtPrice - juros : amortSAC
+    const parcelaBase = tabela === "PRICE" ? pmtPrice : amort + juros
+    const mip = saldo * mipRate
+    const seguros = mip + dfiMensal + adm
+    const parcela = parcelaBase + seguros
+
+    somaSaldo += saldo
+    totalSeguros += seguros
+    totalPago += parcela
+    if (k === 1) primeira = parcela
+    if (k === n) ultima = parcela
+
+    saldo -= amort
+  }
+
+  // CET conforme planilha: (Σ seguros / Σ saldo devedor) + taxa, capitalizado.
+  const cetMensal = somaSaldo > 0 ? totalSeguros / somaSaldo + i : i
+  const cetAnual = Math.pow(1 + cetMensal, 12) - 1
+
+  return {
+    primeiraParcela: primeira,
+    ultimaParcela: ultima,
+    parcelaMedia: totalPago / n,
+    rendaSugerida: primeira / c.comprometimentoRenda,
+    cetMensal,
+    cetAnual,
+    totalPago,
+  }
+}
+
+export function calcularHomeEquity(p: ParametrosHomeEquity): ResultadoHomeEquity {
+  const c = { ...HE_DEFAULTS, ...stripUndefined(p) }
+  const { valorCredito, valorImovel, prazoMeses, taxaMensal, tipoPessoa } = p
+
+  if (valorCredito <= 0 || prazoMeses <= 0 || taxaMensal <= 0) {
+    const vazio: ResultadoTabelaHE = {
+      primeiraParcela: 0,
+      ultimaParcela: 0,
+      parcelaMedia: 0,
+      rendaSugerida: 0,
+      cetMensal: 0,
+      cetAnual: 0,
+      totalPago: 0,
+    }
+    return {
+      principalFinanciado: 0,
+      iofValor: 0,
+      cacTotal: 0,
+      taxaMensal,
+      taxaAnual: Math.pow(1 + taxaMensal, 12) - 1,
+      price: vazio,
+      sac: vazio,
+    }
+  }
+
+  // CAC (custos embutidos) e gross-up do IOF no principal.
+  const cacTotal = c.taxaRegistro + valorCredito * c.estruturacaoPercentual
+  const iofRate = tipoPessoa === "PF" ? c.iofPF : c.iofPJ
+  const principalFinanciado = (valorCredito + cacTotal) / (1 - iofRate)
+  const iofValor = principalFinanciado - (valorCredito + cacTotal)
+
+  return {
+    principalFinanciado,
+    iofValor,
+    cacTotal,
+    taxaMensal,
+    taxaAnual: Math.pow(1 + taxaMensal, 12) - 1,
+    price: simularTabelaHE(principalFinanciado, valorImovel, taxaMensal, prazoMeses, "PRICE", c),
+    sac: simularTabelaHE(principalFinanciado, valorImovel, taxaMensal, prazoMeses, "SAC", c),
+  }
+}
+
+function stripUndefined<T extends object>(obj: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, v]) => v !== undefined)
+  ) as Partial<T>
 }

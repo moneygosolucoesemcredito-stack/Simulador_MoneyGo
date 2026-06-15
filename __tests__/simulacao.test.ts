@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { calcularPrice, calcularSAC, calcularSimulacao } from "@/lib/simulacao"
+import { calcularPrice, calcularSAC, calcularSimulacao, calcularHomeEquity } from "@/lib/simulacao"
 
 describe("calcularPrice", () => {
   it("calculates correct PMT for known values", () => {
@@ -44,5 +44,69 @@ describe("calcularSimulacao", () => {
     expect(result.primeira_parcela_sac).toBeGreaterThan(result.ultima_parcela_sac)
     expect(result.taxa_mensal).toBe(0.0119)
     expect(result.valor_total_price).toBeCloseTo(result.parcela_price * 180, 1)
+  })
+})
+
+describe("calcularHomeEquity (fiel à planilha Simulacao HE.xlsx)", () => {
+  // Cenário-base da planilha: crédito 2.750.000, imóvel 5.000.000, 1,09% a.m.,
+  // 240 meses, PJ (IOF 1,88%). Valores de referência extraídos da própria planilha.
+  const r = calcularHomeEquity({
+    valorCredito: 2_750_000,
+    valorImovel: 5_000_000,
+    prazoMeses: 240,
+    taxaMensal: 0.0109,
+    tipoPessoa: "PJ",
+  })
+
+  it("grossed-up principal matches the spreadsheet (C19)", () => {
+    expect(r.principalFinanciado).toBeCloseTo(2_949_959.23, 0)
+  })
+
+  it("IOF value matches the spreadsheet (L15)", () => {
+    expect(r.iofValor).toBeCloseTo(55_459.23, 0)
+  })
+
+  it("PRICE first installment with insurance matches the spreadsheet (Z13)", () => {
+    expect(r.price.primeiraParcela).toBeCloseTo(36_111.75, 0)
+  })
+
+  it("annual CET matches the spreadsheet (C21 = 14,5984%)", () => {
+    expect(r.price.cetAnual).toBeCloseTo(0.145984, 4)
+  })
+
+  it("annual effective rate compounds the monthly rate", () => {
+    expect(r.taxaAnual).toBeCloseTo(Math.pow(1.0109, 12) - 1, 6)
+  })
+
+  it("suggested income = first installment / 0.30", () => {
+    expect(r.price.rendaSugerida).toBeCloseTo(r.price.primeiraParcela / 0.3, 2)
+    expect(r.sac.rendaSugerida).toBeCloseTo(r.sac.primeiraParcela / 0.3, 2)
+  })
+
+  it("SAC first installment is greater than its last (decrescente)", () => {
+    expect(r.sac.primeiraParcela).toBeGreaterThan(r.sac.ultimaParcela)
+  })
+
+  it("PF carries a higher IOF than PJ", () => {
+    const pf = calcularHomeEquity({
+      valorCredito: 2_750_000,
+      valorImovel: 5_000_000,
+      prazoMeses: 240,
+      taxaMensal: 0.0109,
+      tipoPessoa: "PF",
+    })
+    expect(pf.iofValor).toBeGreaterThan(r.iofValor)
+  })
+
+  it("returns zeroed tables for invalid inputs", () => {
+    const z = calcularHomeEquity({
+      valorCredito: 0,
+      valorImovel: 0,
+      prazoMeses: 0,
+      taxaMensal: 0,
+      tipoPessoa: "PF",
+    })
+    expect(z.price.primeiraParcela).toBe(0)
+    expect(z.sac.primeiraParcela).toBe(0)
   })
 })

@@ -3,7 +3,7 @@
 import { useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { useFunnelStore } from "@/stores/funnel-store"
-import { calcularSimulacao, formatarMoeda, formatarPercentual } from "@/lib/simulacao"
+import { calcularPrice, formatarMoeda, formatarPercentual } from "@/lib/simulacao"
 import { CONFIG } from "@/lib/config"
 import { pushDataLayer } from "@/components/tracking/GTM"
 import { Info } from "lucide-react"
@@ -12,8 +12,8 @@ export function Step5Resultado({ onNext }: { onNext: () => void }) {
   const { autoEquity } = useFunnelStore()
   const { taxaMensal } = CONFIG.autoEquity
 
-  const resultado = useMemo(
-    () => calcularSimulacao(autoEquity.valor_solicitado, taxaMensal, autoEquity.prazo_meses),
+  const parcelaPrice = useMemo(
+    () => calcularPrice(autoEquity.valor_solicitado, taxaMensal, autoEquity.prazo_meses),
     [autoEquity.valor_solicitado, autoEquity.prazo_meses, taxaMensal]
   )
 
@@ -50,21 +50,9 @@ export function Step5Resultado({ onNext }: { onNext: () => void }) {
           <div>
             <p className="text-xs text-muted-foreground mb-1">Tabela Price (parcela fixa)</p>
             <p className="text-3xl font-bold text-[var(--gold)]">
-              {formatarMoeda(resultado.parcela_price)}
+              {formatarMoeda(parcelaPrice)}
               <span className="text-base font-normal text-muted-foreground">/mês</span>
             </p>
-          </div>
-
-          <div className="rounded-xl bg-muted/50 p-4 space-y-2 text-sm">
-            <p className="font-medium">Tabela SAC (amortização constante)</p>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">1ª parcela</span>
-              <span className="font-medium">{formatarMoeda(resultado.primeira_parcela_sac)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Última parcela</span>
-              <span className="font-medium">{formatarMoeda(resultado.ultima_parcela_sac)}</span>
-            </div>
           </div>
 
           <div className="flex justify-between text-sm">

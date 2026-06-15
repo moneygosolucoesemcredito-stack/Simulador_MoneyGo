@@ -1,15 +1,29 @@
 export const CONFIG = {
   homeEquity: {
-    taxaMensal: 0.0109,
+    taxaMensal: 0.0119,
     modalidadeTaxa: "pos_fixada" as const,
+    // Faixa de taxa selecionável pelo cliente (a.m., antes do IPCA)
+    taxaMinima: 0.0099,
+    taxaMaxima: 0.0199,
+    taxaPasso: 0.0001,
     valorImovelMinimo: 250_000,
+    valorImovelMaximo: 5_000_000,
     valorCreditoMinimo: 50_000,
     ltv: 0.55,
     saldoDevedorMaximoPercentual: 0.5,
-    mip: 0.00035,
-    dfi: 0.000065,
-    estruturacaoPercentual: 0.05,
-    iof: 0.0188,
+    // Seguros e encargos (espelham a planilha "Simulacao HE.xlsx")
+    mip: 0.00035, // sobre o saldo devedor, ao mês
+    dfi: 0.000065, // sobre o valor do imóvel, ao mês (imóvel até R$ 10mi)
+    dfiAcima10M: 0.000085, // imóvel acima de R$ 10mi
+    dfiLimiteImovel: 10_000_000.01,
+    txAdminMensal: 25, // R$ por mês (Gaia)
+    estruturacaoPercentual: 0.05, // sobre o valor do crédito
+    taxaRegistro: 7_000, // R$ fixo (CAC)
+    // IOF embutido no principal, por tipo de pessoa
+    iofPF: 0.0338,
+    iofPJ: 0.0188,
+    iof: 0.0188, // mantido por compatibilidade
+    comprometimentoRenda: 0.3, // renda sugerida = parcela / 0,30
     prazosDisponiveis: [60, 120, 180, 240],
     prazoDefault: 180,
     idadeMinima: 18,

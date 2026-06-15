@@ -21,12 +21,20 @@ export interface SimulacaoHomeEquity {
   tipo_imovel: TipoImovel
   situacao: SituacaoImovel
   saldo_devedor?: number
+  tipo_pessoa?: "PF" | "PJ"
   valor_solicitado: number
   prazo_meses: number
   parcela_price: number
   primeira_parcela_sac: number
   ultima_parcela_sac: number
   taxa_mensal: number
+  taxa_anual?: number
+  cet_anual_price?: number
+  cet_anual_sac?: number
+  primeira_parcela_price?: number
+  ultima_parcela_price?: number
+  renda_sugerida_price?: number
+  renda_sugerida_sac?: number
   modalidade_taxa: ModalidadeTaxa
 }
 

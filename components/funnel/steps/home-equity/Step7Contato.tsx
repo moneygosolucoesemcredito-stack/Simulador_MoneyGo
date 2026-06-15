@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { ContatoForm, type ContatoFormValues } from "@/components/funnel/ContatoForm"
 import { useFunnelStore } from "@/stores/funnel-store"
-import { calcularSimulacao } from "@/lib/simulacao"
+import { calcularHomeEquity } from "@/lib/simulacao"
 import { qualificarHomeEquity } from "@/lib/qualificacao"
 import { CONFIG } from "@/lib/config"
 import { trackLead } from "@/components/tracking/MetaPixel"
@@ -20,8 +20,16 @@ export function Step7Contato() {
   async function handleSubmit(formData: ContatoFormValues) {
     setLoading(true)
     try {
-      const { taxaMensal, modalidadeTaxa } = CONFIG.homeEquity
-      const resultado = calcularSimulacao(homeEquity.valor_solicitado, taxaMensal, homeEquity.prazo_meses)
+      const { modalidadeTaxa } = CONFIG.homeEquity
+      const taxaMensal = homeEquity.taxa_mensal || CONFIG.homeEquity.taxaMensal
+      const tipoPessoa = (homeEquity.tipo_pessoa || "PF") as "PF" | "PJ"
+      const resultado = calcularHomeEquity({
+        valorCredito: homeEquity.valor_solicitado,
+        valorImovel: homeEquity.valor_imovel,
+        prazoMeses: homeEquity.prazo_meses,
+        taxaMensal,
+        tipoPessoa,
+      })
 
       const { qualificado } = qualificarHomeEquity({
         valor_imovel: homeEquity.valor_imovel,
@@ -42,12 +50,20 @@ export function Step7Contato() {
           tipo_imovel: homeEquity.tipo_imovel as "casa",
           situacao: homeEquity.situacao as "quitado",
           saldo_devedor: homeEquity.saldo_devedor || undefined,
+          tipo_pessoa: tipoPessoa,
           valor_solicitado: homeEquity.valor_solicitado,
           prazo_meses: homeEquity.prazo_meses,
-          parcela_price: resultado.parcela_price,
-          primeira_parcela_sac: resultado.primeira_parcela_sac,
-          ultima_parcela_sac: resultado.ultima_parcela_sac,
+          parcela_price: resultado.price.primeiraParcela,
+          primeira_parcela_price: resultado.price.primeiraParcela,
+          ultima_parcela_price: resultado.price.ultimaParcela,
+          primeira_parcela_sac: resultado.sac.primeiraParcela,
+          ultima_parcela_sac: resultado.sac.ultimaParcela,
+          renda_sugerida_price: resultado.price.rendaSugerida,
+          renda_sugerida_sac: resultado.sac.rendaSugerida,
+          cet_anual_price: resultado.price.cetAnual,
+          cet_anual_sac: resultado.sac.cetAnual,
           taxa_mensal: taxaMensal,
+          taxa_anual: resultado.taxaAnual,
           modalidade_taxa: modalidadeTaxa,
         },
         contato: {

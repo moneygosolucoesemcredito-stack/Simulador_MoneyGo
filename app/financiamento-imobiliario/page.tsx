@@ -61,7 +61,7 @@ export default function FinanciamentoImobiliarioPage() {
       currentStep={step}
       totalSteps={TOTAL_STEPS}
       onBack={() => goTo(Math.max(1, step - 1))}
-      showBack={step > 1 && step < 6}
+      showBack={step > 1}
       produto="Financiamento Imobiliário"
     >
       <StepWrapper stepKey={step}>{content()}</StepWrapper>
