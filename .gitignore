@@ -40,3 +40,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# material de negócio / referência local (não versionar)
+/Bancos/
+*.xlsx
+/.claude/
