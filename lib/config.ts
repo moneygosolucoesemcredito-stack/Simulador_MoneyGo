@@ -83,3 +83,15 @@ export const CONFIG = {
     creditoConstrucaoStageId: Number(process.env.KOMMO_CONSTRUCAO_STAGE_ID ?? "0"),
   },
 } as const
+
+// Faixa de taxa (a.m., em fração) controlada pelo OPERADOR — nunca pelo cliente.
+// fixed:true  => campo somente leitura no valor `default` (ex.: Auto Equity 1,59%).
+// fixed:false => campo digitável, vazio por padrão, validado contra min/max.
+export const RATE_CONFIG = {
+  home_equity: { min: 0.0099, max: 0.0199, default: null, fixed: false },
+  financiamento_imobiliario: { min: 0.0099, max: 0.0199, default: null, fixed: false },
+  credito_construcao: { min: 0.0099, max: 0.0199, default: null, fixed: false },
+  auto_equity: { min: 0.0159, max: 0.0159, default: 0.0159, fixed: true },
+} as const
+
+export type ProdutoTaxa = keyof typeof RATE_CONFIG
