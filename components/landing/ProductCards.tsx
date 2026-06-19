@@ -129,7 +129,7 @@ export function ProductCards() {
                     </div>
 
                     <Link
-                      href={p.href}
+                      href={`/entrar?produto=${p.href.slice(1)}`}
                       className={cn(
                         buttonVariants(),
                         "w-full bg-[var(--gold)] text-[oklch(0.14_0_0)] hover:bg-[var(--gold-dark)] font-semibold"

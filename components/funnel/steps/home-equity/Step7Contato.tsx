@@ -87,7 +87,7 @@ export function Step7Contato() {
         consentimento_lgpd: true,
       }
 
-      const res = await fetch("/api/lead", {
+      const res = await fetch("/api/proposta", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

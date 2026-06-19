@@ -55,7 +55,7 @@ export function Hero() {
           transition={{ duration: 0.5, delay: 0.2 }}
         >
           <Link
-            href="/home-equity"
+            href="/entrar?produto=home-equity"
             className={cn(
               buttonVariants({ size: "lg" }),
               "h-13 px-8 text-base font-semibold bg-[var(--gold)] text-[oklch(0.14_0_0)] hover:bg-[var(--gold-dark)] shadow-lg shadow-[var(--gold)]/20"
@@ -65,7 +65,7 @@ export function Hero() {
             <ArrowRight className="w-4 h-4 ml-2" />
           </Link>
           <Link
-            href="/auto-equity"
+            href="/entrar?produto=auto-equity"
             className={cn(
               buttonVariants({ variant: "outline", size: "lg" }),
               "h-13 px-8 text-base font-semibold border-white/30 text-white bg-white/5 hover:bg-white/10"

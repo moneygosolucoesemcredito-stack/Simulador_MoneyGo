@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { useFunnelStore } from "@/stores/funnel-store"
 import {
   calcularHomeEquity,
@@ -10,19 +11,20 @@ import {
   formatarPercentualAnual,
   type ResultadoTabelaHE,
 } from "@/lib/simulacao"
-import { CONFIG } from "@/lib/config"
+import { parseTaxaPercent, taxaDentroFaixa, taxaParaPercentStr, descricaoFaixa } from "@/lib/taxa"
 import { pushDataLayer } from "@/components/tracking/GTM"
-import { cn } from "@/lib/utils"
-import { Info, Zap, Flag, Wallet, Clock, Layers, Percent, CalendarDays } from "lucide-react"
-
-const { taxaMinima, taxaMaxima, taxaPasso } = CONFIG.homeEquity
-
-// Opções de taxa em incrementos de 0,10 p.p. (0,99% … 1,99%)
-const PASSO_CHIP = 0.001
-const TAXAS = Array.from(
-  { length: Math.round((taxaMaxima - taxaMinima) / PASSO_CHIP) + 1 },
-  (_, idx) => Number((taxaMinima + idx * PASSO_CHIP).toFixed(4))
-)
+import {
+  Info,
+  Zap,
+  Flag,
+  Wallet,
+  Clock,
+  Layers,
+  Percent,
+  CalendarDays,
+  Lock,
+  Download,
+} from "lucide-react"
 
 const LINHAS: { key: keyof ResultadoTabelaHE; label: string; icon: typeof Zap; tipo: "moeda" | "anual" }[] = [
   { key: "primeiraParcela", label: "Primeira parcela aprox.", icon: Zap, tipo: "moeda" },
@@ -34,7 +36,22 @@ const LINHAS: { key: keyof ResultadoTabelaHE; label: string; icon: typeof Zap; t
 
 export function Step6Resultado({ onNext }: { onNext: () => void }) {
   const { homeEquity, setHomeEquity } = useFunnelStore()
-  const [taxa, setTaxa] = useState<number | null>(homeEquity.taxa_mensal || null)
+  const modoCliente = homeEquity.modo === "cliente"
+
+  // No modo operador a taxa é digitada aqui; no modo cliente vem travada da URL.
+  const [taxaRaw, setTaxaRaw] = useState(
+    homeEquity.taxa_mensal ? taxaParaPercentStr(homeEquity.taxa_mensal) : ""
+  )
+  const [baixando, setBaixando] = useState(false)
+
+  const taxaDigitada = parseTaxaPercent(taxaRaw)
+  const digitadaValida = taxaDigitada != null && taxaDentroFaixa(taxaDigitada, "home_equity")
+  const taxa = modoCliente
+    ? homeEquity.taxa_mensal || null
+    : digitadaValida
+      ? taxaDigitada
+      : null
+  const foraDaFaixa = !modoCliente && taxaRaw.trim() !== "" && !digitadaValida
 
   const resultado = useMemo(() => {
     if (!taxa) return null
@@ -47,16 +64,38 @@ export function Step6Resultado({ onNext }: { onNext: () => void }) {
     })
   }, [taxa, homeEquity.valor_solicitado, homeEquity.valor_imovel, homeEquity.prazo_meses, homeEquity.tipo_pessoa])
 
-  function selecionarTaxa(t: number) {
-    setTaxa(t)
-    setHomeEquity({ taxa_mensal: t })
-    pushDataLayer("step_interaction", { funil: "home_equity", step: 6, taxa_mensal: t })
+  function handleTaxaInput(valor: string) {
+    setTaxaRaw(valor)
+    const fracao = parseTaxaPercent(valor)
+    if (fracao != null && taxaDentroFaixa(fracao, "home_equity")) {
+      setHomeEquity({ taxa_mensal: fracao })
+      pushDataLayer("step_interaction", { funil: "home_equity", step: 6, taxa_mensal: fracao })
+    } else {
+      setHomeEquity({ taxa_mensal: 0 })
+    }
   }
 
   function handleNext() {
     if (!taxa) return
     pushDataLayer("step_completed", { funil: "home_equity", step: 6, taxa_mensal: taxa })
     onNext()
+  }
+
+  async function handleBaixarPdf() {
+    if (!resultado) return
+    setBaixando(true)
+    try {
+      const { gerarPdfHomeEquity } = await import("@/lib/pdf-home-equity")
+      gerarPdfHomeEquity(resultado, {
+        valorCredito: homeEquity.valor_solicitado,
+        valorImovel: homeEquity.valor_imovel,
+        prazoMeses: homeEquity.prazo_meses,
+        tomador: (homeEquity.tipo_pessoa || "PF") as "PF" | "PJ",
+      })
+      pushDataLayer("pdf_download", { funil: "home_equity", taxa_mensal: taxa })
+    } finally {
+      setBaixando(false)
+    }
   }
 
   function valorCelula(col: ResultadoTabelaHE, linha: (typeof LINHAS)[number]) {
@@ -69,7 +108,9 @@ export function Step6Resultado({ onNext }: { onNext: () => void }) {
       <div className="space-y-2">
         <h2 className="text-2xl font-bold tracking-tight">Sua simulação está pronta!</h2>
         <p className="text-muted-foreground text-sm">
-          Escolha a taxa de juros para ver as condições nas tabelas SAC e PRICE.
+          {modoCliente
+            ? "Confira as condições nas tabelas SAC e PRICE."
+            : "Informe a taxa de juros para ver as condições nas tabelas SAC e PRICE."}
         </p>
       </div>
 
@@ -87,43 +128,51 @@ export function Step6Resultado({ onNext }: { onNext: () => void }) {
         ))}
       </div>
 
-      {/* Seletor de taxa */}
-      <div className="space-y-3">
+      {/* Taxa de juros */}
+      <div className="space-y-2">
         <div className="flex items-baseline justify-between">
           <p className="text-sm font-medium">Taxa de juros (a.m.)</p>
-          {taxa ? (
-            <p className="text-sm font-semibold text-[var(--gold-dark)]">
-              {formatarPercentual(taxa)} + IPCA
+          {resultado && (
+            <p className="text-xs text-muted-foreground">
+              Equivale a{" "}
+              <span className="font-medium text-foreground">
+                {formatarPercentualAnual(resultado.taxaAnual)} + IPCA
+              </span>
             </p>
-          ) : (
-            <p className="text-xs text-muted-foreground">Selecione abaixo</p>
           )}
         </div>
-        <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
-          {TAXAS.map((t) => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => selecionarTaxa(t)}
-              className={cn(
-                "rounded-lg border-2 py-2 text-xs font-semibold tabular-nums transition-all",
-                taxa === t
-                  ? "border-[var(--gold)] bg-[var(--gold)]/10 text-foreground"
-                  : "border-border text-muted-foreground hover:border-[var(--gold)]/50"
-              )}
-            >
-              {(t * 100).toFixed(2).replace(".", ",")}
-            </button>
-          ))}
-        </div>
-        {resultado && (
-          <p className="text-xs text-muted-foreground">
-            Equivale a{" "}
-            <span className="font-medium text-foreground">
-              {formatarPercentualAnual(resultado.taxaAnual)} + IPCA
-            </span>{" "}
-            (taxa efetiva anual).
-          </p>
+
+        {modoCliente ? (
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2.5">
+            <Lock className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span className="text-sm font-semibold tabular-nums">
+              {taxa ? `${formatarPercentual(taxa)} + IPCA` : "Taxa não informada"}
+            </span>
+            <span className="ml-auto text-[11px] text-muted-foreground">
+              {homeEquity.taxa_indicativa ? "taxa indicativa" : "definida pelo consultor"}
+            </span>
+          </div>
+        ) : (
+          <div className="space-y-1">
+            <div className="relative">
+              <Input
+                inputMode="decimal"
+                placeholder="Ex.: 1,35"
+                value={taxaRaw}
+                onChange={(e) => handleTaxaInput(e.target.value)}
+                aria-invalid={foraDaFaixa}
+                className="h-11 pr-16 text-base"
+              />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                % a.m.
+              </span>
+            </div>
+            <p className={foraDaFaixa ? "text-xs text-destructive" : "text-xs text-muted-foreground"}>
+              {foraDaFaixa
+                ? `Taxa fora da faixa permitida. ${descricaoFaixa("home_equity")}`
+                : descricaoFaixa("home_equity")}
+            </p>
+          </div>
         )}
       </div>
 
@@ -185,8 +234,23 @@ export function Step6Resultado({ onNext }: { onNext: () => void }) {
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-8 text-center text-sm text-muted-foreground">
-          Selecione uma taxa acima para visualizar as parcelas nas tabelas SAC e PRICE.
+          {modoCliente
+            ? "Aguardando a taxa definida pelo consultor."
+            : "Informe uma taxa válida acima para visualizar as parcelas nas tabelas SAC e PRICE."}
         </div>
+      )}
+
+      {resultado && (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleBaixarPdf}
+          disabled={baixando}
+          className="w-full h-11 font-medium"
+        >
+          <Download className="h-4 w-4 mr-2" />
+          {baixando ? "Gerando PDF…" : "Baixar PDF (SAC e PRICE)"}
+        </Button>
       )}
 
       <div className="flex gap-2 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
@@ -202,7 +266,7 @@ export function Step6Resultado({ onNext }: { onNext: () => void }) {
         disabled={!taxa}
         className="w-full h-12 text-base font-semibold bg-[var(--gold)] text-[oklch(0.14_0_0)] hover:bg-[var(--gold-dark)] disabled:opacity-50"
       >
-        Quero falar com um especialista
+        {modoCliente ? "Subir proposta" : "Quero falar com um especialista"}
       </Button>
     </div>
   )

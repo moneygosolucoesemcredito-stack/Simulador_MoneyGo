@@ -20,8 +20,12 @@ export interface HomeEquityState {
   uf: string
   valor_solicitado: number
   prazo_meses: number
-  /** taxa a.m. escolhida pelo cliente (0 = ainda não selecionada) */
+  /** taxa a.m. (fração) definida pelo OPERADOR (0 = ainda não definida) */
   taxa_mensal: number
+  /** operador: digita a taxa e simula | cliente: abre link com taxa travada */
+  modo: "operador" | "cliente"
+  /** true quando a taxa é apenas indicativa (cliente público, sem link de operador) */
+  taxa_indicativa: boolean
 }
 
 export interface AutoEquityState {
@@ -100,6 +104,8 @@ const defaultHomeEquity: HomeEquityState = {
   valor_solicitado: 150_000,
   prazo_meses: 180,
   taxa_mensal: 0,
+  modo: "operador",
+  taxa_indicativa: false,
 }
 
 const defaultAutoEquity: AutoEquityState = {
