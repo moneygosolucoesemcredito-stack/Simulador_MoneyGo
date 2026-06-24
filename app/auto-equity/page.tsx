@@ -5,14 +5,16 @@ import { FunnelShell } from "@/components/funnel/FunnelShell"
 import { StepWrapper } from "@/components/funnel/StepWrapper"
 import { useFunnelStore } from "@/stores/funnel-store"
 import { Step1VeiculoInfo } from "@/components/funnel/steps/auto-equity/Step1VeiculoInfo"
-import { Step2ValorVeiculo } from "@/components/funnel/steps/auto-equity/Step2ValorVeiculo"
 import { Step3Situacao } from "@/components/funnel/steps/auto-equity/Step3Situacao"
 import { Step4ValorDesejado } from "@/components/funnel/steps/auto-equity/Step4ValorDesejado"
 import { Step5Resultado } from "@/components/funnel/steps/auto-equity/Step5Resultado"
 import { Step6Contato } from "@/components/funnel/steps/auto-equity/Step6Contato"
 import { pushDataLayer } from "@/components/tracking/GTM"
 
-const TOTAL_STEPS = 6
+// Step 1 (dados do veículo via placa/FIPE) já define o valor FIPE — por isso
+// não há mais o passo de slider de valor do veículo. Os nomes Step3..Step6 são
+// históricos; aqui eles ocupam os passos 2..5.
+const TOTAL_STEPS = 5
 
 export default function AutoEquityPage() {
   const { autoEquity, setAutoEquity } = useFunnelStore()
@@ -31,14 +33,12 @@ export default function AutoEquityPage() {
       case 1:
         return <Step1VeiculoInfo onNext={() => goTo(2)} />
       case 2:
-        return <Step2ValorVeiculo onNext={() => goTo(3)} />
+        return <Step3Situacao onNext={() => goTo(3)} />
       case 3:
-        return <Step3Situacao onNext={() => goTo(4)} />
+        return <Step4ValorDesejado onNext={() => goTo(4)} />
       case 4:
-        return <Step4ValorDesejado onNext={() => goTo(5)} />
+        return <Step5Resultado onNext={() => goTo(5)} />
       case 5:
-        return <Step5Resultado onNext={() => goTo(6)} />
-      case 6:
         return <Step6Contato />
       default:
         return null

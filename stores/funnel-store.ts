@@ -33,6 +33,14 @@ export interface AutoEquityState {
   marca_modelo_ano: string
   ano_veiculo: number
   valor_veiculo: number
+  /** Placa consultada (quando o usuário escolheu "tenho a placa"). */
+  placa: string
+  /** Combustível (FIPE/placa): Gasolina, Álcool, Flex, Diesel… */
+  combustivel: string
+  /** Potência/cilindradas, quando a API de placa retorna. */
+  potencia: string
+  /** Código FIPE do veículo (rastreabilidade). */
+  fipe_codigo: string
   situacao: string
   valor_solicitado: number
   prazo_meses: number
@@ -113,6 +121,10 @@ const defaultAutoEquity: AutoEquityState = {
   marca_modelo_ano: "",
   ano_veiculo: new Date().getFullYear() - 2,
   valor_veiculo: 80_000,
+  placa: "",
+  combustivel: "",
+  potencia: "",
+  fipe_codigo: "",
   situacao: "",
   valor_solicitado: 30_000,
   prazo_meses: 36,
