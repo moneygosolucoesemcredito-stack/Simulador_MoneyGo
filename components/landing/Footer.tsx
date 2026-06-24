@@ -1,5 +1,6 @@
 import Link from "next/link"
 import Image from "next/image"
+import { BRAND } from "@/lib/brand"
 
 function InstagramIcon({ className }: { className?: string }) {
   return (
@@ -26,39 +27,28 @@ function WhatsAppIcon({ className }: { className?: string }) {
 }
 
 const SOCIAIS = [
-  {
-    nome: "Instagram",
-    href: "https://www.instagram.com/moneygo_assessoria",
-    Icon: InstagramIcon,
-  },
-  {
-    nome: "WhatsApp",
-    href: "https://wa.me/5547997890220",
-    Icon: WhatsAppIcon,
-  },
-  {
-    nome: "Facebook",
-    href: "https://www.facebook.com/profile.php?id=61565547202356",
-    Icon: FacebookIcon,
-  },
-]
+  { nome: "Instagram", href: BRAND.social.instagram, Icon: InstagramIcon },
+  { nome: "WhatsApp", href: BRAND.social.whatsapp, Icon: WhatsAppIcon },
+  { nome: "Facebook", href: BRAND.social.facebook, Icon: FacebookIcon },
+].filter((s): s is { nome: string; href: string; Icon: typeof InstagramIcon } => Boolean(s.href))
 
 export function Footer() {
   return (
-    <footer className="bg-[oklch(0.14_0_0)] text-white/70 pt-12 pb-8 px-4">
+    <footer className="bg-[var(--ink)] text-white/70 pt-12 pb-8 px-4">
       <div className="max-w-4xl mx-auto space-y-8">
         <div className="grid sm:grid-cols-3 gap-8">
           {/* Brand */}
           <div className="space-y-3">
             <Image
-              src="/logo-full-white.png"
-              alt="MoneyGo Soluções em Crédito"
-              width={1024}
-              height={324}
+              src={BRAND.logos.fullWhite}
+              alt={BRAND.fullName}
+              width={BRAND.logos.width}
+              height={BRAND.logos.height}
+              unoptimized
               className="h-10 w-auto"
             />
             <p className="text-xs leading-relaxed">
-              Assessoria financeira em concessão de crédito no varejo e no atacado.
+              {BRAND.tagline}
             </p>
           </div>
 
@@ -99,8 +89,8 @@ export function Footer() {
         <div className="border-t border-white/10 pt-6 space-y-3 text-xs leading-relaxed">
           <p>
             Essa plataforma pertence à{" "}
-            <strong className="text-white/80">MONEYGO SOLUCOES EM CREDITO LTDA</strong>{" "}
-            | CNPJ: 62.682.074/0001-02. Atuamos como assessoria financeira em concessão
+            <strong className="text-white/80">{BRAND.legalName}</strong>{" "}
+            | CNPJ: {BRAND.cnpj}. Atuamos como assessoria financeira em concessão
             de crédito no varejo e no atacado.
           </p>
           <p>
@@ -110,7 +100,7 @@ export function Footer() {
             necessidade de aviso prévio.
           </p>
           <p className="text-white/30 pt-2">
-            © {new Date().getFullYear()} MoneyGo Soluções em Crédito. Todos os direitos reservados.
+            © {new Date().getFullYear()} {BRAND.fullName}. Todos os direitos reservados.
           </p>
         </div>
       </div>

@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion"
 import { ClipboardList, Calculator, UserCheck, CheckCircle } from "lucide-react"
+import { BRAND } from "@/lib/brand"
 
 const etapas = [
   {
@@ -23,7 +24,7 @@ const etapas = [
     numero: "03",
     titulo: "Fale com um especialista",
     descricao:
-      "Um consultor MoneyGo entra em contato no horário que você escolher para apresentar as melhores condições.",
+      `Um consultor ${BRAND.name} entra em contato no horário que você escolher para apresentar as melhores condições.`,
   },
   {
     icon: CheckCircle,

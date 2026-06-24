@@ -6,6 +6,7 @@ import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Building2, Car, Home, HardHat, UserCog, UserRound, ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { BRAND } from "@/lib/brand"
 
 const PRODUTOS = [
   { id: "home-equity", rota: "/home-equity", titulo: "Home Equity", sub: "Garantia de imóvel", icon: Building2 },
@@ -69,7 +70,7 @@ function Portaria() {
               <UserCog className="w-6 h-6 text-foreground" />
             </div>
             <div className="min-w-0">
-              <span className="block font-semibold">Sou consultor MoneyGo</span>
+              <span className="block font-semibold">Sou Parceiro {BRAND.name}</span>
               <span className="block text-xs text-muted-foreground">
                 Acesse para definir a taxa e gerar links
               </span>
@@ -122,10 +123,11 @@ export default function EntrarPage() {
         <div className="max-w-md mx-auto px-4 h-14 flex items-center">
           <Link href="/" className="shrink-0">
             <Image
-              src="/logo-full.png"
-              alt="MoneyGo Soluções em Crédito"
-              width={1024}
-              height={324}
+              src={BRAND.logos.full}
+              alt={BRAND.fullName}
+              width={BRAND.logos.width}
+              height={BRAND.logos.height}
+              unoptimized
               priority
               className="h-12 w-auto"
             />

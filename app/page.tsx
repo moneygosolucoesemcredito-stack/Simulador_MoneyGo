@@ -6,6 +6,7 @@ import { Faq } from "@/components/landing/Faq"
 import { Footer } from "@/components/landing/Footer"
 import Image from "next/image"
 import Link from "next/link"
+import { BRAND } from "@/lib/brand"
 
 export default function HomePage() {
   return (
@@ -14,10 +15,11 @@ export default function HomePage() {
       <header className="absolute top-0 left-0 right-0 z-20 px-4 h-16 sm:h-20 flex items-center justify-between max-w-5xl mx-auto w-full">
         <Link href="/" className="shrink-0">
           <Image
-            src="/logo-full.png"
-            alt="MoneyGo Soluções em Crédito"
-            width={1024}
-            height={324}
+            src={BRAND.logos.fullWhite}
+            alt={BRAND.fullName}
+            width={BRAND.logos.width}
+            height={BRAND.logos.height}
+              unoptimized
             priority
             className="h-9 w-auto sm:h-11"
           />

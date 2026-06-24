@@ -6,6 +6,7 @@ import { GTMScript } from "@/components/tracking/GTM"
 import { MetaPixelScript } from "@/components/tracking/MetaPixel"
 import { UTMCapture } from "@/components/tracking/UTMCapture"
 import { CookieBanner } from "@/components/CookieBanner"
+import { BRAND } from "@/lib/brand"
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -14,18 +15,17 @@ const montserrat = Montserrat({
 })
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL ?? "https://www.moneygosolucoesemcredito.com.br"),
-  title: "MoneyGo — Simule seu Crédito com Garantia",
-  description:
-    "Simule crédito com garantia de imóvel (Home Equity) ou veículo (Auto Equity) de forma rápida e gratuita. As melhores taxas para você.",
-  keywords: ["crédito com garantia", "home equity", "auto equity", "simulação de crédito"],
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL ?? BRAND.url),
+  title: BRAND.seo.title,
+  description: BRAND.seo.description,
+  keywords: BRAND.seo.keywords,
+  icons: { icon: BRAND.logos.favicon },
   openGraph: {
-    title: "MoneyGo Soluções em Crédito — Simule Grátis",
-    description:
-      "Crédito com garantia de imóvel ou veículo. Simule agora e fale com um especialista.",
-    url: "https://www.moneygosolucoesemcredito.com.br",
-    siteName: "MoneyGo Soluções em Crédito",
-    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+    title: BRAND.seo.ogTitle,
+    description: BRAND.seo.ogDescription,
+    url: BRAND.url,
+    siteName: BRAND.seo.siteName,
+    images: [{ url: BRAND.seo.ogImage, width: 1200, height: 630 }],
     locale: "pt_BR",
     type: "website",
   },
@@ -35,7 +35,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pt-BR" className={`${montserrat.variable} h-full`}>
+    <html lang="pt-BR" data-brand={BRAND.id} className={`${montserrat.variable} h-full`}>
       <head>
         <GTMScript />
         <MetaPixelScript />

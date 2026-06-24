@@ -98,7 +98,7 @@ export function Step4Localizacao({ onNext, onNaoQualificado }: { onNext: () => v
       <Button
         onClick={handleNext}
         disabled={!canProceed}
-        className="w-full h-12 text-base font-semibold bg-[var(--gold)] text-[oklch(0.14_0_0)] hover:bg-[var(--gold-dark)]"
+        className="w-full h-12 text-base font-semibold bg-[var(--gold)] text-[var(--gold-foreground)] hover:bg-[var(--gold-dark)]"
       >
         {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Continuar"}
       </Button>

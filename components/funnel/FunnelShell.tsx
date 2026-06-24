@@ -4,6 +4,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { ArrowLeft } from "lucide-react"
 import { ProgressBar } from "./ProgressBar"
+import { BRAND } from "@/lib/brand"
 
 interface FunnelShellProps {
   currentStep: number
@@ -29,10 +30,11 @@ export function FunnelShell({
         <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/" className="shrink-0">
             <Image
-              src="/logo-full.png"
-              alt="MoneyGo Soluções em Crédito"
-              width={1024}
-              height={324}
+              src={BRAND.logos.full}
+              alt={BRAND.fullName}
+              width={BRAND.logos.width}
+              height={BRAND.logos.height}
+              unoptimized
               priority
               className="h-12 w-auto"
             />

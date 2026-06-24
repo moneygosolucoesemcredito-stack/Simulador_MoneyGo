@@ -264,7 +264,7 @@ export function Step6Resultado({ onNext }: { onNext: () => void }) {
       <Button
         onClick={handleNext}
         disabled={!taxa}
-        className="w-full h-12 text-base font-semibold bg-[var(--gold)] text-[oklch(0.14_0_0)] hover:bg-[var(--gold-dark)] disabled:opacity-50"
+        className="w-full h-12 text-base font-semibold bg-[var(--gold)] text-[var(--gold-foreground)] hover:bg-[var(--gold-dark)] disabled:opacity-50"
       >
         {modoCliente ? "Subir proposta" : "Quero falar com um especialista"}
       </Button>

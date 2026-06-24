@@ -94,7 +94,7 @@ export function ProductCards() {
                   }`}
                 >
                   {p.destaque && (
-                    <div className="bg-[var(--gold)] text-[oklch(0.14_0_0)] text-xs font-semibold text-center py-1.5 rounded-t-lg tracking-wide">
+                    <div className="bg-[var(--gold)] text-[var(--gold-foreground)] text-xs font-semibold text-center py-1.5 rounded-t-lg tracking-wide">
                       MAIS PROCURADO
                     </div>
                   )}
@@ -132,7 +132,7 @@ export function ProductCards() {
                       href={`/entrar?produto=${p.href.slice(1)}`}
                       className={cn(
                         buttonVariants(),
-                        "w-full bg-[var(--gold)] text-[oklch(0.14_0_0)] hover:bg-[var(--gold-dark)] font-semibold"
+                        "w-full bg-[var(--gold)] text-[var(--gold-foreground)] hover:bg-[var(--gold-dark)] font-semibold"
                       )}
                     >
                       Simular grátis <ArrowRight className="w-4 h-4 ml-1.5" />

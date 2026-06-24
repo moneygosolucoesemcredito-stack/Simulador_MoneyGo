@@ -12,6 +12,7 @@ import { Loader2 } from "lucide-react"
 import { useState } from "react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import { BRAND } from "@/lib/brand"
 
 function validarCPF(cpf: string): boolean {
   const digits = cpf.replace(/\D/g, "")
@@ -249,7 +250,7 @@ export function ContatoForm({ onSubmit, loading = false }: ContatoFormProps) {
             <Link href="/privacidade" target="_blank" className="underline text-foreground">
               Política de Privacidade
             </Link>{" "}
-            da MoneyGo Soluções em Crédito, para fins de simulação e contato comercial.
+            da {BRAND.fullName}, para fins de simulação e contato comercial.
           </span>
         </label>
         {errors.consentimento_lgpd && (
@@ -260,7 +261,7 @@ export function ContatoForm({ onSubmit, loading = false }: ContatoFormProps) {
       <Button
         type="submit"
         disabled={loading}
-        className="w-full h-12 text-base font-semibold bg-[var(--gold)] text-[oklch(0.14_0_0)] hover:bg-[var(--gold-dark)]"
+        className="w-full h-12 text-base font-semibold bg-[var(--gold)] text-[var(--gold-foreground)] hover:bg-[var(--gold-dark)]"
       >
         {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Enviar e falar com especialista"}
       </Button>

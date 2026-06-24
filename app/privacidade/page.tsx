@@ -1,9 +1,10 @@
 import Link from "next/link"
 import Image from "next/image"
 import { ArrowLeft } from "lucide-react"
+import { BRAND } from "@/lib/brand"
 
 export const metadata = {
-  title: "Política de Privacidade — MoneyGo Soluções em Crédito",
+  title: `Política de Privacidade — ${BRAND.fullName}`,
 }
 
 export default function PrivacidadePage() {
@@ -17,14 +18,15 @@ export default function PrivacidadePage() {
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-10 prose prose-sm prose-zinc max-w-none">
-        <Image src="/logo.svg" alt="MoneyGo" width={120} height={34} className="mb-8" />
+        <Image src={BRAND.logos.mark} alt={BRAND.name} width={BRAND.logos.width} height={BRAND.logos.height}
+              unoptimized className="h-9 w-auto mb-8" />
 
         <h1>Política de Privacidade</h1>
         <p><strong>Última atualização:</strong> {new Date().toLocaleDateString("pt-BR")}</p>
 
         <h2>1. Quem somos</h2>
         <p>
-          A <strong>MoneyGo Soluções em Crédito</strong> ({"TODO: CNPJ 00.000.000/0001-00"}),
+          A <strong>{BRAND.fullName}</strong> (CNPJ {BRAND.cnpj}),
           correspondente bancário multibanco, é responsável pelo tratamento dos dados pessoais
           coletados neste site.
         </p>
@@ -57,7 +59,7 @@ export default function PrivacidadePage() {
         <p>
           Conforme a Lei Geral de Proteção de Dados (Lei nº 13.709/2018), você tem direito a:
           acessar, corrigir, deletar, portar seus dados e revogar o consentimento a qualquer
-          momento. Entre em contato: <strong>{"TODO: privacidade@moneygo.com.br"}</strong>.
+          momento. Entre em contato: <strong>{BRAND.contact.email}</strong>.
         </p>
 
         <h2>6. Cookies</h2>
@@ -77,7 +79,7 @@ export default function PrivacidadePage() {
         <h2>8. Contato</h2>
         <p>
           Dúvidas sobre privacidade? Fale com nosso Encarregado de Dados (DPO):{" "}
-          <strong>{"TODO: privacidade@moneygo.com.br"}</strong>
+          <strong>{BRAND.contact.email}</strong>
         </p>
       </main>
     </div>

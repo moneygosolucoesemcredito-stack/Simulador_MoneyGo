@@ -44,9 +44,13 @@
 }
 
 :root {
-  /* MoneyGo Brand — Dourado/Preto/Branco */
-  --gold: oklch(0.72 0.13 80);
-  --gold-dark: oklch(0.60 0.12 75);
+  /* MoneyGo Brand — Dourado/Preto/Branco (marca default) */
+  /* Tokens semânticos de marca — sobrescritos por marca via [data-brand]. */
+  --gold: oklch(0.72 0.13 80);            /* accent / CTA */
+  --gold-dark: oklch(0.60 0.12 75);       /* accent hover */
+  --gold-foreground: oklch(0.14 0 0);     /* texto/ícone sobre o accent */
+  --ink: oklch(0.14 0 0);                 /* superfície escura da marca (hero/footer) */
+  --ink-foreground: oklch(1 0 0);         /* texto sobre a superfície escura */
 
   /* shadcn tokens remapped to MoneyGo palette */
   --background: oklch(1 0 0);
@@ -78,6 +82,23 @@
   --sidebar-ring: oklch(0.72 0.13 80);
 }
 
+/* Capita Max Brand — Azul/Laranja/Branco. Só sobrescreve os tokens de marca;
+   a paleta neutra (background/foreground/border…) é compartilhada. */
+[data-brand="capitamax"] {
+  --gold: #ef900e;            /* laranja — accent / CTA */
+  --gold-dark: #d97e0a;       /* laranja escuro — hover */
+  --gold-foreground: #ffffff; /* texto branco sobre o laranja */
+  --ink: #084988;             /* azul escuro — superfície escura da marca */
+
+  --primary: #ef900e;
+  --primary-foreground: #ffffff;
+  --accent: oklch(0.96 0.03 60);
+  --ring: #ef900e;
+  --sidebar-primary: #ef900e;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-ring: #ef900e;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -95,6 +116,6 @@
     text-wrap: balance;
   }
   .btn-gold {
-    @apply bg-[var(--gold)] text-[oklch(0.14_0_0)] font-semibold hover:bg-[var(--gold-dark)] transition-colors;
+    @apply bg-[var(--gold)] text-[var(--gold-foreground)] font-semibold hover:bg-[var(--gold-dark)] transition-colors;
   }
 }

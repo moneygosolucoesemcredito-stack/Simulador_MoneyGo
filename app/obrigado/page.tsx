@@ -3,18 +3,25 @@ import Image from "next/image"
 import { CheckCircle, MessageCircle } from "lucide-react"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { BRAND } from "@/lib/brand"
 
 export default function ObrigadoPage() {
+  const waHref = BRAND.contact.whatsapp
+    ? `https://wa.me/${BRAND.contact.whatsapp}?text=${encodeURIComponent(
+        `Olá! Acabei de simular meu crédito no site da ${BRAND.name}.`
+      )}`
+    : "/"
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-12">
       <div className="max-w-md w-full text-center space-y-6">
         <Link href="/">
           <Image
-            src="/logo.svg"
-            alt="MoneyGo"
-            width={130}
-            height={36}
-            className="mx-auto mb-4"
+            src={BRAND.logos.mark}
+            alt={BRAND.name}
+            width={BRAND.logos.width}
+            height={BRAND.logos.height}
+              unoptimized
+            className="h-9 w-auto mx-auto mb-4"
           />
         </Link>
 
@@ -27,7 +34,7 @@ export default function ObrigadoPage() {
             Solicitação recebida!
           </h1>
           <p className="text-muted-foreground">
-            Seu pedido foi registrado com sucesso. Um especialista MoneyGo entrará
+            Seu pedido foi registrado com sucesso. Um especialista {BRAND.name} entrará
             em contato no horário que você escolheu para apresentar as melhores
             condições do mercado.
           </p>
@@ -45,13 +52,12 @@ export default function ObrigadoPage() {
 
         <div className="flex flex-col gap-3">
           <a
-            href="https://wa.me/5547999999999?text=Olá! Acabei de simular meu crédito no site da MoneyGo."
+            href={waHref}
             target="_blank"
             rel="noopener noreferrer"
-            className={cn(buttonVariants(), "bg-[var(--gold)] text-[oklch(0.14_0_0)] hover:bg-[var(--gold-dark)] font-semibold h-12")}
+            className={cn(buttonVariants(), "bg-[var(--gold)] text-[var(--gold-foreground)] hover:bg-[var(--gold-dark)] font-semibold h-12")}
           >
             <MessageCircle className="w-4 h-4 mr-2" />
-            {/* TODO: substituir número do WhatsApp */}
             Fale pelo WhatsApp agora
           </a>
           <Link href="/" className={cn(buttonVariants({ variant: "ghost" }), "text-muted-foreground")}>

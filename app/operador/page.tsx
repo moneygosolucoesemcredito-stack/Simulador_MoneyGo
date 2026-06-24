@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { criarSupabaseBrowser } from "@/lib/supabase/client"
 import { parseTaxaPercent, taxaDentroFaixa, taxaParaPercentStr, descricaoFaixa } from "@/lib/taxa"
+import { BRAND } from "@/lib/brand"
 
 type TipoPessoa = "PF" | "PJ"
 type FormaOfertar = "simular" | "link"
@@ -96,10 +97,11 @@ export default function OperadorPage() {
         <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/" className="shrink-0">
             <Image
-              src="/logo-full.png"
-              alt="MoneyGo Soluções em Crédito"
-              width={1024}
-              height={324}
+              src={BRAND.logos.full}
+              alt={BRAND.fullName}
+              width={BRAND.logos.width}
+              height={BRAND.logos.height}
+              unoptimized
               priority
               className="h-12 w-auto"
             />
@@ -233,7 +235,7 @@ export default function OperadorPage() {
           <Button
             onClick={iniciarSimulacao}
             disabled={!produto || !pessoa}
-            className="w-full h-12 text-base font-semibold bg-[var(--gold)] text-[oklch(0.14_0_0)] hover:bg-[var(--gold-dark)] disabled:opacity-50"
+            className="w-full h-12 text-base font-semibold bg-[var(--gold)] text-[var(--gold-foreground)] hover:bg-[var(--gold-dark)] disabled:opacity-50"
           >
             Iniciar simulação <ArrowRight className="w-4 h-4 ml-1.5" />
           </Button>
@@ -267,7 +269,7 @@ export default function OperadorPage() {
             <Button
               onClick={gerarLink}
               disabled={!produto || !pessoa || !taxaValida}
-              className="w-full h-11 font-semibold bg-[var(--gold)] text-[oklch(0.14_0_0)] hover:bg-[var(--gold-dark)] disabled:opacity-50"
+              className="w-full h-11 font-semibold bg-[var(--gold)] text-[var(--gold-foreground)] hover:bg-[var(--gold-dark)] disabled:opacity-50"
             >
               <Share2 className="w-4 h-4 mr-2" /> Gerar link do cliente
             </Button>

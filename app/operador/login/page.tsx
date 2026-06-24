@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { criarSupabaseBrowser } from "@/lib/supabase/client"
 import { LogIn, AlertCircle } from "lucide-react"
+import { BRAND } from "@/lib/brand"
 
 function LoginForm() {
   const router = useRouter()
@@ -75,14 +76,14 @@ function LoginForm() {
       <Button
         type="submit"
         disabled={carregando || !email || !senha}
-        className="w-full h-12 text-base font-semibold bg-[var(--gold)] text-[oklch(0.14_0_0)] hover:bg-[var(--gold-dark)] disabled:opacity-50"
+        className="w-full h-12 text-base font-semibold bg-[var(--gold)] text-[var(--gold-foreground)] hover:bg-[var(--gold-dark)] disabled:opacity-50"
       >
         <LogIn className="h-4 w-4 mr-2" />
         {carregando ? "Entrando…" : "Entrar"}
       </Button>
 
       <p className="text-xs text-muted-foreground text-center">
-        Acesso restrito a consultores MoneyGo. As contas são criadas pela administração.
+        Acesso restrito a consultores {BRAND.name}. As contas são criadas pela administração.
       </p>
     </form>
   )
@@ -95,10 +96,11 @@ export default function OperadorLoginPage() {
         <div className="max-w-md mx-auto px-4 h-14 flex items-center">
           <Link href="/" className="shrink-0">
             <Image
-              src="/logo-full.png"
-              alt="MoneyGo Soluções em Crédito"
-              width={1024}
-              height={324}
+              src={BRAND.logos.full}
+              alt={BRAND.fullName}
+              width={BRAND.logos.width}
+              height={BRAND.logos.height}
+              unoptimized
               priority
               className="h-12 w-auto"
             />

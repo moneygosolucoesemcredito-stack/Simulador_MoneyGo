@@ -6,6 +6,7 @@ import {
   formatarPercentualAnual,
   type ResultadoHomeEquity,
 } from "./simulacao"
+import { BRAND } from "./brand"
 
 export interface DadosPdfHomeEquity {
   valorCredito: number
@@ -18,7 +19,7 @@ const DISCLAIMER =
   "Para fins de simulação apenas. Taxas e valores sujeitos à aprovação de crédito " +
   "e às demais condições do produto vigentes no momento da contratação."
 
-const DOURADO: [number, number, number] = [180, 142, 60]
+const ACCENT: [number, number, number] = BRAND.pdfAccentRgb
 const CINZA: [number, number, number] = [110, 110, 110]
 
 /** Lê o `finalY` da última tabela desenhada (anexado pelo plugin em runtime). */
@@ -41,7 +42,7 @@ export function gerarPdfHomeEquity(
   // Cabeçalho
   doc.setFont("helvetica", "bold")
   doc.setFontSize(18)
-  doc.text("MoneyGo — Simulação Home Equity", margem, y)
+  doc.text(`${BRAND.name} — Simulação Home Equity`, margem, y)
 
   y += 18
   doc.setFont("helvetica", "normal")
@@ -95,7 +96,7 @@ export function gerarPdfHomeEquity(
       ["Quantidade de parcelas", `${dados.prazoMeses}`, `${dados.prazoMeses}`],
     ],
     styles: { fontSize: 10, cellPadding: 6 },
-    headStyles: { fillColor: DOURADO, textColor: [20, 20, 20], fontStyle: "bold" },
+    headStyles: { fillColor: ACCENT, textColor: [20, 20, 20], fontStyle: "bold" },
     columnStyles: {
       0: { textColor: CINZA },
       1: { halign: "right", fontStyle: "bold" },
@@ -111,5 +112,5 @@ export function gerarPdfHomeEquity(
   doc.text(doc.splitTextToSize(DISCLAIMER, largura), margem, fim + 24)
 
   const data = new Date().toISOString().slice(0, 10)
-  doc.save(`moneygo-home-equity-${data}.pdf`)
+  doc.save(`${BRAND.id}-home-equity-${data}.pdf`)
 }

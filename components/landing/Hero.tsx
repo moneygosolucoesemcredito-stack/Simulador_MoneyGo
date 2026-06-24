@@ -5,17 +5,18 @@ import { motion } from "framer-motion"
 import { ArrowRight, ShieldCheck } from "lucide-react"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { BRAND } from "@/lib/brand"
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden bg-[oklch(0.14_0_0)] text-white pt-20 pb-16 px-4">
+    <section className="relative overflow-hidden bg-[var(--ink)] text-white pt-20 pb-16 px-4">
       {/* Subtle gold gradient accent */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 opacity-20"
         style={{
           background:
-            "radial-gradient(ellipse 80% 60% at 50% -10%, oklch(0.72 0.13 80), transparent)",
+            "radial-gradient(ellipse 80% 60% at 50% -10%, var(--gold), transparent)",
         }}
       />
 
@@ -44,7 +45,7 @@ export function Hero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
         >
-          Simule em minutos, sem burocracia. Um especialista MoneyGo entra em
+          Simule em minutos, sem burocracia. Um especialista {BRAND.name} entra em
           contato para fechar as melhores condições para você.
         </motion.p>
 
@@ -58,7 +59,7 @@ export function Hero() {
             href="/entrar?produto=home-equity"
             className={cn(
               buttonVariants({ size: "lg" }),
-              "h-13 px-8 text-base font-semibold bg-[var(--gold)] text-[oklch(0.14_0_0)] hover:bg-[var(--gold-dark)] shadow-lg shadow-[var(--gold)]/20"
+              "h-13 px-8 text-base font-semibold bg-[var(--gold)] text-[var(--gold-foreground)] hover:bg-[var(--gold-dark)] shadow-lg shadow-[var(--gold)]/20"
             )}
           >
             Simular com Imóvel
