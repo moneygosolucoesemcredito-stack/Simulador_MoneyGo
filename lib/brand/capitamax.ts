@@ -40,4 +40,10 @@ export const capitamax: Brand = {
     ogImage: "/capitamax/og-image.png",
   },
   pdfAccentRgb: [239, 144, 14], // #ef900e
+  // Projeto Supabase próprio (banco isolado do MoneyGo) — sem fallback para as
+  // variáveis genéricas: se faltar, deve falhar alto, nunca cair no banco errado.
+  supabase: {
+    url: process.env.NEXT_PUBLIC_SUPABASE_URL_CAPITAMAX ?? "",
+    anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_CAPITAMAX ?? "",
+  },
 }

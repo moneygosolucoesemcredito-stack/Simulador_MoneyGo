@@ -36,6 +36,11 @@ export interface BrandContact {
   email?: string
 }
 
+export interface BrandSupabase {
+  url: string
+  anonKey: string
+}
+
 export interface BrandSeo {
   title: string
   description: string
@@ -66,4 +71,6 @@ export interface Brand {
   seo: BrandSeo
   /** Cor de destaque para o PDF da simulação (RGB 0-255). */
   pdfAccentRgb: [number, number, number]
+  /** Projeto Supabase próprio da marca (banco/auth isolados por marca). */
+  supabase: BrandSupabase
 }

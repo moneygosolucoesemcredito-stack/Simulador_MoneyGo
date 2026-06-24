@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
+import { BRAND } from "@/lib/brand"
 
 // No Next 16 o antigo `middleware.ts` foi renomeado para `proxy.ts`.
 // Aqui fazemos o refresh da sessão do Supabase e protegemos /operador.
@@ -7,8 +8,8 @@ export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request })
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    BRAND.supabase.url,
+    BRAND.supabase.anonKey,
     {
       cookies: {
         getAll() {

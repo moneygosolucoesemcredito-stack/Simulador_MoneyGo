@@ -37,4 +37,8 @@ export const moneygo: Brand = {
     ogImage: "/og-image.png",
   },
   pdfAccentRgb: [180, 142, 60],
+  supabase: {
+    url: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
+    anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
+  },
 }
