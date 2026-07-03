@@ -17,17 +17,45 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "Consentimento LGPD não fornecido" }, { status: 422 })
     }
 
-    // A origem é derivada da sessão (não confiamos no cliente): se há operador
-    // logado, a proposta é dele; senão é uma proposta do próprio cliente.
+    // A origem é derivada da sessão (não confiamos no cliente). Uma sessão pode
+    // ser de OPERADOR (está na allowlist `operadores`) ou de CLIENTE (conta
+    // criada pelo link do consultor). No caso do cliente, o vínculo com o
+    // consultor vem do cadastro dele (`clientes.operador_id`).
     const supabase = await criarSupabaseServer()
     const {
       data: { user },
     } = await supabase.auth.getUser()
 
+    let origem: "operador" | "cliente" = "cliente"
+    let operadorId: string | null = null
+    let clienteId: string | null = null
+
+    if (user) {
+      const { data: operador } = await supabase
+        .from("operadores")
+        .select("id")
+        .eq("id", user.id)
+        .maybeSingle()
+
+      if (operador) {
+        origem = "operador"
+        operadorId = user.id
+      } else {
+        clienteId = user.id
+        const { data: cliente } = await supabase
+          .from("clientes")
+          .select("operador_id")
+          .eq("id", user.id)
+          .maybeSingle()
+        operadorId = cliente?.operador_id ?? null
+      }
+    }
+
     const { error: erroInsert } = await supabase.from("propostas").insert({
       produto: payload.produto,
-      origem: user ? "operador" : "cliente",
-      operador_id: user?.id ?? null,
+      origem,
+      operador_id: operadorId,
+      cliente_id: clienteId,
       taxa_mensal: payload.simulacao.taxa_mensal ?? null,
       simulacao: payload.simulacao,
       contato: payload.contato,

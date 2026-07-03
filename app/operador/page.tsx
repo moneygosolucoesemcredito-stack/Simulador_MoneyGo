@@ -36,6 +36,7 @@ const PRODUTOS = [
 export default function OperadorPage() {
   const router = useRouter()
   const [email, setEmail] = useState<string | null>(null)
+  const [operadorId, setOperadorId] = useState<string | null>(null)
   const [pessoa, setPessoa] = useState<TipoPessoa | "">("")
   const [produtoId, setProdutoId] = useState<(typeof PRODUTOS)[number]["id"] | "">("")
   const [forma, setForma] = useState<FormaOfertar | "">("")
@@ -45,7 +46,10 @@ export default function OperadorPage() {
 
   useEffect(() => {
     const supabase = criarSupabaseBrowser()
-    supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null))
+    supabase.auth.getUser().then(({ data }) => {
+      setEmail(data.user?.email ?? null)
+      setOperadorId(data.user?.id ?? null)
+    })
   }, [])
 
   const produto = PRODUTOS.find((p) => p.id === produtoId) ?? null
@@ -75,7 +79,10 @@ export default function OperadorPage() {
   function gerarLink() {
     if (!produto || !pessoa || !taxaValida || !taxaDigitada) return
     const origin = typeof window !== "undefined" ? window.location.origin : ""
-    const url = `${origin}${produto.rota}?t=${taxaParaPercentStr(taxaDigitada)}&pessoa=${pessoa}`
+    // `op` vincula o lead ao consultor que gerou o link (cadastro do cliente
+    // e proposta ficam visíveis apenas para ele).
+    const op = operadorId ? `&op=${operadorId}` : ""
+    const url = `${origin}${produto.rota}?t=${taxaParaPercentStr(taxaDigitada)}&pessoa=${pessoa}${op}`
     setLink(url)
     setCopiado(false)
   }

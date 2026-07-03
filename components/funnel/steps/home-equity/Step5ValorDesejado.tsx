@@ -13,8 +13,10 @@ type TipoPessoa = "PF" | "PJ"
 
 export function Step5ValorDesejado({ onNext }: { onNext: () => void }) {
   const { homeEquity, setHomeEquity } = useFunnelStore()
-  // No modo cliente o tomador (PF/PJ) já veio definido pelo operador no link.
-  const modoCliente = homeEquity.modo === "cliente"
+  // Quando o tomador (PF/PJ) já veio definido pelo operador no link (?pessoa=),
+  // não perguntamos de novo. Caso contrário (cliente público), o próprio
+  // usuário escolhe aqui.
+  const precisaEscolherPessoa = !homeEquity.tipo_pessoa
   const valorMaximo = Math.floor(homeEquity.valor_imovel * CONFIG.homeEquity.ltv)
   const valorMinimo = CONFIG.homeEquity.valorCreditoMinimo
 
@@ -26,21 +28,21 @@ export function Step5ValorDesejado({ onNext }: { onNext: () => void }) {
     (homeEquity.tipo_pessoa as TipoPessoa) || ""
   )
 
-  const podeAvancar = modoCliente ? !!homeEquity.tipo_pessoa : !!tipoPessoa
+  const podeAvancar = precisaEscolherPessoa ? !!tipoPessoa : true
 
   function handleNext() {
     if (!podeAvancar) return
     setHomeEquity({
       valor_solicitado: valor,
       prazo_meses: prazo,
-      ...(modoCliente ? {} : { tipo_pessoa: tipoPessoa as TipoPessoa }),
+      ...(precisaEscolherPessoa ? { tipo_pessoa: tipoPessoa as TipoPessoa } : {}),
     })
     pushDataLayer("step_completed", {
       funil: "home_equity",
       step: 5,
       valor_solicitado: valor,
       prazo_meses: prazo,
-      tipo_pessoa: modoCliente ? homeEquity.tipo_pessoa : tipoPessoa,
+      tipo_pessoa: precisaEscolherPessoa ? tipoPessoa : homeEquity.tipo_pessoa,
     })
     onNext()
   }
@@ -99,7 +101,7 @@ export function Step5ValorDesejado({ onNext }: { onNext: () => void }) {
         </p>
       </div>
 
-      {!modoCliente && (
+      {precisaEscolherPessoa && (
         <div className="space-y-3">
           <p className="text-sm font-medium">Tipo de tomador</p>
           <div className="grid grid-cols-2 gap-3">

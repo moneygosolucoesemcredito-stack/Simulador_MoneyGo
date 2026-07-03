@@ -1,9 +1,11 @@
 "use client"
 
-import { Suspense, useEffect } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { FunnelShell } from "@/components/funnel/FunnelShell"
 import { StepWrapper } from "@/components/funnel/StepWrapper"
+import { CadastroCliente } from "@/components/funnel/CadastroCliente"
+import { criarSupabaseBrowser } from "@/lib/supabase/client"
 import { useFunnelStore, type HomeEquityState } from "@/stores/funnel-store"
 import { Step1ValorImovel } from "@/components/funnel/steps/home-equity/Step1ValorImovel"
 import { Step2TipoImovel } from "@/components/funnel/steps/home-equity/Step2TipoImovel"
@@ -23,6 +25,11 @@ function HomeEquityFunnel() {
   const step = homeEquity.step
   const router = useRouter()
   const searchParams = useSearchParams()
+  const operadorLink = searchParams.get("op")
+
+  // Link de operador (?t=) exige o cliente identificado: "checando" enquanto
+  // consultamos a sessão, "necessario" mostra o cadastro, "liberado" segue.
+  const [gate, setGate] = useState<"checando" | "necessario" | "liberado">("liberado")
 
   // Hidrata o funil a partir da URL. A taxa é SEMPRE do operador:
   //  ?t=...     -> cliente com taxa travada (link enviado pelo operador)
@@ -39,6 +46,12 @@ function HomeEquityFunnel() {
       patch.modo = "cliente"
       patch.taxa_mensal = taxaUrl
       patch.taxa_indicativa = false
+      // Cliente veio por link de consultor: precisa se cadastrar/entrar antes
+      // do funil, para o lead ficar registrado mesmo se abandonar no meio.
+      setGate("checando")
+      criarSupabaseBrowser()
+        .auth.getSession()
+        .then(({ data }) => setGate(data.session ? "liberado" : "necessario"))
     } else if (modo === "op") {
       patch.modo = "operador"
       patch.taxa_indicativa = false
@@ -91,6 +104,25 @@ function HomeEquityFunnel() {
       default:
         return null
     }
+  }
+
+  if (gate !== "liberado") {
+    return (
+      <FunnelShell
+        currentStep={1}
+        totalSteps={TOTAL_STEPS}
+        onBack={() => {}}
+        showBack={false}
+        produto="Home Equity"
+      >
+        {gate === "necessario" ? (
+          <CadastroCliente
+            operadorId={operadorLink}
+            onAutenticado={() => setGate("liberado")}
+          />
+        ) : null}
+      </FunnelShell>
+    )
   }
 
   return (

@@ -56,6 +56,8 @@ export type ContatoFormValues = z.infer<typeof contatoSchema>
 interface ContatoFormProps {
   onSubmit: (data: ContatoFormValues) => Promise<void>
   loading?: boolean
+  /** Valores iniciais (ex.: dados do cadastro do cliente logado). */
+  defaults?: Partial<ContatoFormValues>
 }
 
 const HORARIOS = [
@@ -64,7 +66,7 @@ const HORARIOS = [
   { value: "noite", label: "Noite (18h–21h)" },
 ]
 
-export function ContatoForm({ onSubmit, loading = false }: ContatoFormProps) {
+export function ContatoForm({ onSubmit, loading = false, defaults }: ContatoFormProps) {
   const [cepLoading, setCepLoading] = useState(false)
 
   const {
@@ -75,7 +77,7 @@ export function ContatoForm({ onSubmit, loading = false }: ContatoFormProps) {
     formState: { errors },
   } = useForm<ContatoFormValues>({
     resolver: zodResolver(contatoSchema),
-    defaultValues: { melhor_horario: "tarde" },
+    defaultValues: { melhor_horario: "tarde", ...defaults },
   })
 
   const horarioSelecionado = watch("melhor_horario")

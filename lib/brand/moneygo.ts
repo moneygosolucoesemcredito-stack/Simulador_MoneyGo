@@ -11,8 +11,8 @@ export const moneygo: Brand = {
   logos: {
     full: "/logo-full.png",
     fullWhite: "/logo-full-white.png",
-    mark: "/logo.svg",
-    markWhite: "/logo-white.svg",
+    mark: "/logo-full.png",
+    markWhite: "/logo-full-white.png",
     width: 1024,
     height: 324,
     favicon: "/favicon.png",

@@ -82,6 +82,15 @@ function LoginForm() {
         {carregando ? "Entrando…" : "Entrar"}
       </Button>
 
+      <div className="text-center">
+        <Link
+          href="/recuperar-senha"
+          className="text-sm font-medium text-[var(--gold-dark)] hover:underline"
+        >
+          Esqueci minha senha
+        </Link>
+      </div>
+
       <p className="text-xs text-muted-foreground text-center">
         Acesso restrito a consultores {BRAND.name}. As contas são criadas pela administração.
       </p>

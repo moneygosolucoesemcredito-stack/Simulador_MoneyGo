@@ -26,11 +26,12 @@ export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
         scale={2}
         normalizeZeros
         padFractionalZeros
+        unmask
         min={min}
         max={max}
         value={value > 0 ? value.toString() : ""}
         onAccept={(val) => {
-          const num = parseFloat(String(val).replace(/\./g, "").replace(",", "."))
+          const num = parseFloat(String(val))
           onChange(isNaN(num) ? 0 : num)
         }}
         className={cn(

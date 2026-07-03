@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { ContatoForm, type ContatoFormValues } from "@/components/funnel/ContatoForm"
+import { criarSupabaseBrowser } from "@/lib/supabase/client"
 import { useFunnelStore } from "@/stores/funnel-store"
 import { calcularHomeEquity } from "@/lib/simulacao"
 import { qualificarHomeEquity } from "@/lib/qualificacao"
@@ -14,8 +15,33 @@ import type { LeadPayload } from "@/types"
 
 export function Step7Contato() {
   const [loading, setLoading] = useState(false)
+  const [defaults, setDefaults] = useState<Partial<ContatoFormValues> | null>(null)
   const router = useRouter()
   const { homeEquity, tracking } = useFunnelStore()
+
+  // Cliente que se cadastrou pelo link do consultor já informou nome, e-mail
+  // e WhatsApp — pré-preenche para não digitar de novo.
+  useEffect(() => {
+    const supabase = criarSupabaseBrowser()
+    supabase.auth
+      .getUser()
+      .then(async ({ data }) => {
+        if (!data.user) return {}
+        const { data: cliente } = await supabase
+          .from("clientes")
+          .select("nome, email, telefone")
+          .eq("id", data.user.id)
+          .maybeSingle()
+        if (!cliente) return {}
+        return {
+          nome: cliente.nome || undefined,
+          email: cliente.email || undefined,
+          telefone: cliente.telefone || undefined,
+        }
+      })
+      .then(setDefaults)
+      .catch(() => setDefaults({}))
+  }, [])
 
   async function handleSubmit(formData: ContatoFormValues) {
     setLoading(true)
@@ -111,5 +137,8 @@ export function Step7Contato() {
     }
   }
 
-  return <ContatoForm onSubmit={handleSubmit} loading={loading} />
+  // Aguarda a consulta do cadastro para o formulário nascer já preenchido.
+  if (defaults === null) return null
+
+  return <ContatoForm onSubmit={handleSubmit} loading={loading} defaults={defaults} />
 }

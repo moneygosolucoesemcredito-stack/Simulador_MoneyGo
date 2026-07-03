@@ -41,6 +41,22 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // Sessão existe, mas o painel é só para quem está na allowlist `operadores`.
+  // Contas de CLIENTE (criadas pelo link do consultor) não entram aqui.
+  if (path.startsWith("/operador") && !ehLogin && user) {
+    const { data: operador } = await supabase
+      .from("operadores")
+      .select("id")
+      .eq("id", user.id)
+      .maybeSingle()
+    if (!operador) {
+      const url = request.nextUrl.clone()
+      url.pathname = "/"
+      url.search = ""
+      return NextResponse.redirect(url)
+    }
+  }
+
   // Já logado e indo para o login → manda para o painel.
   if (ehLogin && user) {
     const url = request.nextUrl.clone()
