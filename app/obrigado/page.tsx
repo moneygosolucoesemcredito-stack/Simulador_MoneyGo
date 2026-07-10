@@ -4,6 +4,7 @@ import { CheckCircle, MessageCircle } from "lucide-react"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { BRAND } from "@/lib/brand"
+import { ResetFunnels } from "@/components/funnel/ResetFunnels"
 
 export default function ObrigadoPage() {
   const waHref = BRAND.contact.whatsapp
@@ -13,6 +14,7 @@ export default function ObrigadoPage() {
     : "/"
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-12">
+      <ResetFunnels />
       <div className="max-w-md w-full text-center space-y-6">
         <Link href="/">
           <Image

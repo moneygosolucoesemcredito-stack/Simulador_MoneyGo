@@ -95,6 +95,7 @@ interface FunnelStore {
   resetAutoEquity: () => void
   resetFinanciamentoImobiliario: () => void
   resetCreditoConstrucao: () => void
+  resetContato: () => void
 }
 
 const defaultHomeEquity: HomeEquityState = {
@@ -187,6 +188,7 @@ export const useFunnelStore = create<FunnelStore>()(
       resetAutoEquity: () => set({ autoEquity: defaultAutoEquity }),
       resetFinanciamentoImobiliario: () => set({ financiamentoImobiliario: defaultFinanciamentoImobiliario }),
       resetCreditoConstrucao: () => set({ creditoConstrucao: defaultCreditoConstrucao }),
+      resetContato: () => set({ contato: {} }),
     }),
     {
       name: "moneygo-funnel",
