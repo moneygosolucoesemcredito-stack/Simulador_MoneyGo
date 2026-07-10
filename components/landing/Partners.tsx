@@ -13,8 +13,14 @@ const PARCEIROS = [
   { nome: "Banco Paulista", logo: "/parceiros/paulista-logo.png" },
   { nome: "Galleria Bank", logo: "/parceiros/galleria-logo.png" },
   { nome: "Banco Fibra", logo: "/parceiros/fibra-logo.png" },
-  { nome: "Crediblue", logo: "/parceiros/crediblue-logo.png" },
   { nome: "TCash", logo: "/parceiros/tcash-logo.png" },
+  { nome: "Libra Crédito", logo: "/parceiros/libra-credito.jpg" },
+  { nome: "Creditas", logo: "/parceiros/Creditas.png" },
+  { nome: "Makasí", logo: "/parceiros/makasi.png" },
+  { nome: "Zili Cred", logo: "/parceiros/zili-cred.png" },
+  { nome: "Oxy", logo: "/parceiros/Oxy.jfif" },
+  { nome: "Pontte", logo: "/parceiros/Pontte.webp" },
+  { nome: "Trinus Bank", logo: "/parceiros/Trinus-Bank.png" },
 ]
 
 export function Partners() {
