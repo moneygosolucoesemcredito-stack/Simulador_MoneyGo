@@ -45,7 +45,7 @@ export const contatoSchema = z.object({
   bairro: z.string().min(2, "Bairro obrigatório"),
   cidade: z.string().min(2, "Cidade obrigatória"),
   uf: z.string().length(2, "UF inválida"),
-  melhor_horario: z.enum(["manha", "tarde", "noite"]),
+  melhor_horario: z.enum(["manha", "tarde"]),
   consentimento_lgpd: z.literal(true, {
     message: "Você precisa aceitar os termos para continuar",
   }),
@@ -61,9 +61,8 @@ interface ContatoFormProps {
 }
 
 const HORARIOS = [
-  { value: "manha", label: "Manhã (8h–12h)" },
-  { value: "tarde", label: "Tarde (12h–18h)" },
-  { value: "noite", label: "Noite (18h–21h)" },
+  { value: "manha", label: "Manhã (9h–12h)" },
+  { value: "tarde", label: "Tarde (13h–18h)" },
 ]
 
 export function ContatoForm({ onSubmit, loading = false, defaults }: ContatoFormProps) {
@@ -220,12 +219,12 @@ export function ContatoForm({ onSubmit, loading = false, defaults }: ContatoForm
       {/* Melhor horário */}
       <div className="space-y-2">
         <Label>Melhor horário para contato</Label>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {HORARIOS.map(({ value, label }) => (
             <button
               key={value}
               type="button"
-              onClick={() => setValue("melhor_horario", value as "manha" | "tarde" | "noite")}
+              onClick={() => setValue("melhor_horario", value as "manha" | "tarde")}
               className={cn(
                 "rounded-lg border-2 py-2.5 text-xs font-medium transition-all",
                 horarioSelecionado === value

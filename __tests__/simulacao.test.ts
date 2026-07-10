@@ -47,9 +47,11 @@ describe("calcularSimulacao", () => {
   })
 })
 
-describe("calcularHomeEquity (fiel à planilha Simulacao HE.xlsx)", () => {
+describe("calcularHomeEquity (planilha Simulacao HE.xlsx, com estruturação zerada)", () => {
   // Cenário-base da planilha: crédito 2.750.000, imóvel 5.000.000, 1,09% a.m.,
-  // 240 meses, PJ (IOF 1,88%). Valores de referência extraídos da própria planilha.
+  // 240 meses, PJ (IOF 1,88%). A pedido da MoneyGo (2026-07-10) a estruturação
+  // de 5% da planilha NÃO compõe o CAC — valores de referência recalculados
+  // com CAC = apenas registro (R$ 7.000).
   const r = calcularHomeEquity({
     valorCredito: 2_750_000,
     valorImovel: 5_000_000,
@@ -58,20 +60,24 @@ describe("calcularHomeEquity (fiel à planilha Simulacao HE.xlsx)", () => {
     tipoPessoa: "PJ",
   })
 
-  it("grossed-up principal matches the spreadsheet (C19)", () => {
-    expect(r.principalFinanciado).toBeCloseTo(2_949_959.23, 0)
+  it("grossed-up principal (crédito + registro, sem estruturação)", () => {
+    expect(r.principalFinanciado).toBeCloseTo(2_809_824.7, 0)
   })
 
-  it("IOF value matches the spreadsheet (L15)", () => {
-    expect(r.iofValor).toBeCloseTo(55_459.23, 0)
+  it("IOF value over the reduced principal", () => {
+    expect(r.iofValor).toBeCloseTo(52_824.7, 0)
   })
 
-  it("PRICE first installment with insurance matches the spreadsheet (Z13)", () => {
-    expect(r.price.primeiraParcela).toBeCloseTo(36_111.75, 0)
+  it("PRICE first installment with insurance", () => {
+    expect(r.price.primeiraParcela).toBeCloseTo(34_412.93, 0)
   })
 
-  it("annual CET matches the spreadsheet (C21 = 14,5984%)", () => {
-    expect(r.price.cetAnual).toBeCloseTo(0.145984, 4)
+  it("annual CET", () => {
+    expect(r.price.cetAnual).toBeCloseTo(0.146099, 4)
+  })
+
+  it("estruturação não entra no CAC (CAC = só registro)", () => {
+    expect(r.cacTotal).toBeCloseTo(7_000, 2)
   })
 
   it("annual effective rate compounds the monthly rate", () => {

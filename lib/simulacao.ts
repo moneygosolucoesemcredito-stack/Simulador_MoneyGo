@@ -115,7 +115,9 @@ export interface ResultadoHomeEquity {
 }
 
 const HE_DEFAULTS = {
-  estruturacaoPercentual: 0.05,
+  // Estruturação zerada a pedido da MoneyGo (2026-07-10): a planilha traz 5%,
+  // mas a taxa não deve compor o CAC em nenhuma simulação.
+  estruturacaoPercentual: 0,
   taxaRegistro: 7_000,
   iofPF: 0.0338,
   iofPJ: 0.0188,

@@ -27,17 +27,51 @@ function finalY(doc: jsPDF): number | undefined {
   return (doc as unknown as { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY
 }
 
+/** Carrega a logo da marca como data URL (com proporção) para o jsPDF. */
+async function carregarLogo(src: string): Promise<{ dataUrl: string; ratio: number } | null> {
+  try {
+    const res = await fetch(src)
+    if (!res.ok) return null
+    const blob = await res.blob()
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = reject
+      reader.readAsDataURL(blob)
+    })
+    const img = new Image()
+    await new Promise((resolve, reject) => {
+      img.onload = resolve
+      img.onerror = reject
+      img.src = dataUrl
+    })
+    return { dataUrl, ratio: img.width / img.height }
+  } catch {
+    // Sem logo o PDF continua válido — segue apenas com o cabeçalho em texto.
+    return null
+  }
+}
+
 /**
  * Gera e baixa um PDF da simulação de Home Equity espelhando a tela de
- * resultado: cabeçalho com os dados da operação e tabela comparativa SAC × PRICE.
+ * resultado: logo e cabeçalho com os dados da operação e tabela comparativa
+ * SAC × PRICE.
  */
-export function gerarPdfHomeEquity(
+export async function gerarPdfHomeEquity(
   resultado: ResultadoHomeEquity,
   dados: DadosPdfHomeEquity
 ) {
   const doc = new jsPDF({ unit: "pt", format: "a4" })
   const margem = 40
   let y = 48
+
+  // Logo da marca no topo
+  const logo = await carregarLogo(BRAND.logos.full)
+  if (logo) {
+    const alturaLogo = 30
+    doc.addImage(logo.dataUrl, "PNG", margem, y - 24, alturaLogo * logo.ratio, alturaLogo)
+    y += 34
+  }
 
   // Cabeçalho
   doc.setFont("helvetica", "bold")

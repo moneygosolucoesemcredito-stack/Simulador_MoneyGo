@@ -86,7 +86,7 @@ export function Step6Resultado({ onNext }: { onNext: () => void }) {
     setBaixando(true)
     try {
       const { gerarPdfHomeEquity } = await import("@/lib/pdf-home-equity")
-      gerarPdfHomeEquity(resultado, {
+      await gerarPdfHomeEquity(resultado, {
         valorCredito: homeEquity.valor_solicitado,
         valorImovel: homeEquity.valor_imovel,
         prazoMeses: homeEquity.prazo_meses,

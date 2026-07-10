@@ -3,7 +3,7 @@ export type Produto = "home_equity" | "auto_equity" | "financiamento_imobiliario
 export type TipoImovel = "casa" | "apartamento" | "comercial" | "terreno_condominio"
 export type SituacaoImovel = "quitado" | "financiado"
 export type SituacaoVeiculo = "quitado" | "financiado"
-export type MelhorHorario = "manha" | "tarde" | "noite"
+export type MelhorHorario = "manha" | "tarde"
 export type ModalidadeTaxa = "pos_fixada" | "pre_fixada"
 
 export interface Endereco {

@@ -45,4 +45,6 @@ next-env.d.ts
 # material de negócio / referência local (não versionar)
 /Bancos/
 *.xlsx
+*.docx
+.~lock.*
 /.claude/

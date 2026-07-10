@@ -8,7 +8,7 @@ export const CONFIG = {
     taxaPasso: 0.0001,
     valorImovelMinimo: 250_000,
     valorImovelMaximo: 5_000_000,
-    valorCreditoMinimo: 50_000,
+    valorCreditoMinimo: 75_000,
     ltv: 0.55,
     saldoDevedorMaximoPercentual: 0.5,
     // Seguros e encargos (espelham a planilha "Simulacao HE.xlsx")
@@ -17,7 +17,7 @@ export const CONFIG = {
     dfiAcima10M: 0.000085, // imóvel acima de R$ 10mi
     dfiLimiteImovel: 10_000_000.01,
     txAdminMensal: 25, // R$ por mês (Gaia)
-    estruturacaoPercentual: 0.05, // sobre o valor do crédito
+    estruturacaoPercentual: 0, // zerada a pedido da MoneyGo (planilha traz 5%)
     taxaRegistro: 7_000, // R$ fixo (CAC)
     // IOF embutido no principal, por tipo de pessoa
     iofPF: 0.0338,
