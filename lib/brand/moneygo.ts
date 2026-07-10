@@ -19,7 +19,7 @@ export const moneygo: Brand = {
   },
   contact: {
     whatsapp: "5547997890220",
-    email: "privacidade@moneygo.com.br",
+    email: "privacidade@moneygosolucoesemcredito.com.br",
   },
   social: {
     instagram: "https://www.instagram.com/moneygo_assessoria",
