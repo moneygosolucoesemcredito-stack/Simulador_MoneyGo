@@ -42,6 +42,8 @@ export interface AutoEquityState {
   /** Código FIPE do veículo (rastreabilidade). */
   fipe_codigo: string
   situacao: string
+  /** PF/PJ — define a alíquota de IOF embutida no principal */
+  tipo_pessoa: "PF" | "PJ" | ""
   valor_solicitado: number
   prazo_meses: number
 }
@@ -126,6 +128,7 @@ const defaultAutoEquity: AutoEquityState = {
   potencia: "",
   fipe_codigo: "",
   situacao: "",
+  tipo_pessoa: "",
   valor_solicitado: 30_000,
   prazo_meses: 36,
 }

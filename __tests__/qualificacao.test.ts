@@ -95,14 +95,44 @@ describe("qualificarAutoEquity", () => {
     expect(qualificado).toBe(true)
   })
 
-  it("rejeita veículo muito antigo", () => {
+  it("aceita veículo com até 20 anos", () => {
+    const { qualificado } = qualificarAutoEquity({
+      valor_veiculo: 80_000,
+      ano_veiculo: anoAtual - 20,
+      valor_solicitado: 30_000,
+    })
+    expect(qualificado).toBe(true)
+  })
+
+  it("rejeita veículo com mais de 20 anos", () => {
     const { qualificado, motivos } = qualificarAutoEquity({
       valor_veiculo: 80_000,
-      ano_veiculo: anoAtual - 16,
+      ano_veiculo: anoAtual - 21,
       valor_solicitado: 30_000,
     })
     expect(qualificado).toBe(false)
     expect(motivos.some((m) => m.includes("anos"))).toBe(true)
+  })
+
+  it("rejeita veículo financiado", () => {
+    const { qualificado, motivos } = qualificarAutoEquity({
+      valor_veiculo: 80_000,
+      ano_veiculo: anoAtual - 5,
+      valor_solicitado: 30_000,
+      situacao: "financiado",
+    })
+    expect(qualificado).toBe(false)
+    expect(motivos.some((m) => m.includes("financiado"))).toBe(true)
+  })
+
+  it("aceita veículo quitado", () => {
+    const { qualificado } = qualificarAutoEquity({
+      valor_veiculo: 80_000,
+      ano_veiculo: anoAtual - 5,
+      valor_solicitado: 30_000,
+      situacao: "quitado",
+    })
+    expect(qualificado).toBe(true)
   })
 
   it("rejeita crédito acima de 50% do veículo", () => {

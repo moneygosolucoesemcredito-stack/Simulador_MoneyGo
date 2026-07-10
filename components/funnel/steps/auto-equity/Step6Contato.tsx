@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { ContatoForm, type ContatoFormValues } from "@/components/funnel/ContatoForm"
 import { useFunnelStore } from "@/stores/funnel-store"
-import { calcularSimulacao } from "@/lib/simulacao"
+import { calcularAutoEquity, calcularSimulacao } from "@/lib/simulacao"
 import { qualificarAutoEquity } from "@/lib/qualificacao"
 import { CONFIG } from "@/lib/config"
 import { trackLead } from "@/components/tracking/MetaPixel"
@@ -20,13 +20,24 @@ export function Step6Contato() {
   async function handleSubmit(formData: ContatoFormValues) {
     setLoading(true)
     try {
-      const { taxaMensal, modalidadeTaxa } = CONFIG.autoEquity
-      const resultado = calcularSimulacao(autoEquity.valor_solicitado, taxaMensal, autoEquity.prazo_meses)
+      const { taxaMensal, modalidadeTaxa, iofPF, iofPJ } = CONFIG.autoEquity
+      const tipoPessoa = (autoEquity.tipo_pessoa || "PF") as "PF" | "PJ"
+      // IOF grossado no principal: as parcelas incidem sobre crédito + IOF.
+      const ae = calcularAutoEquity({
+        valorCredito: autoEquity.valor_solicitado,
+        prazoMeses: autoEquity.prazo_meses,
+        taxaMensal,
+        tipoPessoa,
+        iofPF,
+        iofPJ,
+      })
+      const resultado = calcularSimulacao(ae.principalFinanciado, taxaMensal, autoEquity.prazo_meses)
 
       const { qualificado } = qualificarAutoEquity({
         valor_veiculo: autoEquity.valor_veiculo,
         ano_veiculo: autoEquity.ano_veiculo,
         valor_solicitado: autoEquity.valor_solicitado,
+        situacao: autoEquity.situacao,
       })
 
       const payload: LeadPayload = {
@@ -35,7 +46,7 @@ export function Step6Contato() {
         simulacao: {
           marca_modelo_ano: autoEquity.marca_modelo_ano,
           valor_veiculo: autoEquity.valor_veiculo,
-          situacao: autoEquity.situacao as "quitado",
+          situacao: autoEquity.situacao as "quitado" | "financiado",
           valor_solicitado: autoEquity.valor_solicitado,
           prazo_meses: autoEquity.prazo_meses,
           parcela_price: resultado.parcela_price,
@@ -43,6 +54,9 @@ export function Step6Contato() {
           ultima_parcela_sac: resultado.ultima_parcela_sac,
           taxa_mensal: taxaMensal,
           modalidade_taxa: modalidadeTaxa,
+          tipo_pessoa: tipoPessoa,
+          iof_valor: ae.iofValor,
+          principal_financiado: ae.principalFinanciado,
         },
         contato: {
           nome: formData.nome,

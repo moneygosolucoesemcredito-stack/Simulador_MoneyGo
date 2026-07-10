@@ -3,18 +3,27 @@
 import { useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { useFunnelStore } from "@/stores/funnel-store"
-import { calcularPrice, formatarMoeda, formatarPercentual } from "@/lib/simulacao"
+import { calcularAutoEquity, formatarMoeda, formatarPercentual } from "@/lib/simulacao"
 import { CONFIG } from "@/lib/config"
 import { pushDataLayer } from "@/components/tracking/GTM"
 import { Info } from "lucide-react"
 
 export function Step5Resultado({ onNext }: { onNext: () => void }) {
   const { autoEquity } = useFunnelStore()
-  const { taxaMensal } = CONFIG.autoEquity
+  const { taxaMensal, iofPF, iofPJ } = CONFIG.autoEquity
+  const tipoPessoa = (autoEquity.tipo_pessoa || "PF") as "PF" | "PJ"
 
-  const parcelaPrice = useMemo(
-    () => calcularPrice(autoEquity.valor_solicitado, taxaMensal, autoEquity.prazo_meses),
-    [autoEquity.valor_solicitado, autoEquity.prazo_meses, taxaMensal]
+  const resultado = useMemo(
+    () =>
+      calcularAutoEquity({
+        valorCredito: autoEquity.valor_solicitado,
+        prazoMeses: autoEquity.prazo_meses,
+        taxaMensal,
+        tipoPessoa,
+        iofPF,
+        iofPJ,
+      }),
+    [autoEquity.valor_solicitado, autoEquity.prazo_meses, taxaMensal, tipoPessoa, iofPF, iofPJ]
   )
 
   function handleNext() {
@@ -44,13 +53,23 @@ export function Step5Resultado({ onNext }: { onNext: () => void }) {
           <span className="text-sm text-muted-foreground">Prazo</span>
           <span className="font-semibold">{autoEquity.prazo_meses} meses</span>
         </div>
+        <div className="flex justify-between items-start">
+          <span className="text-sm text-muted-foreground">Tomador</span>
+          <span className="font-semibold">{tipoPessoa}</span>
+        </div>
+        <div className="flex justify-between items-start">
+          <span className="text-sm text-muted-foreground">
+            IOF ({formatarPercentual(tipoPessoa === "PF" ? iofPF : iofPJ, "%")}, financiado)
+          </span>
+          <span className="font-semibold">{formatarMoeda(resultado.iofValor)}</span>
+        </div>
         <div className="h-px bg-border" />
 
         <div className="space-y-4">
           <div>
             <p className="text-xs text-muted-foreground mb-1">Tabela Price (parcela fixa)</p>
             <p className="text-3xl font-bold text-[var(--gold)]">
-              {formatarMoeda(parcelaPrice)}
+              {formatarMoeda(resultado.parcelaPrice)}
               <span className="text-base font-normal text-muted-foreground">/mês</span>
             </p>
           </div>
@@ -64,7 +83,7 @@ export function Step5Resultado({ onNext }: { onNext: () => void }) {
 
       <div className="flex gap-2 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
         <Info className="w-4 h-4 shrink-0 mt-0.5" />
-        <p>Taxa sujeita a análise de crédito. Modalidade pré-fixada. Valores estimados, sem compromisso.</p>
+        <p>Taxa sujeita a análise de crédito. Modalidade pré-fixada. IOF financiado junto ao crédito. Valores estimados, sem compromisso.</p>
       </div>
 
       <Button

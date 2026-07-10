@@ -11,9 +11,10 @@ import { AlertCircle, Car, ThumbsUp, Loader2, CheckCircle2, ArrowLeft, Search } 
 import { cn } from "@/lib/utils"
 import { consultarPlaca, normalizarPlaca, placaValida } from "@/lib/placa"
 import { listarMarcas, listarModelos, listarAnos, consultarPreco, type FipeItem } from "@/lib/fipe"
+import { CONFIG } from "@/lib/config"
 
 const anoAtual = new Date().getFullYear()
-const ANO_MINIMO = anoAtual - 15
+const ANO_MINIMO = anoAtual - CONFIG.autoEquity.idadeVeiculoMaxima
 
 type Mode = "choice" | "placa" | "manual"
 

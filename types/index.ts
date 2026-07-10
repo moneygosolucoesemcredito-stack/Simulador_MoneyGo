@@ -49,6 +49,12 @@ export interface SimulacaoAutoEquity {
   ultima_parcela_sac: number
   taxa_mensal: number
   modalidade_taxa: ModalidadeTaxa
+  /** PF/PJ — define a alíquota de IOF embutida */
+  tipo_pessoa?: "PF" | "PJ"
+  /** IOF financiado junto ao crédito (R$) */
+  iof_valor?: number
+  /** Crédito + IOF (base das parcelas) */
+  principal_financiado?: number
 }
 
 export interface SimulacaoFinanciamentoImobiliario {

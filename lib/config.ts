@@ -64,13 +64,16 @@ export const CONFIG = {
     populacaoMunicipalMinima: 50_000,
   },
   autoEquity: {
-    taxaMensal: 0.0159,
+    taxaMensal: 0.0199,
     modalidadeTaxa: "pre_fixada" as const,
     valorVeiculoMinimo: 30_000,
     valorVeiculoMaximo: 500_000,
     ltv: 0.5,
-    idadeVeiculoMaxima: 15,
-    prazosDisponiveis: [12, 24, 36, 48, 60],
+    idadeVeiculoMaxima: 20,
+    // IOF embutido no principal, por tipo de pessoa (mesmas alíquotas do HE)
+    iofPF: 0.0338,
+    iofPJ: 0.0188,
+    prazosDisponiveis: [12, 18, 24, 30, 36, 40, 48],
     prazoDefault: 36,
   },
   kommo: {
@@ -85,13 +88,13 @@ export const CONFIG = {
 } as const
 
 // Faixa de taxa (a.m., em fração) controlada pelo OPERADOR — nunca pelo cliente.
-// fixed:true  => campo somente leitura no valor `default` (ex.: Auto Equity 1,59%).
+// fixed:true  => campo somente leitura no valor `default` (ex.: Auto Equity 1,99%).
 // fixed:false => campo digitável, vazio por padrão, validado contra min/max.
 export const RATE_CONFIG = {
   home_equity: { min: 0.0099, max: 0.0199, default: null, fixed: false },
   financiamento_imobiliario: { min: 0.0099, max: 0.0199, default: null, fixed: false },
   credito_construcao: { min: 0.0099, max: 0.0199, default: null, fixed: false },
-  auto_equity: { min: 0.0159, max: 0.0159, default: 0.0159, fixed: true },
+  auto_equity: { min: 0.0199, max: 0.0199, default: 0.0199, fixed: true },
 } as const
 
 export type ProdutoTaxa = keyof typeof RATE_CONFIG

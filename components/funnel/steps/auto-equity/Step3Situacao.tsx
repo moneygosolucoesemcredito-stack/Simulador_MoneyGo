@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { useFunnelStore } from "@/stores/funnel-store"
 import { pushDataLayer } from "@/components/tracking/GTM"
 import { cn } from "@/lib/utils"
+import { AlertCircle } from "lucide-react"
 
 type Situacao = "quitado" | "financiado"
 
@@ -13,9 +14,10 @@ export function Step3Situacao({ onNext }: { onNext: () => void }) {
   const [situacao, setSituacao] = useState<Situacao | "">(
     autoEquity.situacao as Situacao | ""
   )
+  const financiado = situacao === "financiado"
 
   function handleNext() {
-    if (!situacao) return
+    if (!situacao || financiado) return
     setAutoEquity({ situacao })
     pushDataLayer("step_completed", { funil: "auto_equity", step: 3, situacao })
     onNext()
@@ -47,10 +49,21 @@ export function Step3Situacao({ onNext }: { onNext: () => void }) {
         ))}
       </div>
 
+      {financiado && (
+        <div className="flex gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <p>
+            No momento, aceitamos apenas <strong>veículos quitados</strong> nesta
+            modalidade. Veículos com financiamento em aberto não podem seguir com a
+            operação.
+          </p>
+        </div>
+      )}
+
       <Button
         onClick={handleNext}
-        disabled={!situacao}
-        className="w-full h-12 text-base font-semibold bg-[var(--gold)] text-[var(--gold-foreground)] hover:bg-[var(--gold-dark)]"
+        disabled={!situacao || financiado}
+        className="w-full h-12 text-base font-semibold bg-[var(--gold)] text-[var(--gold-foreground)] hover:bg-[var(--gold-dark)] disabled:opacity-50"
       >
         Continuar
       </Button>

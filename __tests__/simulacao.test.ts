@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { calcularPrice, calcularSAC, calcularSimulacao, calcularHomeEquity } from "@/lib/simulacao"
+import { calcularPrice, calcularSAC, calcularSimulacao, calcularHomeEquity, calcularAutoEquity } from "@/lib/simulacao"
 
 describe("calcularPrice", () => {
   it("calculates correct PMT for known values", () => {
@@ -108,5 +108,44 @@ describe("calcularHomeEquity (fiel à planilha Simulacao HE.xlsx)", () => {
     })
     expect(z.price.primeiraParcela).toBe(0)
     expect(z.sac.primeiraParcela).toBe(0)
+  })
+})
+
+describe("calcularAutoEquity", () => {
+  it("grossa o IOF PF (3,38%) no principal", () => {
+    const r = calcularAutoEquity({
+      valorCredito: 30_000,
+      prazoMeses: 36,
+      taxaMensal: 0.0199,
+      tipoPessoa: "PF",
+    })
+    expect(r.principalFinanciado).toBeCloseTo(30_000 / (1 - 0.0338), 2)
+    expect(r.iofValor).toBeCloseTo(r.principalFinanciado - 30_000, 2)
+    expect(r.parcelaPrice).toBeCloseTo(
+      calcularPrice(r.principalFinanciado, 0.0199, 36),
+      2
+    )
+  })
+
+  it("grossa o IOF PJ (1,88%) no principal", () => {
+    const r = calcularAutoEquity({
+      valorCredito: 30_000,
+      prazoMeses: 36,
+      taxaMensal: 0.0199,
+      tipoPessoa: "PJ",
+    })
+    expect(r.principalFinanciado).toBeCloseTo(30_000 / (1 - 0.0188), 2)
+  })
+
+  it("parcela PF > parcela PJ (IOF maior)", () => {
+    const pf = calcularAutoEquity({ valorCredito: 30_000, prazoMeses: 36, taxaMensal: 0.0199, tipoPessoa: "PF" })
+    const pj = calcularAutoEquity({ valorCredito: 30_000, prazoMeses: 36, taxaMensal: 0.0199, tipoPessoa: "PJ" })
+    expect(pf.parcelaPrice).toBeGreaterThan(pj.parcelaPrice)
+  })
+
+  it("retorna zeros para entrada inválida", () => {
+    const r = calcularAutoEquity({ valorCredito: 0, prazoMeses: 36, taxaMensal: 0.0199, tipoPessoa: "PF" })
+    expect(r.parcelaPrice).toBe(0)
+    expect(r.iofValor).toBe(0)
   })
 })

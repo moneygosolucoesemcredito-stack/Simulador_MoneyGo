@@ -7,6 +7,8 @@ export default defineConfig({
   test: {
     environment: "node",
     globals: true,
+    // não varrer worktrees do Claude (cópias antigas do repo)
+    exclude: ["**/node_modules/**", "**/.claude/**"],
   },
   resolve: {
     alias: {

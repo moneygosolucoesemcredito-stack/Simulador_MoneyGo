@@ -226,6 +226,52 @@ export function calcularHomeEquity(p: ParametrosHomeEquity): ResultadoHomeEquity
   }
 }
 
+// ──────────────────────────────────────────────────────────────────────────
+// Auto Equity — IOF embutido no principal (gross-up), como no Home Equity.
+// O cliente recebe `valorCredito` líquido; o IOF é financiado junto.
+// ──────────────────────────────────────────────────────────────────────────
+
+export interface ParametrosAutoEquity {
+  valorCredito: number
+  prazoMeses: number
+  taxaMensal: number
+  tipoPessoa: TipoPessoa
+  iofPF?: number
+  iofPJ?: number
+}
+
+export interface ResultadoAutoEquity {
+  principalFinanciado: number
+  iofValor: number
+  parcelaPrice: number
+  totalPago: number
+  taxaMensal: number
+}
+
+const AE_DEFAULTS = { iofPF: 0.0338, iofPJ: 0.0188 }
+
+export function calcularAutoEquity(p: ParametrosAutoEquity): ResultadoAutoEquity {
+  const c = { ...AE_DEFAULTS, ...stripUndefined(p) }
+  const { valorCredito, prazoMeses, taxaMensal, tipoPessoa } = p
+
+  if (valorCredito <= 0 || prazoMeses <= 0 || taxaMensal <= 0) {
+    return { principalFinanciado: 0, iofValor: 0, parcelaPrice: 0, totalPago: 0, taxaMensal }
+  }
+
+  const iofRate = tipoPessoa === "PF" ? c.iofPF : c.iofPJ
+  const principalFinanciado = valorCredito / (1 - iofRate)
+  const iofValor = principalFinanciado - valorCredito
+  const parcelaPrice = calcularPrice(principalFinanciado, taxaMensal, prazoMeses)
+
+  return {
+    principalFinanciado,
+    iofValor,
+    parcelaPrice,
+    totalPago: parcelaPrice * prazoMeses,
+    taxaMensal,
+  }
+}
+
 function stripUndefined<T extends object>(obj: T): Partial<T> {
   return Object.fromEntries(
     Object.entries(obj).filter(([, v]) => v !== undefined)

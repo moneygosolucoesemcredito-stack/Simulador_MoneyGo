@@ -34,8 +34,9 @@ describe("taxaDentroFaixa (home_equity)", () => {
     expect(taxaDentroFaixa(0.02, "home_equity")).toBe(false)
   })
 
-  it("auto_equity só aceita a taxa fixa de 1,59%", () => {
-    expect(taxaDentroFaixa(0.0159, "auto_equity")).toBe(true)
+  it("auto_equity só aceita a taxa fixa de 1,99%", () => {
+    expect(taxaDentroFaixa(0.0199, "auto_equity")).toBe(true)
+    expect(taxaDentroFaixa(0.0159, "auto_equity")).toBe(false)
     expect(taxaDentroFaixa(0.0119, "auto_equity")).toBe(false)
   })
 })

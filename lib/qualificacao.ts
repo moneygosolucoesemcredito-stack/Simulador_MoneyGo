@@ -156,10 +156,15 @@ export function qualificarAutoEquity(params: {
   valor_veiculo: number
   ano_veiculo: number
   valor_solicitado: number
+  situacao?: "quitado" | "financiado" | string
 }): ResultadoQualificacao {
   const { autoEquity: cfg } = CONFIG
   const motivos: string[] = []
   const anoAtual = new Date().getFullYear()
+
+  if (params.situacao === "financiado") {
+    motivos.push("Veículo financiado não aceito — apenas veículos quitados")
+  }
 
   if (params.valor_veiculo < cfg.valorVeiculoMinimo) {
     motivos.push(`Valor do veículo abaixo do mínimo de ${cfg.valorVeiculoMinimo.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`)
