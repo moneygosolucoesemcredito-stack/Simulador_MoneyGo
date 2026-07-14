@@ -5,9 +5,10 @@ import { Slider } from "@/components/ui/slider"
 import { Button } from "@/components/ui/button"
 import { useFunnelStore } from "@/stores/funnel-store"
 import { formatarMoeda } from "@/lib/simulacao"
-import { CONFIG } from "@/lib/config"
+import { CONFIG, ltvParaTipoImovel } from "@/lib/config"
 import { pushDataLayer } from "@/components/tracking/GTM"
 import { cn } from "@/lib/utils"
+import type { TipoImovel } from "@/types"
 
 type TipoPessoa = "PF" | "PJ"
 
@@ -17,7 +18,8 @@ export function Step5ValorDesejado({ onNext }: { onNext: () => void }) {
   // não perguntamos de novo. Caso contrário (cliente público), o próprio
   // usuário escolhe aqui.
   const precisaEscolherPessoa = !homeEquity.tipo_pessoa
-  const valorMaximo = Math.floor(homeEquity.valor_imovel * CONFIG.homeEquity.ltv)
+  const ltv = ltvParaTipoImovel(homeEquity.tipo_imovel as TipoImovel | "")
+  const valorMaximo = Math.floor(homeEquity.valor_imovel * ltv)
   const valorMinimo = CONFIG.homeEquity.valorCreditoMinimo
 
   const [valor, setValor] = useState(
@@ -52,7 +54,7 @@ export function Step5ValorDesejado({ onNext }: { onNext: () => void }) {
       <div className="space-y-2">
         <h2 className="text-2xl font-bold tracking-tight">Quanto você precisa?</h2>
         <p className="text-muted-foreground text-sm">
-          Você pode solicitar até {formatarMoeda(valorMaximo)} (55% do valor do imóvel).
+          Você pode solicitar até {formatarMoeda(valorMaximo)} ({Math.round(ltv * 100)}% do valor do imóvel).
         </p>
       </div>
 

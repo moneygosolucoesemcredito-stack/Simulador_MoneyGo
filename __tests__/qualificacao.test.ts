@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest"
-import { isCidadeQualificada, qualificarHomeEquity, qualificarAutoEquity } from "@/lib/qualificacao"
+import {
+  isCidadeQualificada,
+  qualificarHomeEquity,
+  qualificarFinanciamentoImobiliario,
+  qualificarAutoEquity,
+} from "@/lib/qualificacao"
 
 describe("isCidadeQualificada", () => {
   it("aceita cidades grandes conhecidas", () => {
@@ -81,6 +86,85 @@ describe("qualificarHomeEquity", () => {
     })
     expect(qualificado).toBe(false)
   })
+
+  it("LTV de imóvel comercial é 45%, não 55%", () => {
+    // 50% do imóvel — passaria em casa/apto (55%), mas excede o teto de comercial (45%)
+    const { qualificado, motivos } = qualificarHomeEquity({
+      ...base,
+      tipo_imovel: "comercial",
+      valor_solicitado: 250_000,
+    })
+    expect(qualificado).toBe(false)
+    expect(motivos.some((m) => m.includes("45%"))).toBe(true)
+  })
+
+  it("aceita imóvel comercial dentro do limite de 45%", () => {
+    const { qualificado } = qualificarHomeEquity({
+      ...base,
+      tipo_imovel: "comercial",
+      valor_solicitado: 225_000, // exatamente 45%
+    })
+    expect(qualificado).toBe(true)
+  })
+
+  it("LTV de terreno em condomínio é 35%, não 55%", () => {
+    const { qualificado, motivos } = qualificarHomeEquity({
+      ...base,
+      tipo_imovel: "terreno_condominio",
+      valor_solicitado: 200_000, // 40% do imóvel — excede o teto de 35%
+    })
+    expect(qualificado).toBe(false)
+    expect(motivos.some((m) => m.includes("35%"))).toBe(true)
+  })
+
+  it("aceita casa/apartamento com LTV de 55%", () => {
+    const { qualificado } = qualificarHomeEquity({
+      ...base,
+      tipo_imovel: "apartamento",
+      valor_solicitado: 275_000, // exatamente 55%
+    })
+    expect(qualificado).toBe(true)
+  })
+})
+
+describe("qualificarFinanciamentoImobiliario", () => {
+  const base = {
+    valor_imovel: 500_000,
+    tipo_imovel: "casa" as const,
+    valor_solicitado: 200_000,
+    cidade: "Joinville",
+    uf: "SC",
+    data_nascimento: "1985-05-15",
+  }
+
+  it("qualifica lead com dados válidos", () => {
+    const { qualificado, motivos } = qualificarFinanciamentoImobiliario(base)
+    expect(qualificado).toBe(true)
+    expect(motivos).toHaveLength(0)
+  })
+
+  it("LTV de imóvel comercial é 45%, não 55%", () => {
+    const { qualificado, motivos } = qualificarFinanciamentoImobiliario({
+      ...base,
+      tipo_imovel: "comercial",
+      valor_solicitado: 250_000,
+    })
+    expect(qualificado).toBe(false)
+    expect(motivos.some((m) => m.includes("45%"))).toBe(true)
+  })
+
+  it("aceita casa/apartamento com LTV de 55%", () => {
+    const { qualificado } = qualificarFinanciamentoImobiliario({
+      ...base,
+      valor_solicitado: 275_000, // exatamente 55%
+    })
+    expect(qualificado).toBe(true)
+  })
+
+  it("rejeita cidade não qualificada", () => {
+    const { qualificado } = qualificarFinanciamentoImobiliario({ ...base, cidade: "Cidade Pequena" })
+    expect(qualificado).toBe(false)
+  })
 })
 
 describe("qualificarAutoEquity", () => {
@@ -135,11 +219,20 @@ describe("qualificarAutoEquity", () => {
     expect(qualificado).toBe(true)
   })
 
-  it("rejeita crédito acima de 50% do veículo", () => {
+  it("aceita crédito até 80% do veículo", () => {
     const { qualificado } = qualificarAutoEquity({
       valor_veiculo: 80_000,
       ano_veiculo: anoAtual - 5,
-      valor_solicitado: 50_000, // > 50% = R$ 40k
+      valor_solicitado: 64_000, // exatamente 80%
+    })
+    expect(qualificado).toBe(true)
+  })
+
+  it("rejeita crédito acima de 80% do veículo", () => {
+    const { qualificado } = qualificarAutoEquity({
+      valor_veiculo: 80_000,
+      ano_veiculo: anoAtual - 5,
+      valor_solicitado: 70_000, // > 80% = R$ 64k
     })
     expect(qualificado).toBe(false)
   })

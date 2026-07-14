@@ -1,3 +1,5 @@
+import type { TipoImovel } from "@/types"
+
 export const CONFIG = {
   homeEquity: {
     taxaMensal: 0.0119,
@@ -9,7 +11,7 @@ export const CONFIG = {
     valorImovelMinimo: 250_000,
     valorImovelMaximo: 5_000_000,
     valorCreditoMinimo: 75_000,
-    ltv: 0.55,
+    // LTV varia por tipo de imóvel — ver LTV_POR_TIPO_IMOVEL.
     saldoDevedorMaximoPercentual: 0.5,
     // Seguros e encargos (espelham a planilha "Simulacao HE.xlsx")
     mip: 0.00035, // sobre o saldo devedor, ao mês
@@ -35,7 +37,7 @@ export const CONFIG = {
     modalidadeTaxa: "pos_fixada" as const,
     valorImovelMinimo: 200_000,
     valorCreditoMinimo: 100_000,
-    ltv: 0.55,
+    // LTV varia por tipo de imóvel — ver LTV_POR_TIPO_IMOVEL.
     mip: 0.00035,
     dfi: 0.000065,
     estruturacaoFixa: 5_000,
@@ -68,7 +70,8 @@ export const CONFIG = {
     modalidadeTaxa: "pre_fixada" as const,
     valorVeiculoMinimo: 30_000,
     valorVeiculoMaximo: 500_000,
-    ltv: 0.5,
+    // 80% da FIPE — percentual não deve aparecer na interface (só o valor máximo)
+    ltv: 0.8,
     idadeVeiculoMaxima: 20,
     // IOF embutido no principal, por tipo de pessoa (mesmas alíquotas do HE)
     iofPF: 0.0338,
@@ -86,6 +89,20 @@ export const CONFIG = {
     creditoConstrucaoStageId: Number(process.env.KOMMO_CONSTRUCAO_STAGE_ID ?? "0"),
   },
 } as const
+
+// LTV (crédito máximo sobre o valor do bem) por categoria de imóvel.
+// Vale para Home Equity e Financiamento Imobiliário — Crédito de Construção
+// e Auto Equity mantêm seu próprio `ltv` fixo em CONFIG.
+export const LTV_POR_TIPO_IMOVEL: Record<TipoImovel, number> = {
+  casa: 0.55,
+  apartamento: 0.55,
+  comercial: 0.45,
+  terreno_condominio: 0.35,
+}
+
+export function ltvParaTipoImovel(tipoImovel: TipoImovel | ""): number {
+  return tipoImovel ? LTV_POR_TIPO_IMOVEL[tipoImovel] : LTV_POR_TIPO_IMOVEL.casa
+}
 
 // Faixa de taxa (a.m., em fração) controlada pelo OPERADOR — nunca pelo cliente.
 // fixed:true  => campo somente leitura no valor `default` (ex.: Auto Equity 1,99%).

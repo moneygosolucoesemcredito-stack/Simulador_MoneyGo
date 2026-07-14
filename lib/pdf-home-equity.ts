@@ -95,12 +95,8 @@ export async function gerarPdfHomeEquity(
       ["Valor do imóvel", formatarMoeda(dados.valorImovel)],
       ["Prazo", `${dados.prazoMeses} meses`],
       ["Tomador", dados.tomador === "PF" ? "Pessoa Física" : "Pessoa Jurídica"],
-      [
-        "Taxa de juros",
-        `${formatarPercentual(resultado.taxaMensal)} a.m. + IPCA  (${formatarPercentualAnual(
-          resultado.taxaAnual
-        )} a.a.)`,
-      ],
+      ["Taxa de juros (mensal)", `${formatarPercentual(resultado.taxaMensal)} + IPCA`],
+      ["Taxa de juros (anual equivalente)", formatarPercentualAnual(resultado.taxaAnual)],
     ],
     columnStyles: {
       0: { textColor: CINZA, cellWidth: 150 },
@@ -125,7 +121,7 @@ export async function gerarPdfHomeEquity(
       linha("Última parcela aprox.", (t) => formatarMoeda(t.ultimaParcela)),
       linha("Renda sugerida", (t) => formatarMoeda(t.rendaSugerida)),
       linha("Parcela média", (t) => formatarMoeda(t.parcelaMedia)),
-      linha("Custo efetivo total (CET)", (t) => `${formatarPercentualAnual(t.cetAnual)} a.a.`),
+      linha("Custo efetivo total (CET)", (t) => formatarPercentualAnual(t.cetAnual)),
       linha("Total pago", (t) => formatarMoeda(t.totalPago)),
       ["Quantidade de parcelas", `${dados.prazoMeses}`, `${dados.prazoMeses}`],
     ],

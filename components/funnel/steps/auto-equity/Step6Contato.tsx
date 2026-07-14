@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { ContatoForm, type ContatoFormValues } from "@/components/funnel/ContatoForm"
 import { useFunnelStore } from "@/stores/funnel-store"
-import { calcularAutoEquity, calcularSimulacao } from "@/lib/simulacao"
+import { calcularAutoEquity } from "@/lib/simulacao"
 import { qualificarAutoEquity } from "@/lib/qualificacao"
 import { CONFIG } from "@/lib/config"
 import { trackLead } from "@/components/tracking/MetaPixel"
@@ -22,7 +22,7 @@ export function Step6Contato() {
     try {
       const { taxaMensal, modalidadeTaxa, iofPF, iofPJ } = CONFIG.autoEquity
       const tipoPessoa = (autoEquity.tipo_pessoa || "PF") as "PF" | "PJ"
-      // IOF grossado no principal: as parcelas incidem sobre crédito + IOF.
+      // IOF financiado com juros e diluído nas 12 primeiras parcelas.
       const ae = calcularAutoEquity({
         valorCredito: autoEquity.valor_solicitado,
         prazoMeses: autoEquity.prazo_meses,
@@ -31,7 +31,6 @@ export function Step6Contato() {
         iofPF,
         iofPJ,
       })
-      const resultado = calcularSimulacao(ae.principalFinanciado, taxaMensal, autoEquity.prazo_meses)
 
       const { qualificado } = qualificarAutoEquity({
         valor_veiculo: autoEquity.valor_veiculo,
@@ -49,14 +48,19 @@ export function Step6Contato() {
           situacao: autoEquity.situacao as "quitado" | "financiado",
           valor_solicitado: autoEquity.valor_solicitado,
           prazo_meses: autoEquity.prazo_meses,
-          parcela_price: resultado.parcela_price,
-          primeira_parcela_sac: resultado.primeira_parcela_sac,
-          ultima_parcela_sac: resultado.ultima_parcela_sac,
+          // Parcela exibida ao cliente (meses com IOF). SAC não existe no
+          // produto: os campos legados carregam primeira/última parcela Price.
+          parcela_price: ae.parcelaInicial,
+          primeira_parcela_sac: ae.parcelaInicial,
+          ultima_parcela_sac: ae.parcelaRestante,
           taxa_mensal: taxaMensal,
           modalidade_taxa: modalidadeTaxa,
           tipo_pessoa: tipoPessoa,
           iof_valor: ae.iofValor,
           principal_financiado: ae.principalFinanciado,
+          parcela_inicial: ae.parcelaInicial,
+          parcela_apos_iof: ae.parcelaRestante,
+          meses_com_iof: ae.mesesComIOF,
         },
         contato: {
           nome: formData.nome,

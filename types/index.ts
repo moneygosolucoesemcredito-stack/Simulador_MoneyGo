@@ -55,6 +55,12 @@ export interface SimulacaoAutoEquity {
   iof_valor?: number
   /** Crédito + IOF (base das parcelas) */
   principal_financiado?: number
+  /** Parcela dos meses com IOF diluído (1..meses_com_iof) */
+  parcela_inicial?: number
+  /** Parcela após a quitação do IOF */
+  parcela_apos_iof?: number
+  /** Quantidade de meses em que o IOF é diluído (até 12) */
+  meses_com_iof?: number
 }
 
 export interface SimulacaoFinanciamentoImobiliario {

@@ -118,7 +118,7 @@ describe("calcularHomeEquity (planilha Simulacao HE.xlsx, com estruturação zer
 })
 
 describe("calcularAutoEquity", () => {
-  it("grossa o IOF PF (3,38%) no principal", () => {
+  it("grossa o IOF PF (3,38%) sobre o valor líquido", () => {
     const r = calcularAutoEquity({
       valorCredito: 30_000,
       prazoMeses: 36,
@@ -127,13 +127,9 @@ describe("calcularAutoEquity", () => {
     })
     expect(r.principalFinanciado).toBeCloseTo(30_000 / (1 - 0.0338), 2)
     expect(r.iofValor).toBeCloseTo(r.principalFinanciado - 30_000, 2)
-    expect(r.parcelaPrice).toBeCloseTo(
-      calcularPrice(r.principalFinanciado, 0.0199, 36),
-      2
-    )
   })
 
-  it("grossa o IOF PJ (1,88%) no principal", () => {
+  it("grossa o IOF PJ (1,88%) sobre o valor líquido", () => {
     const r = calcularAutoEquity({
       valorCredito: 30_000,
       prazoMeses: 36,
@@ -143,15 +139,69 @@ describe("calcularAutoEquity", () => {
     expect(r.principalFinanciado).toBeCloseTo(30_000 / (1 - 0.0188), 2)
   })
 
+  it("dilui o IOF com juros nos 12 primeiros meses", () => {
+    const r = calcularAutoEquity({
+      valorCredito: 30_000,
+      prazoMeses: 36,
+      taxaMensal: 0.0199,
+      tipoPessoa: "PF",
+    })
+    expect(r.mesesComIOF).toBe(12)
+    expect(r.parcelaCredito).toBeCloseTo(calcularPrice(30_000, 0.0199, 36), 6)
+    expect(r.parcelaIOF).toBeCloseTo(calcularPrice(r.iofValor, 0.0199, 12), 6)
+    expect(r.parcelaInicial).toBeCloseTo(r.parcelaCredito + r.parcelaIOF, 6)
+    expect(r.parcelaRestante).toBeCloseTo(r.parcelaCredito, 6)
+    expect(r.parcelaInicial).toBeGreaterThan(r.parcelaRestante)
+  })
+
+  it("total pago = crédito em n meses + IOF em 12 meses", () => {
+    const r = calcularAutoEquity({
+      valorCredito: 30_000,
+      prazoMeses: 36,
+      taxaMensal: 0.0199,
+      tipoPessoa: "PF",
+    })
+    expect(r.totalPago).toBeCloseTo(r.parcelaCredito * 36 + r.parcelaIOF * 12, 6)
+  })
+
+  it("prazo de 12 meses: IOF diluído no prazo inteiro, parcela única", () => {
+    const r = calcularAutoEquity({
+      valorCredito: 30_000,
+      prazoMeses: 12,
+      taxaMensal: 0.0199,
+      tipoPessoa: "PF",
+    })
+    expect(r.mesesComIOF).toBe(12)
+    expect(r.parcelaInicial).toBeCloseTo(
+      calcularPrice(30_000, 0.0199, 12) + calcularPrice(r.iofValor, 0.0199, 12),
+      6
+    )
+  })
+
+  it("prazo menor que 12 meses: IOF diluído no prazo disponível", () => {
+    const r = calcularAutoEquity({
+      valorCredito: 30_000,
+      prazoMeses: 6,
+      taxaMensal: 0.0199,
+      tipoPessoa: "PF",
+    })
+    expect(r.mesesComIOF).toBe(6)
+    expect(r.parcelaIOF).toBeCloseTo(calcularPrice(r.iofValor, 0.0199, 6), 6)
+  })
+
   it("parcela PF > parcela PJ (IOF maior)", () => {
     const pf = calcularAutoEquity({ valorCredito: 30_000, prazoMeses: 36, taxaMensal: 0.0199, tipoPessoa: "PF" })
     const pj = calcularAutoEquity({ valorCredito: 30_000, prazoMeses: 36, taxaMensal: 0.0199, tipoPessoa: "PJ" })
-    expect(pf.parcelaPrice).toBeGreaterThan(pj.parcelaPrice)
+    expect(pf.parcelaInicial).toBeGreaterThan(pj.parcelaInicial)
+    // A parcela do crédito puro é igual — só o IOF muda entre PF e PJ.
+    expect(pf.parcelaRestante).toBeCloseTo(pj.parcelaRestante, 6)
   })
 
   it("retorna zeros para entrada inválida", () => {
     const r = calcularAutoEquity({ valorCredito: 0, prazoMeses: 36, taxaMensal: 0.0199, tipoPessoa: "PF" })
-    expect(r.parcelaPrice).toBe(0)
+    expect(r.parcelaInicial).toBe(0)
+    expect(r.parcelaRestante).toBe(0)
     expect(r.iofValor).toBe(0)
+    expect(r.totalPago).toBe(0)
   })
 })

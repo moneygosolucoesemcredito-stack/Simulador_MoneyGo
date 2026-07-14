@@ -229,8 +229,10 @@ export function calcularHomeEquity(p: ParametrosHomeEquity): ResultadoHomeEquity
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// Auto Equity — IOF embutido no principal (gross-up), como no Home Equity.
-// O cliente recebe `valorCredito` líquido; o IOF é financiado junto.
+// Auto Equity — IOF financiado com juros e diluído nos 12 primeiros meses.
+// O cliente recebe `valorCredito` líquido. O IOF (que incide sobre si mesmo,
+// pois é financiado) vira um sub-financiamento Price à mesma taxa, com prazo
+// de até 12 meses. Parcelas 1..mesesComIOF = crédito + IOF; depois só crédito.
 // ──────────────────────────────────────────────────────────────────────────
 
 export interface ParametrosAutoEquity {
@@ -240,36 +242,63 @@ export interface ParametrosAutoEquity {
   tipoPessoa: TipoPessoa
   iofPF?: number
   iofPJ?: number
+  mesesDiluicaoIOF?: number
 }
 
 export interface ResultadoAutoEquity {
   principalFinanciado: number
   iofValor: number
-  parcelaPrice: number
+  /** parcela do crédito puro, meses 1..prazoMeses */
+  parcelaCredito: number
+  /** parcela do IOF, meses 1..mesesComIOF */
+  parcelaIOF: number
+  /** parcela cheia (crédito + IOF) — valor exibido ao cliente */
+  parcelaInicial: number
+  /** parcela após quitação do IOF, meses mesesComIOF+1..prazoMeses */
+  parcelaRestante: number
+  mesesComIOF: number
   totalPago: number
   taxaMensal: number
 }
 
-const AE_DEFAULTS = { iofPF: 0.0338, iofPJ: 0.0188 }
+const AE_DEFAULTS = { iofPF: 0.0338, iofPJ: 0.0188, mesesDiluicaoIOF: 12 }
 
 export function calcularAutoEquity(p: ParametrosAutoEquity): ResultadoAutoEquity {
   const c = { ...AE_DEFAULTS, ...stripUndefined(p) }
   const { valorCredito, prazoMeses, taxaMensal, tipoPessoa } = p
 
   if (valorCredito <= 0 || prazoMeses <= 0 || taxaMensal <= 0) {
-    return { principalFinanciado: 0, iofValor: 0, parcelaPrice: 0, totalPago: 0, taxaMensal }
+    return {
+      principalFinanciado: 0,
+      iofValor: 0,
+      parcelaCredito: 0,
+      parcelaIOF: 0,
+      parcelaInicial: 0,
+      parcelaRestante: 0,
+      mesesComIOF: 0,
+      totalPago: 0,
+      taxaMensal,
+    }
   }
 
   const iofRate = tipoPessoa === "PF" ? c.iofPF : c.iofPJ
+  // IOF = (crédito + IOF) × alíquota → gross-up sobre o valor líquido.
   const principalFinanciado = valorCredito / (1 - iofRate)
   const iofValor = principalFinanciado - valorCredito
-  const parcelaPrice = calcularPrice(principalFinanciado, taxaMensal, prazoMeses)
+  const mesesComIOF = Math.min(c.mesesDiluicaoIOF, prazoMeses)
+
+  const parcelaCredito = calcularPrice(valorCredito, taxaMensal, prazoMeses)
+  const parcelaIOF = calcularPrice(iofValor, taxaMensal, mesesComIOF)
 
   return {
     principalFinanciado,
     iofValor,
-    parcelaPrice,
-    totalPago: parcelaPrice * prazoMeses,
+    parcelaCredito,
+    parcelaIOF,
+    parcelaInicial: parcelaCredito + parcelaIOF,
+    parcelaRestante: parcelaCredito,
+    mesesComIOF,
+    totalPago: parcelaCredito * prazoMeses + parcelaIOF * mesesComIOF,
     taxaMensal,
   }
 }

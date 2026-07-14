@@ -1,5 +1,5 @@
 import cidades from "./ibge-cidades.json"
-import { CONFIG } from "./config"
+import { CONFIG, ltvParaTipoImovel } from "./config"
 import type { TipoImovel } from "@/types"
 
 const cidadesSet = new Set(
@@ -70,9 +70,10 @@ export function qualificarHomeEquity(params: {
     }
   }
 
-  const ltvMaximo = params.valor_imovel * cfg.ltv
+  const ltv = ltvParaTipoImovel(params.tipo_imovel)
+  const ltvMaximo = params.valor_imovel * ltv
   if (params.valor_solicitado > ltvMaximo) {
-    motivos.push("Valor solicitado superior a 55% do valor do imóvel")
+    motivos.push(`Valor solicitado superior a ${Math.round(ltv * 100)}% do valor do imóvel`)
   }
 
   const idade = calcularIdade(params.data_nascimento)
@@ -106,9 +107,10 @@ export function qualificarFinanciamentoImobiliario(params: {
     motivos.push("Imóvel rural não aceito nesta modalidade")
   }
 
-  const ltvMaximo = params.valor_imovel * cfg.ltv
+  const ltv = ltvParaTipoImovel(params.tipo_imovel)
+  const ltvMaximo = params.valor_imovel * ltv
   if (params.valor_solicitado > ltvMaximo) {
-    motivos.push("Valor solicitado superior a 55% do valor do imóvel")
+    motivos.push(`Valor solicitado superior a ${Math.round(ltv * 100)}% do valor do imóvel`)
   }
 
   const idade = calcularIdade(params.data_nascimento)
@@ -176,7 +178,7 @@ export function qualificarAutoEquity(params: {
 
   const ltvMaximo = params.valor_veiculo * cfg.ltv
   if (params.valor_solicitado > ltvMaximo) {
-    motivos.push("Valor solicitado superior a 50% do valor do veículo")
+    motivos.push(`Valor solicitado superior a ${Math.round(cfg.ltv * 100)}% do valor do veículo`)
   }
 
   return { qualificado: motivos.length === 0, motivos }

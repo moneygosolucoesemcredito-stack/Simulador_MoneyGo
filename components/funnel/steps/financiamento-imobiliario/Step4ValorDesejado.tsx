@@ -5,13 +5,15 @@ import { Slider } from "@/components/ui/slider"
 import { Button } from "@/components/ui/button"
 import { useFunnelStore } from "@/stores/funnel-store"
 import { formatarMoeda } from "@/lib/simulacao"
-import { CONFIG } from "@/lib/config"
+import { CONFIG, ltvParaTipoImovel } from "@/lib/config"
 import { pushDataLayer } from "@/components/tracking/GTM"
 import { cn } from "@/lib/utils"
+import type { TipoImovel } from "@/types"
 
 export function Step4ValorDesejado({ onNext }: { onNext: () => void }) {
   const { financiamentoImobiliario, setFinanciamentoImobiliario } = useFunnelStore()
-  const valorMaximo = Math.floor(financiamentoImobiliario.valor_imovel * CONFIG.financiamentoImobiliario.ltv)
+  const ltv = ltvParaTipoImovel(financiamentoImobiliario.tipo_imovel as TipoImovel | "")
+  const valorMaximo = Math.floor(financiamentoImobiliario.valor_imovel * ltv)
   const valorMinimo = CONFIG.financiamentoImobiliario.valorCreditoMinimo
 
   const [valor, setValor] = useState(
@@ -37,7 +39,7 @@ export function Step4ValorDesejado({ onNext }: { onNext: () => void }) {
       <div className="space-y-2">
         <h2 className="text-2xl font-bold tracking-tight">Quanto você precisa financiar?</h2>
         <p className="text-muted-foreground text-sm">
-          Você pode financiar até {formatarMoeda(valorMaximo)} (55% do valor do imóvel).
+          Você pode financiar até {formatarMoeda(valorMaximo)} ({Math.round(ltv * 100)}% do valor do imóvel).
         </p>
       </div>
 

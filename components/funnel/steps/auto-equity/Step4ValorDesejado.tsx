@@ -42,7 +42,7 @@ export function Step4ValorDesejado({ onNext }: { onNext: () => void }) {
       <div className="space-y-2">
         <h2 className="text-2xl font-bold tracking-tight">Quanto você precisa?</h2>
         <p className="text-muted-foreground text-sm">
-          Você pode solicitar até {formatarMoeda(valorMaximo)} (50% do valor do veículo).
+          Você pode solicitar até {formatarMoeda(valorMaximo)}.
         </p>
       </div>
 
@@ -112,7 +112,7 @@ export function Step4ValorDesejado({ onNext }: { onNext: () => void }) {
           ))}
         </div>
         <p className="text-xs text-muted-foreground">
-          Usado para calcular o IOF aplicável à operação.
+          Usado para calcular as condições da operação.
         </p>
       </div>
 

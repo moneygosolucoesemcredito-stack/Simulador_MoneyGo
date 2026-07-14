@@ -20,7 +20,7 @@ const produtos = [
     taxa: formatarPercentual(CONFIG.homeEquity.taxaMensal),
     modalidade: "Pós-fixada + IPCA",
     prazo: "até 240 meses",
-    ltv: "até 55% do valor",
+    ltv: "Crédito até 55% do valor do bem",
     destaque: true,
   },
   {
@@ -33,7 +33,7 @@ const produtos = [
     taxa: formatarPercentual(CONFIG.financiamentoImobiliario.taxaMensal),
     modalidade: "Pós-fixada + IPCA",
     prazo: "até 360 meses",
-    ltv: "até 55% do valor",
+    ltv: "Crédito até 55% do valor do bem",
     destaque: false,
   },
   {
@@ -46,7 +46,7 @@ const produtos = [
     taxa: formatarPercentual(CONFIG.creditoConstrucao.taxaMensal),
     modalidade: "Pós-fixada + IPCA",
     prazo: "até 240 meses",
-    ltv: "até 55% do valor",
+    ltv: "Crédito até 55% do valor do bem",
     destaque: false,
   },
   {
@@ -58,8 +58,8 @@ const produtos = [
       "Utilize seu carro de passeio como garantia e acesse crédito rápido com taxa pré-fixada. Continue usando o veículo normalmente.",
     taxa: formatarPercentual(CONFIG.autoEquity.taxaMensal),
     modalidade: "Pré-fixada",
-    prazo: "até 60 meses",
-    ltv: "até 50% do valor",
+    prazo: "até 48 meses",
+    ltv: "Crédito com base na tabela FIPE",
     destaque: false,
   },
 ]
@@ -124,7 +124,7 @@ export function ProductCards() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Icon className="w-4 h-4 text-[var(--gold)] shrink-0" />
-                        <span>Crédito {p.ltv} do bem</span>
+                        <span>{p.ltv}</span>
                       </div>
                     </div>
 
