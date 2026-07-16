@@ -55,6 +55,18 @@
   --ink: oklch(0.14 0 0);                 /* superfície escura da marca (hero/footer) */
   --ink-foreground: oklch(1 0 0);         /* texto sobre a superfície escura */
 
+  /* Banner de cookies. Superfície própria, não derivada de --background nem de
+   * --ink: cada marca resolve o aviso de um jeito, e o do MoneyGo é preto com
+   * dourado enquanto o da Capita Max espelha o site dela, que é claro. */
+  --cookie-bg: #0A0A0A;
+  --cookie-fg: #FFFFFF;
+  --cookie-border: transparent;
+  --cookie-accept-bg: var(--gold);
+  --cookie-accept-fg: var(--gold-foreground);
+  --cookie-decline-fg: #CCCCCC;
+  --cookie-decline-border: #555555;
+  --cookie-link: var(--gold);
+
   /* shadcn tokens remapped to MoneyGo palette */
   --background: oklch(1 0 0);
   --foreground: oklch(0.14 0 0);
@@ -100,6 +112,18 @@
   --sidebar-primary: #ef900e;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-ring: #ef900e;
+
+  /* Banner de cookies espelhando www.capitamax.com.br: superfície branca, ação
+   * em azul (#00508C, o mesmo do header do site) e recusa cinza discreta — não
+   * o laranja do accent. Valores amostrados do site em 16/07/2026. */
+  --cookie-bg: #FFFFFF;
+  --cookie-fg: #1F2937;
+  --cookie-border: #E5E7EB;
+  --cookie-accept-bg: #00508C;
+  --cookie-accept-fg: #FFFFFF;
+  --cookie-decline-fg: #6B7280;
+  --cookie-decline-border: #E5E7EB;
+  --cookie-link: #00508C;
 }
 
 @layer base {
