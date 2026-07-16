@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { useFunnelStore } from "@/stores/funnel-store"
 import { pushDataLayer } from "@/components/tracking/GTM"
-import { Building2, Home, Store } from "lucide-react"
+import { Building2, Home, Store, TreePine } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { TipoImovel } from "@/types"
 
@@ -12,6 +12,7 @@ const TIPOS = [
   { value: "casa" as TipoImovel, label: "Casa", icon: Home },
   { value: "apartamento" as TipoImovel, label: "Apartamento", icon: Building2 },
   { value: "comercial" as TipoImovel, label: "Comercial", icon: Store },
+  { value: "terreno" as TipoImovel, label: "Terreno", icon: TreePine },
 ]
 
 export function Step2TipoImovel({ onNext }: { onNext: () => void }) {

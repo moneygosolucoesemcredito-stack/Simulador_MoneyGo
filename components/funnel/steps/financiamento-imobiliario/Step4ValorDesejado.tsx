@@ -5,14 +5,14 @@ import { Slider } from "@/components/ui/slider"
 import { Button } from "@/components/ui/button"
 import { useFunnelStore } from "@/stores/funnel-store"
 import { formatarMoeda } from "@/lib/simulacao"
-import { CONFIG, ltvParaTipoImovel } from "@/lib/config"
+import { CONFIG, ltvParaTipoImovelFI } from "@/lib/config"
 import { pushDataLayer } from "@/components/tracking/GTM"
 import { cn } from "@/lib/utils"
 import type { TipoImovel } from "@/types"
 
 export function Step4ValorDesejado({ onNext }: { onNext: () => void }) {
   const { financiamentoImobiliario, setFinanciamentoImobiliario } = useFunnelStore()
-  const ltv = ltvParaTipoImovel(financiamentoImobiliario.tipo_imovel as TipoImovel | "")
+  const ltv = ltvParaTipoImovelFI(financiamentoImobiliario.tipo_imovel as TipoImovel | "")
   const valorMaximo = Math.floor(financiamentoImobiliario.valor_imovel * ltv)
   const valorMinimo = CONFIG.financiamentoImobiliario.valorCreditoMinimo
 

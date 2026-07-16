@@ -33,11 +33,11 @@ export const CONFIG = {
     populacaoMunicipalMinima: 50_000,
   },
   financiamentoImobiliario: {
-    taxaMensal: 0.0097,
+    taxaMensal: 0.0083,
     modalidadeTaxa: "pos_fixada" as const,
     valorImovelMinimo: 200_000,
     valorCreditoMinimo: 100_000,
-    // LTV varia por tipo de imóvel — ver LTV_POR_TIPO_IMOVEL.
+    // LTV varia por tipo de imóvel — ver LTV_POR_TIPO_IMOVEL_FI.
     mip: 0.00035,
     dfi: 0.000065,
     estruturacaoFixa: 5_000,
@@ -91,12 +91,16 @@ export const CONFIG = {
 } as const
 
 // LTV (crédito máximo sobre o valor do bem) por categoria de imóvel.
-// Vale para Home Equity e Financiamento Imobiliário — Crédito de Construção
-// e Auto Equity mantêm seu próprio `ltv` fixo em CONFIG.
+// Vale apenas para Home Equity — Financiamento Imobiliário usa
+// LTV_POR_TIPO_IMOVEL_FI; Crédito de Construção e Auto Equity mantêm
+// seu próprio `ltv` fixo em CONFIG.
 export const LTV_POR_TIPO_IMOVEL: Record<TipoImovel, number> = {
   casa: 0.55,
   apartamento: 0.55,
   comercial: 0.45,
+  // O funil de HE só oferece terreno em condomínio; `terreno` avulso fica no
+  // mesmo teto conservador caso chegue por outra via.
+  terreno: 0.35,
   terreno_condominio: 0.35,
 }
 
@@ -104,12 +108,26 @@ export function ltvParaTipoImovel(tipoImovel: TipoImovel | ""): number {
   return tipoImovel ? LTV_POR_TIPO_IMOVEL[tipoImovel] : LTV_POR_TIPO_IMOVEL.casa
 }
 
+// LTV do Financiamento Imobiliário por categoria de imóvel.
+// Terreno é aceito sem exigir condomínio — ambas as formas ficam em 70%.
+export const LTV_POR_TIPO_IMOVEL_FI: Record<TipoImovel, number> = {
+  casa: 0.8,
+  apartamento: 0.8,
+  comercial: 0.7,
+  terreno: 0.7,
+  terreno_condominio: 0.7,
+}
+
+export function ltvParaTipoImovelFI(tipoImovel: TipoImovel | ""): number {
+  return tipoImovel ? LTV_POR_TIPO_IMOVEL_FI[tipoImovel] : LTV_POR_TIPO_IMOVEL_FI.casa
+}
+
 // Faixa de taxa (a.m., em fração) controlada pelo OPERADOR — nunca pelo cliente.
 // fixed:true  => campo somente leitura no valor `default` (ex.: Auto Equity 1,99%).
 // fixed:false => campo digitável, vazio por padrão, validado contra min/max.
 export const RATE_CONFIG = {
   home_equity: { min: 0.0099, max: 0.0199, default: null, fixed: false },
-  financiamento_imobiliario: { min: 0.0099, max: 0.0199, default: null, fixed: false },
+  financiamento_imobiliario: { min: 0.0083, max: 0.0199, default: null, fixed: false },
   credito_construcao: { min: 0.0099, max: 0.0199, default: null, fixed: false },
   auto_equity: { min: 0.0199, max: 0.0199, default: 0.0199, fixed: true },
 } as const

@@ -143,22 +143,50 @@ describe("qualificarFinanciamentoImobiliario", () => {
     expect(motivos).toHaveLength(0)
   })
 
-  it("LTV de imóvel comercial é 45%, não 55%", () => {
+  it("LTV de imóvel comercial é 70%, não 80%", () => {
     const { qualificado, motivos } = qualificarFinanciamentoImobiliario({
       ...base,
       tipo_imovel: "comercial",
-      valor_solicitado: 250_000,
+      valor_solicitado: 375_000, // 75% > 70%
     })
     expect(qualificado).toBe(false)
-    expect(motivos.some((m) => m.includes("45%"))).toBe(true)
+    expect(motivos.some((m) => m.includes("70%"))).toBe(true)
   })
 
-  it("aceita casa/apartamento com LTV de 55%", () => {
+  it("aceita casa/apartamento com LTV de 80%", () => {
     const { qualificado } = qualificarFinanciamentoImobiliario({
       ...base,
-      valor_solicitado: 275_000, // exatamente 55%
+      valor_solicitado: 400_000, // exatamente 80%
     })
     expect(qualificado).toBe(true)
+  })
+
+  it("rejeita casa/apartamento acima de 80%", () => {
+    const { qualificado, motivos } = qualificarFinanciamentoImobiliario({
+      ...base,
+      valor_solicitado: 425_000, // 85% > 80%
+    })
+    expect(qualificado).toBe(false)
+    expect(motivos.some((m) => m.includes("80%"))).toBe(true)
+  })
+
+  it("aceita terreno (sem exigir condomínio) com LTV de 70%", () => {
+    const { qualificado } = qualificarFinanciamentoImobiliario({
+      ...base,
+      tipo_imovel: "terreno",
+      valor_solicitado: 350_000, // exatamente 70%
+    })
+    expect(qualificado).toBe(true)
+  })
+
+  it("rejeita terreno acima de 70%", () => {
+    const { qualificado, motivos } = qualificarFinanciamentoImobiliario({
+      ...base,
+      tipo_imovel: "terreno",
+      valor_solicitado: 375_000, // 75% > 70%
+    })
+    expect(qualificado).toBe(false)
+    expect(motivos.some((m) => m.includes("70%"))).toBe(true)
   })
 
   it("rejeita cidade não qualificada", () => {

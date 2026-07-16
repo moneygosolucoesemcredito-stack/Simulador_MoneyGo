@@ -33,7 +33,7 @@ const produtos = [
     taxa: formatarPercentual(CONFIG.financiamentoImobiliario.taxaMensal),
     modalidade: "Pós-fixada + IPCA",
     prazo: "até 360 meses",
-    ltv: "Crédito até 55% do valor do bem",
+    ltv: "Crédito até 80% do valor do bem",
     destaque: false,
   },
   {

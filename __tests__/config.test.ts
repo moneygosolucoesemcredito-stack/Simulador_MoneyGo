@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest"
-import { LTV_POR_TIPO_IMOVEL, ltvParaTipoImovel } from "@/lib/config"
+import {
+  LTV_POR_TIPO_IMOVEL,
+  LTV_POR_TIPO_IMOVEL_FI,
+  ltvParaTipoImovel,
+  ltvParaTipoImovelFI,
+} from "@/lib/config"
 
 describe("ltvParaTipoImovel", () => {
   it("casa e apartamento têm LTV de 55%", () => {
@@ -24,11 +29,43 @@ describe("ltvParaTipoImovel", () => {
       "casa",
       "apartamento",
       "comercial",
+      "terreno",
       "terreno_condominio",
     ]
     for (const c of categorias) {
       expect(LTV_POR_TIPO_IMOVEL[c]).toBeGreaterThan(0)
       expect(LTV_POR_TIPO_IMOVEL[c]).toBeLessThanOrEqual(1)
+    }
+  })
+})
+
+describe("ltvParaTipoImovelFI (Financiamento Imobiliário)", () => {
+  it("casa e apartamento têm LTV de 80%", () => {
+    expect(ltvParaTipoImovelFI("casa")).toBeCloseTo(0.8, 4)
+    expect(ltvParaTipoImovelFI("apartamento")).toBeCloseTo(0.8, 4)
+  })
+
+  it("comercial e terreno têm LTV de 70%", () => {
+    expect(ltvParaTipoImovelFI("comercial")).toBeCloseTo(0.7, 4)
+    expect(ltvParaTipoImovelFI("terreno")).toBeCloseTo(0.7, 4)
+    expect(ltvParaTipoImovelFI("terreno_condominio")).toBeCloseTo(0.7, 4)
+  })
+
+  it("string vazia (tipo ainda não selecionado) usa o fallback de casa (80%)", () => {
+    expect(ltvParaTipoImovelFI("")).toBeCloseTo(0.8, 4)
+  })
+
+  it("cobre todas as categorias de TipoImovel sem lacunas", () => {
+    const categorias: (keyof typeof LTV_POR_TIPO_IMOVEL_FI)[] = [
+      "casa",
+      "apartamento",
+      "comercial",
+      "terreno",
+      "terreno_condominio",
+    ]
+    for (const c of categorias) {
+      expect(LTV_POR_TIPO_IMOVEL_FI[c]).toBeGreaterThan(0)
+      expect(LTV_POR_TIPO_IMOVEL_FI[c]).toBeLessThanOrEqual(1)
     }
   })
 })

@@ -1,5 +1,5 @@
 import cidades from "./ibge-cidades.json"
-import { CONFIG, ltvParaTipoImovel } from "./config"
+import { CONFIG, ltvParaTipoImovel, ltvParaTipoImovelFI } from "./config"
 import type { TipoImovel } from "@/types"
 
 const cidadesSet = new Set(
@@ -107,7 +107,7 @@ export function qualificarFinanciamentoImobiliario(params: {
     motivos.push("Imóvel rural não aceito nesta modalidade")
   }
 
-  const ltv = ltvParaTipoImovel(params.tipo_imovel)
+  const ltv = ltvParaTipoImovelFI(params.tipo_imovel)
   const ltvMaximo = params.valor_imovel * ltv
   if (params.valor_solicitado > ltvMaximo) {
     motivos.push(`Valor solicitado superior a ${Math.round(ltv * 100)}% do valor do imóvel`)

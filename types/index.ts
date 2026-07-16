@@ -1,6 +1,8 @@
 export type Produto = "home_equity" | "auto_equity" | "financiamento_imobiliario" | "credito_construcao"
 
-export type TipoImovel = "casa" | "apartamento" | "comercial" | "terreno_condominio"
+// `terreno` = lote sem restrição de condomínio (aceito no Financiamento Imobiliário).
+// `terreno_condominio` = lote em condomínio fechado (única forma de terreno aceita no Home Equity).
+export type TipoImovel = "casa" | "apartamento" | "comercial" | "terreno" | "terreno_condominio"
 export type SituacaoImovel = "quitado" | "financiado"
 export type SituacaoVeiculo = "quitado" | "financiado"
 export type MelhorHorario = "manha" | "tarde"
