@@ -27,8 +27,10 @@ export function FunnelShell({
     <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
       <header className="border-b border-border bg-white sticky top-0 z-30">
-        <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
+        <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between gap-4">
           <Link href="/" className="shrink-0">
+            {/* h-10: a logo do MoneyGo é um lockup largo (1400×209) — acima disso
+                ela consome o espaço do rótulo do produto ao lado. */}
             <Image
               src={BRAND.logos.full}
               alt={BRAND.fullName}
@@ -36,10 +38,10 @@ export function FunnelShell({
               height={BRAND.logos.height}
               unoptimized
               priority
-              className="h-12 w-auto"
+              className="h-10 w-auto"
             />
           </Link>
-          <span className="text-xs font-medium text-muted-foreground hidden sm:block">
+          <span className="text-xs font-medium text-muted-foreground text-right hidden sm:block">
             {produto}
           </span>
         </div>
