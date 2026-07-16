@@ -8,13 +8,16 @@ export const moneygo: Brand = {
   cnpj: "62.682.074/0001-02",
   tagline: "Assessoria financeira em concessão de crédito no varejo e no atacado.",
   url: "https://www.moneygosolucoesemcredito.com.br",
+  // Arquivos derivados do kit oficial da marca (pasta "Logo Alterada").
   logos: {
     full: "/logo-full.png",
     fullWhite: "/logo-full-white.png",
-    mark: "/logo-full.png",
-    markWhite: "/logo-full-white.png",
-    width: 1024,
-    height: 324,
+    mark: "/logo-mark.png",
+    markWhite: "/logo-mark-white.png",
+    width: 1400,
+    height: 209,
+    markWidth: 480,
+    markHeight: 473,
     favicon: "/favicon.png",
   },
   contact: {
@@ -36,7 +39,8 @@ export const moneygo: Brand = {
     ogDescription: "Crédito com garantia de imóvel ou veículo. Simule agora e fale com um especialista.",
     ogImage: "/og-image.png",
   },
-  pdfAccentRgb: [180, 142, 60],
+  // #C89C5C — o dourado medido no arquivo do logo, o mesmo de `--gold`.
+  pdfAccentRgb: [200, 156, 92],
   supabase: {
     url: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
     anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",

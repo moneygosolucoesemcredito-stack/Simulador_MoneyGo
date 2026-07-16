@@ -13,8 +13,8 @@ export function CookieBanner() {
       cookieName="moneygo_cookie_consent"
       style={{ background: "#0A0A0A", fontSize: "13px", zIndex: 9999 }}
       buttonStyle={{
-        background: "#C9A84C",
-        color: "#0A0A0A",
+        background: "var(--gold)",
+        color: "var(--gold-foreground)",
         fontWeight: "600",
         borderRadius: "6px",
         fontSize: "13px",
@@ -28,7 +28,7 @@ export function CookieBanner() {
       }}
     >
       Utilizamos cookies para melhorar sua experiência e analisar o tráfego.{" "}
-      <Link href="/privacidade" className="underline text-[#C9A84C]">
+      <Link href="/privacidade" className="underline text-[var(--gold)]">
         Saiba mais
       </Link>
       .

@@ -13,9 +13,16 @@ export interface BrandLogos {
   mark: string
   /** Marca/ícone compacto em branco. */
   markWhite: string
-  /** Dimensão intrínseca (px) do arquivo, p/ o aspect-ratio correto do next/image. */
+  /** Dimensão intrínseca (px) do lockup (`full`/`fullWhite`), p/ o aspect-ratio
+   *  correto do next/image. */
   width: number
   height: number
+  /** Dimensão intrínseca (px) do ícone (`mark`/`markWhite`). Separada do lockup
+   *  porque as proporções não têm relação: o lockup é deitado, o ícone é quase
+   *  quadrado. Como os `<Image>` usam `w-auto`, a largura é derivada daqui — usar
+   *  as medidas do lockup no ícone o esticaria. */
+  markWidth: number
+  markHeight: number
   /** Ícone da aba do navegador (favicon). Caminho em /public. */
   favicon: string
 }

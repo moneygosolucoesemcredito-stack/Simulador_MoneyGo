@@ -18,7 +18,7 @@ export default function PrivacidadePage() {
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-10 prose prose-sm prose-zinc max-w-none">
-        <Image src={BRAND.logos.mark} alt={BRAND.name} width={BRAND.logos.width} height={BRAND.logos.height}
+        <Image src={BRAND.logos.mark} alt={BRAND.name} width={BRAND.logos.markWidth} height={BRAND.logos.markHeight}
               unoptimized className="h-9 w-auto mb-8" />
 
         <h1>Política de Privacidade</h1>

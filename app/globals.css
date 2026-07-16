@@ -46,8 +46,11 @@
 :root {
   /* MoneyGo Brand — Dourado/Preto/Branco (marca default) */
   /* Tokens semânticos de marca — sobrescritos por marca via [data-brand]. */
-  --gold: oklch(0.72 0.13 80);            /* accent / CTA */
-  --gold-dark: oklch(0.60 0.12 75);       /* accent hover */
+  /* Dourado medido no arquivo oficial do logo (#C89C5C). Luminosidade e matiz
+   * saem da amostragem do gradiente da marca; não arredondar "para ficar mais
+   * vivo" — foi assim que a interface passou a destoar do logo. */
+  --gold: oklch(0.72 0.097 75.5);         /* accent / CTA */
+  --gold-dark: oklch(0.60 0.090 75.5);    /* accent hover */
   --gold-foreground: oklch(0.14 0 0);     /* texto/ícone sobre o accent */
   --ink: oklch(0.14 0 0);                 /* superfície escura da marca (hero/footer) */
   --ink-foreground: oklch(1 0 0);         /* texto sobre a superfície escura */
@@ -59,27 +62,27 @@
   --card-foreground: oklch(0.14 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.14 0 0);
-  --primary: oklch(0.72 0.13 80);         /* gold */
+  --primary: var(--gold);
   --primary-foreground: oklch(0.14 0 0);  /* dark text on gold */
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.14 0 0);
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.50 0 0);
-  --accent: oklch(0.96 0.03 80);
+  --accent: oklch(0.96 0.03 75.5);        /* tinta clara do dourado da marca */
   --accent-foreground: oklch(0.14 0 0);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.91 0 0);
   --input: oklch(0.91 0 0);
-  --ring: oklch(0.72 0.13 80);
+  --ring: var(--gold);
   --radius: 0.5rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.14 0 0);
-  --sidebar-primary: oklch(0.72 0.13 80);
+  --sidebar-primary: var(--gold);
   --sidebar-primary-foreground: oklch(0.14 0 0);
   --sidebar-accent: oklch(0.97 0 0);
   --sidebar-accent-foreground: oklch(0.14 0 0);
   --sidebar-border: oklch(0.91 0 0);
-  --sidebar-ring: oklch(0.72 0.13 80);
+  --sidebar-ring: var(--gold);
 }
 
 /* Capita Max Brand — Azul/Laranja/Branco. Só sobrescreve os tokens de marca;

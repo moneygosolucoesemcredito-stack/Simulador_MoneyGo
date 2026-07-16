@@ -20,8 +20,8 @@ export default function ObrigadoPage() {
           <Image
             src={BRAND.logos.mark}
             alt={BRAND.name}
-            width={BRAND.logos.width}
-            height={BRAND.logos.height}
+            width={BRAND.logos.markWidth}
+            height={BRAND.logos.markHeight}
               unoptimized
             className="h-9 w-auto mx-auto mb-4"
           />

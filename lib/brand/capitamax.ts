@@ -15,10 +15,13 @@ export const capitamax: Brand = {
   logos: {
     full: "/capitamax/logo-full.png",
     fullWhite: "/capitamax/logo-full-white.png",
+    // `mark` aponta para o lockup, então as medidas do ícone repetem as dele.
     mark: "/capitamax/logo-full.png",
     markWhite: "/capitamax/logo-full-white.png",
     width: 845,
     height: 533,
+    markWidth: 845,
+    markHeight: 533,
     favicon: "/capitamax/favicon.png",
   },
   contact: {
