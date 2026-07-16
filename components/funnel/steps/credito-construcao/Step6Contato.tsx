@@ -20,16 +20,18 @@ export function Step6Contato() {
   async function handleSubmit(formData: ContatoFormValues) {
     setLoading(true)
     try {
-      const { taxaMensal, modalidadeTaxa, numeroDeTranches } = CONFIG.creditoConstrucao
+      const { taxas, modalidadeTaxa, numeroDeTranches } = CONFIG.creditoConstrucao
+      const opcaoTaxa = taxas[creditoConstrucao.indexador]
       const resultado = calcularSimulacao(
         creditoConstrucao.valor_solicitado,
-        taxaMensal,
+        opcaoTaxa.taxaMensal,
         creditoConstrucao.prazo_meses
       )
 
       const { qualificado } = qualificarCreditoConstrucao({
         valor_terreno: creditoConstrucao.valor_terreno,
         valor_obra: creditoConstrucao.valor_obra,
+        vgv: creditoConstrucao.vgv,
         valor_solicitado: creditoConstrucao.valor_solicitado,
         cidade: creditoConstrucao.cidade,
         uf: creditoConstrucao.uf,
@@ -42,13 +44,15 @@ export function Step6Contato() {
         simulacao: {
           valor_terreno: creditoConstrucao.valor_terreno,
           valor_obra: creditoConstrucao.valor_obra,
+          vgv: creditoConstrucao.vgv,
           valor_solicitado: creditoConstrucao.valor_solicitado,
           prazo_meses: creditoConstrucao.prazo_meses,
           parcela_price: resultado.parcela_price,
           primeira_parcela_sac: resultado.primeira_parcela_sac,
           ultima_parcela_sac: resultado.ultima_parcela_sac,
-          taxa_mensal: taxaMensal,
+          taxa_mensal: opcaoTaxa.taxaMensal,
           modalidade_taxa: modalidadeTaxa,
+          indexador: opcaoTaxa.indexador,
           numero_tranches: numeroDeTranches,
           valor_por_tranche: Math.floor(creditoConstrucao.valor_solicitado / numeroDeTranches),
         },

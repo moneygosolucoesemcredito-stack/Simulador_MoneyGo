@@ -49,11 +49,19 @@ export const CONFIG = {
     populacaoMunicipalMinima: 50_000,
   },
   creditoConstrucao: {
-    taxaMensal: 0.0125,
+    // Duas opções de taxa pós-fixada (a.m.): a partir de 1,17% + TR ou 1,25% + IPCA.
+    taxas: {
+      tr: { taxaMensal: 0.0117, indexador: "TR", aPartirDe: true },
+      ipca: { taxaMensal: 0.0125, indexador: "IPCA", aPartirDe: false },
+    },
+    indexadorDefault: "tr" as const,
     modalidadeTaxa: "pos_fixada" as const,
     valorObraMinimo: 300_000,
     valorCreditoMinimo: 150_000,
-    ltv: 0.55,
+    // Crédito limitado ao MENOR entre 80% do custo da obra e 50% do VGV
+    // (valor geral de venda do imóvel pronto) — ver limiteCreditoConstrucao.
+    ltvObra: 0.8,
+    ltvVgv: 0.5,
     mip: 0.00035,
     dfi: 0.000065,
     estruturacaoPercentual: 0.05,
@@ -90,10 +98,18 @@ export const CONFIG = {
   },
 } as const
 
+export type IndexadorConstrucao = keyof typeof CONFIG.creditoConstrucao.taxas
+
+/** Limite de crédito da construção: o menor entre 80% do custo da obra e 50% do VGV. */
+export function limiteCreditoConstrucao(valorObra: number, vgv: number): number {
+  const { ltvObra, ltvVgv } = CONFIG.creditoConstrucao
+  return Math.min(valorObra * ltvObra, vgv * ltvVgv)
+}
+
 // LTV (crédito máximo sobre o valor do bem) por categoria de imóvel.
 // Vale apenas para Home Equity — Financiamento Imobiliário usa
-// LTV_POR_TIPO_IMOVEL_FI; Crédito de Construção e Auto Equity mantêm
-// seu próprio `ltv` fixo em CONFIG.
+// LTV_POR_TIPO_IMOVEL_FI; Crédito de Construção usa limiteCreditoConstrucao
+// e Auto Equity mantém seu próprio `ltv` fixo em CONFIG.
 export const LTV_POR_TIPO_IMOVEL: Record<TipoImovel, number> = {
   casa: 0.55,
   apartamento: 0.55,
@@ -128,7 +144,7 @@ export function ltvParaTipoImovelFI(tipoImovel: TipoImovel | ""): number {
 export const RATE_CONFIG = {
   home_equity: { min: 0.0099, max: 0.0199, default: null, fixed: false },
   financiamento_imobiliario: { min: 0.0083, max: 0.0199, default: null, fixed: false },
-  credito_construcao: { min: 0.0099, max: 0.0199, default: null, fixed: false },
+  credito_construcao: { min: 0.0117, max: 0.0199, default: null, fixed: false },
   auto_equity: { min: 0.0199, max: 0.0199, default: 0.0199, fixed: true },
 } as const
 

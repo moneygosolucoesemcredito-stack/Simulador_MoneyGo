@@ -67,8 +67,10 @@ export interface CreditoConstrucaoState {
   step: number
   valor_terreno: number
   valor_obra: number
+  vgv: number
   valor_solicitado: number
   prazo_meses: number
+  indexador: "tr" | "ipca"
   cep: string
   logradouro: string
   numero: string
@@ -153,8 +155,10 @@ const defaultCreditoConstrucao: CreditoConstrucaoState = {
   step: 1,
   valor_terreno: 500_000,
   valor_obra: 1_000_000,
+  vgv: 3_000_000,
   valor_solicitado: 500_000,
   prazo_meses: 240,
+  indexador: "tr",
   cep: "",
   logradouro: "",
   numero: "",

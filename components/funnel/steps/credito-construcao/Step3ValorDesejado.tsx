@@ -5,15 +5,15 @@ import { Slider } from "@/components/ui/slider"
 import { Button } from "@/components/ui/button"
 import { useFunnelStore } from "@/stores/funnel-store"
 import { formatarMoeda } from "@/lib/simulacao"
-import { CONFIG } from "@/lib/config"
+import { CONFIG, limiteCreditoConstrucao } from "@/lib/config"
 import { pushDataLayer } from "@/components/tracking/GTM"
 import { cn } from "@/lib/utils"
-import { Info } from "lucide-react"
 
 export function Step3ValorDesejado({ onNext }: { onNext: () => void }) {
   const { creditoConstrucao, setCreditoConstrucao } = useFunnelStore()
-  const garantia = creditoConstrucao.valor_terreno + creditoConstrucao.valor_obra
-  const valorMaximo = Math.floor(garantia * CONFIG.creditoConstrucao.ltv)
+  const valorMaximo = Math.floor(
+    limiteCreditoConstrucao(creditoConstrucao.valor_obra, creditoConstrucao.vgv)
+  )
   const valorMinimo = CONFIG.creditoConstrucao.valorCreditoMinimo
 
   const [valor, setValor] = useState(
@@ -41,7 +41,8 @@ export function Step3ValorDesejado({ onNext }: { onNext: () => void }) {
       <div className="space-y-2">
         <h2 className="text-2xl font-bold tracking-tight">Quanto você precisa de crédito?</h2>
         <p className="text-muted-foreground text-sm">
-          Você pode solicitar até {formatarMoeda(valorMaximo)} (55% do valor total: terreno + obra).
+          Você pode solicitar até {formatarMoeda(valorMaximo)} — o menor entre 80% do
+          custo da obra e 50% do VGV.
         </p>
       </div>
 
@@ -96,11 +97,6 @@ export function Step3ValorDesejado({ onNext }: { onNext: () => void }) {
         <p className="text-xs text-muted-foreground text-center">
           {prazo / 12} anos ({prazo} parcelas)
         </p>
-      </div>
-
-      <div className="flex gap-2 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
-        <Info className="w-4 h-4 shrink-0 mt-0.5" />
-        <p>Período de carência durante as obras. A amortização começa após a conclusão da construção.</p>
       </div>
 
       <Button

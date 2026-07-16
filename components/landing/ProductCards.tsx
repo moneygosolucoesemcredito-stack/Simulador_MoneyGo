@@ -42,11 +42,11 @@ const produtos = [
     titulo: "Crédito de Construção",
     subtitulo: "Financiamento para construção em terreno próprio",
     descricao:
-      "Construa no seu terreno com crédito liberado em tranches conforme o avanço da obra. Carência durante a construção e até 20 anos para pagar.",
-    taxa: formatarPercentual(CONFIG.creditoConstrucao.taxaMensal),
-    modalidade: "Pós-fixada + IPCA",
+      "Construa no seu terreno com crédito liberado em tranches conforme o avanço da obra e até 20 anos para pagar.",
+    taxa: `a partir de ${formatarPercentual(CONFIG.creditoConstrucao.taxas.tr.taxaMensal)}`,
+    modalidade: "Pós-fixada + TR ou IPCA",
     prazo: "até 240 meses",
-    ltv: "Crédito até 55% do valor do bem",
+    ltv: "Crédito até 80% da obra (máx. 50% do VGV)",
     destaque: false,
   },
   {

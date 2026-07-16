@@ -4,23 +4,31 @@ import { useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { useFunnelStore } from "@/stores/funnel-store"
 import { calcularSimulacao, formatarMoeda, formatarPercentual } from "@/lib/simulacao"
-import { CONFIG } from "@/lib/config"
+import { CONFIG, type IndexadorConstrucao } from "@/lib/config"
 import { pushDataLayer } from "@/components/tracking/GTM"
+import { cn } from "@/lib/utils"
 import { Info } from "lucide-react"
 
 export function Step5Resultado({ onNext }: { onNext: () => void }) {
-  const { creditoConstrucao } = useFunnelStore()
-  const { taxaMensal, numeroDeTranches } = CONFIG.creditoConstrucao
+  const { creditoConstrucao, setCreditoConstrucao } = useFunnelStore()
+  const { taxas, numeroDeTranches } = CONFIG.creditoConstrucao
+  const indexador = creditoConstrucao.indexador
+  const opcaoTaxa = taxas[indexador]
 
   const resultado = useMemo(
-    () => calcularSimulacao(creditoConstrucao.valor_solicitado, taxaMensal, creditoConstrucao.prazo_meses),
-    [creditoConstrucao.valor_solicitado, creditoConstrucao.prazo_meses, taxaMensal]
+    () =>
+      calcularSimulacao(
+        creditoConstrucao.valor_solicitado,
+        opcaoTaxa.taxaMensal,
+        creditoConstrucao.prazo_meses
+      ),
+    [creditoConstrucao.valor_solicitado, creditoConstrucao.prazo_meses, opcaoTaxa.taxaMensal]
   )
 
   const valorPorTranche = Math.floor(creditoConstrucao.valor_solicitado / numeroDeTranches)
 
   function handleNext() {
-    pushDataLayer("step_completed", { funil: "credito_construcao", step: 5 })
+    pushDataLayer("step_completed", { funil: "credito_construcao", step: 5, indexador })
     onNext()
   }
 
@@ -33,16 +41,42 @@ export function Step5Resultado({ onNext }: { onNext: () => void }) {
         </p>
       </div>
 
+      <div className="space-y-3">
+        <p className="text-sm font-medium">Correção da taxa</p>
+        <div className="grid grid-cols-2 gap-2">
+          {(Object.keys(taxas) as IndexadorConstrucao[]).map((key) => (
+            <button
+              key={key}
+              onClick={() => setCreditoConstrucao({ indexador: key })}
+              className={cn(
+                "rounded-lg border-2 px-3 py-2.5 text-sm font-medium transition-all text-left",
+                indexador === key
+                  ? "border-[var(--gold)] bg-[var(--gold)]/10 text-foreground"
+                  : "border-border text-muted-foreground hover:border-[var(--gold)]/50"
+              )}
+            >
+              <span className="block font-semibold">
+                {taxas[key].aPartirDe ? "a partir de " : ""}
+                {formatarPercentual(taxas[key].taxaMensal)}
+              </span>
+              <span className="block text-xs">pós-fixada + {taxas[key].indexador}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="rounded-2xl border border-[var(--gold)]/30 bg-[var(--gold)]/5 p-6 space-y-5">
         <div className="flex justify-between items-start">
           <span className="text-sm text-muted-foreground">Crédito total</span>
           <span className="font-semibold">{formatarMoeda(creditoConstrucao.valor_solicitado)}</span>
         </div>
         <div className="flex justify-between items-start">
-          <span className="text-sm text-muted-foreground">Terreno + Obra</span>
-          <span className="font-semibold">
-            {formatarMoeda(creditoConstrucao.valor_terreno + creditoConstrucao.valor_obra)}
-          </span>
+          <span className="text-sm text-muted-foreground">Custo da obra</span>
+          <span className="font-semibold">{formatarMoeda(creditoConstrucao.valor_obra)}</span>
+        </div>
+        <div className="flex justify-between items-start">
+          <span className="text-sm text-muted-foreground">VGV (valor de venda)</span>
+          <span className="font-semibold">{formatarMoeda(creditoConstrucao.vgv)}</span>
         </div>
         <div className="flex justify-between items-start">
           <span className="text-sm text-muted-foreground">Prazo</span>
@@ -52,7 +86,7 @@ export function Step5Resultado({ onNext }: { onNext: () => void }) {
 
         <div className="space-y-4">
           <div>
-            <p className="text-xs text-muted-foreground mb-1">Tabela Price (parcela fixa após obras)</p>
+            <p className="text-xs text-muted-foreground mb-1">Tabela Price (parcela fixa)</p>
             <p className="text-3xl font-bold text-[var(--gold)]">
               {formatarMoeda(resultado.parcela_price)}
               <span className="text-base font-normal text-muted-foreground">/mês</span>
@@ -73,7 +107,10 @@ export function Step5Resultado({ onNext }: { onNext: () => void }) {
 
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Taxa indicativa</span>
-            <span className="font-medium">{formatarPercentual(taxaMensal)} + IPCA</span>
+            <span className="font-medium">
+              {opcaoTaxa.aPartirDe ? "a partir de " : ""}
+              {formatarPercentual(opcaoTaxa.taxaMensal)} + {opcaoTaxa.indexador}
+            </span>
           </div>
         </div>
       </div>
@@ -95,7 +132,8 @@ export function Step5Resultado({ onNext }: { onNext: () => void }) {
       <div className="flex gap-2 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
         <Info className="w-4 h-4 shrink-0 mt-0.5" />
         <p>
-          Carência durante a obra. Taxa pós-fixada com correção pelo IPCA.
+          As parcelas começam junto com a liberação do crédito, sem período de espera.
+          Taxa pós-fixada corrigida pelo indexador escolhido ({opcaoTaxa.indexador}).
           Valores estimados, sujeitos a análise de crédito e avaliação do imóvel.
         </p>
       </div>

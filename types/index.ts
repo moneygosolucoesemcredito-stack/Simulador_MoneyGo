@@ -80,6 +80,7 @@ export interface SimulacaoFinanciamentoImobiliario {
 export interface SimulacaoCreditoConstrucao {
   valor_terreno: number
   valor_obra: number
+  vgv: number
   valor_solicitado: number
   prazo_meses: number
   parcela_price: number
@@ -87,6 +88,7 @@ export interface SimulacaoCreditoConstrucao {
   ultima_parcela_sac: number
   taxa_mensal: number
   modalidade_taxa: ModalidadeTaxa
+  indexador: string
   numero_tranches: number
   valor_por_tranche: number
 }
@@ -111,6 +113,7 @@ export interface CreditoConstrucaoFunnelState {
   step: number
   valor_terreno: number
   valor_obra: number
+  vgv: number
   valor_solicitado: number
   prazo_meses: number
   cep: string

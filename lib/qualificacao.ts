@@ -1,5 +1,5 @@
 import cidades from "./ibge-cidades.json"
-import { CONFIG, ltvParaTipoImovel, ltvParaTipoImovelFI } from "./config"
+import { CONFIG, limiteCreditoConstrucao, ltvParaTipoImovel, ltvParaTipoImovelFI } from "./config"
 import type { TipoImovel } from "@/types"
 
 const cidadesSet = new Set(
@@ -124,6 +124,7 @@ export function qualificarFinanciamentoImobiliario(params: {
 export function qualificarCreditoConstrucao(params: {
   valor_terreno: number
   valor_obra: number
+  vgv: number
   valor_solicitado: number
   cidade: string
   uf: string
@@ -140,10 +141,9 @@ export function qualificarCreditoConstrucao(params: {
     motivos.push("Cidade não atendida (município com menos de 50.000 habitantes)")
   }
 
-  const garantia = params.valor_terreno + params.valor_obra
-  const ltvMaximo = garantia * cfg.ltv
-  if (params.valor_solicitado > ltvMaximo) {
-    motivos.push("Valor solicitado superior a 55% do valor total (terreno + obra)")
+  const limite = limiteCreditoConstrucao(params.valor_obra, params.vgv)
+  if (params.valor_solicitado > limite) {
+    motivos.push("Valor solicitado superior ao limite: 80% do custo da obra, limitado a 50% do VGV")
   }
 
   const idade = calcularIdade(params.data_nascimento)
