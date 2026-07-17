@@ -73,6 +73,16 @@ export const CONFIG = {
     idadeMaxima: 60,
     populacaoMunicipalMinima: 50_000,
   },
+  financiamentoVeiculo: {
+    // "A partir de" 1,39% a.m. — pré-fixada (sem indexador).
+    taxaMensal: 0.0139,
+    modalidadeTaxa: "pre_fixada" as const,
+    // Financia até 100% do valor do veículo.
+    ltv: 1,
+    prazoMaximo: 60,
+    prazosDisponiveis: [12, 24, 36, 48, 60],
+    prazoDefault: 48,
+  },
   autoEquity: {
     taxaMensal: 0.0199,
     modalidadeTaxa: "pre_fixada" as const,
@@ -146,6 +156,7 @@ export const RATE_CONFIG = {
   financiamento_imobiliario: { min: 0.0083, max: 0.0199, default: null, fixed: false },
   credito_construcao: { min: 0.0117, max: 0.0199, default: null, fixed: false },
   auto_equity: { min: 0.0199, max: 0.0199, default: 0.0199, fixed: true },
+  financiamento_veiculo: { min: 0.0139, max: 0.0199, default: null, fixed: false },
 } as const
 
 export type ProdutoTaxa = keyof typeof RATE_CONFIG

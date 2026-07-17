@@ -154,6 +154,29 @@ export function qualificarCreditoConstrucao(params: {
   return { qualificado: motivos.length === 0, motivos }
 }
 
+export function qualificarFinanciamentoVeiculo(params: {
+  valor_veiculo: number
+  valor_solicitado: number
+  prazo_meses: number
+}): ResultadoQualificacao {
+  const { financiamentoVeiculo: cfg } = CONFIG
+  const motivos: string[] = []
+
+  if (params.valor_veiculo <= 0 || params.valor_solicitado <= 0) {
+    motivos.push("Valores do veículo e do financiamento devem ser maiores que zero")
+  }
+
+  if (params.valor_solicitado > params.valor_veiculo * cfg.ltv) {
+    motivos.push(`Valor solicitado superior a ${Math.round(cfg.ltv * 100)}% do valor do veículo`)
+  }
+
+  if (params.prazo_meses > cfg.prazoMaximo) {
+    motivos.push(`Prazo superior ao máximo de ${cfg.prazoMaximo} meses`)
+  }
+
+  return { qualificado: motivos.length === 0, motivos }
+}
+
 export function qualificarAutoEquity(params: {
   valor_veiculo: number
   ano_veiculo: number

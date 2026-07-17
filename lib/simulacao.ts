@@ -303,6 +303,39 @@ export function calcularAutoEquity(p: ParametrosAutoEquity): ResultadoAutoEquity
   }
 }
 
+// ──────────────────────────────────────────────────────────────────────────
+// Financiamento de Veículo — Price pré-fixada, prazo limitado a 60 meses.
+// ──────────────────────────────────────────────────────────────────────────
+
+export const FV_PRAZO_MAXIMO = 60
+
+export interface ParametrosFinanciamentoVeiculo {
+  valorCredito: number
+  taxaMensal: number
+  prazoMeses: number
+}
+
+export interface ResultadoFinanciamentoVeiculo {
+  parcela: number
+  totalPago: number
+  taxaMensal: number
+  taxaAnual: number
+}
+
+export function calcularFinanciamentoVeiculo(
+  p: ParametrosFinanciamentoVeiculo
+): ResultadoFinanciamentoVeiculo {
+  const { valorCredito, taxaMensal, prazoMeses } = p
+  const prazoValido = prazoMeses > 0 && prazoMeses <= FV_PRAZO_MAXIMO
+  const parcela = prazoValido ? calcularPrice(valorCredito, taxaMensal, prazoMeses) : 0
+  return {
+    parcela,
+    totalPago: parcela * prazoMeses,
+    taxaMensal,
+    taxaAnual: Math.pow(1 + taxaMensal, 12) - 1,
+  }
+}
+
 function stripUndefined<T extends object>(obj: T): Partial<T> {
   return Object.fromEntries(
     Object.entries(obj).filter(([, v]) => v !== undefined)
