@@ -40,7 +40,7 @@ function Portaria() {
       <div className="space-y-1 text-center">
         <h1 className="text-2xl font-bold tracking-tight">Como você quer continuar?</h1>
         <p className="text-sm text-muted-foreground">
-          Simule você mesmo ou acesse a área do consultor.
+          ou acesse a área do parceiro MoneyGo.
         </p>
       </div>
 

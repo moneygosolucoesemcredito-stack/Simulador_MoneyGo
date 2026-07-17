@@ -120,8 +120,8 @@ export default function OperadorLoginPage() {
       <main className="flex-1 flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-sm space-y-6">
           <div className="space-y-1 text-center">
-            <h1 className="text-2xl font-bold tracking-tight">Área do consultor</h1>
-            <p className="text-sm text-muted-foreground">Entre para simular e gerar links.</p>
+            <h1 className="text-2xl font-bold tracking-tight">Área do parceiro</h1>
+            <p className="text-sm text-muted-foreground">Acesso restrito a parceiros MoneyGo</p>
           </div>
           <Suspense fallback={null}>
             <LoginForm />
