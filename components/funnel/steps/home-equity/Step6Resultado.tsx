@@ -149,7 +149,7 @@ export function Step6Resultado({ onNext }: { onNext: () => void }) {
               {taxa ? `${formatarPercentual(taxa)} + IPCA` : "Taxa não informada"}
             </span>
             <span className="ml-auto text-[11px] text-muted-foreground">
-              {homeEquity.taxa_indicativa ? "taxa indicativa" : "definida pelo consultor"}
+              {homeEquity.taxa_indicativa ? "taxa indicativa" : "definida pelo parceiro"}
             </span>
           </div>
         ) : (
@@ -235,7 +235,7 @@ export function Step6Resultado({ onNext }: { onNext: () => void }) {
       ) : (
         <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-8 text-center text-sm text-muted-foreground">
           {modoCliente
-            ? "Aguardando a taxa definida pelo consultor."
+            ? "Aguardando a taxa definida pelo parceiro."
             : "Informe uma taxa válida acima para visualizar as parcelas nas tabelas SAC e PRICE."}
         </div>
       )}

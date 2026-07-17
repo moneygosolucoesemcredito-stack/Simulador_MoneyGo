@@ -81,7 +81,7 @@ export default function OperadorPage() {
   function gerarLink() {
     if (!produto || !pessoa || !taxaValida || !taxaDigitada) return
     const origin = typeof window !== "undefined" ? window.location.origin : ""
-    // `op` vincula o lead ao consultor que gerou o link (cadastro do cliente
+    // `op` vincula o lead ao parceiro que gerou o link (cadastro do cliente
     // e proposta ficam visíveis apenas para ele).
     const op = operadorId ? `&op=${operadorId}` : ""
     const url = `${origin}${produto.rota}?t=${taxaParaPercentStr(taxaDigitada)}&pessoa=${pessoa}${op}`

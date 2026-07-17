@@ -46,7 +46,7 @@ function HomeEquityFunnel() {
       patch.modo = "cliente"
       patch.taxa_mensal = taxaUrl
       patch.taxa_indicativa = false
-      // Cliente veio por link de consultor: precisa se cadastrar/entrar antes
+      // Cliente veio por link de parceiro: precisa se cadastrar/entrar antes
       // do funil, para o lead ficar registrado mesmo se abandonar no meio.
       setGate("checando")
       criarSupabaseBrowser()

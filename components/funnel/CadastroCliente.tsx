@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils"
 import { BRAND } from "@/lib/brand"
 
 interface CadastroClienteProps {
-  /** Consultor que gerou o link (?op=) — vincula o lead a ele. */
+  /** Parceiro que gerou o link (?op=) — vincula o lead a ele. */
   operadorId: string | null
   /** Chamado quando o cliente está autenticado e pode seguir para o funil. */
   onAutenticado: () => void
@@ -112,7 +112,7 @@ export function CadastroCliente({ operadorId, onAutenticado }: CadastroClientePr
           <h2 className="text-xl font-bold tracking-tight">Confirme seu e-mail</h2>
           <p className="text-sm text-muted-foreground">
             Enviamos um link de confirmação para <strong>{email}</strong>. Depois de
-            confirmar, abra o link do consultor novamente para continuar a simulação.
+            confirmar, abra o link do parceiro novamente para continuar a simulação.
           </p>
         </div>
       </div>
@@ -124,7 +124,7 @@ export function CadastroCliente({ operadorId, onAutenticado }: CadastroClientePr
       <div className="space-y-1 text-center">
         <h2 className="text-2xl font-bold tracking-tight">Identifique-se para simular</h2>
         <p className="text-sm text-muted-foreground">
-          Você recebeu um link exclusivo de um consultor {BRAND.name}. Crie sua conta
+          Você recebeu um link exclusivo de um parceiro {BRAND.name}. Crie sua conta
           para continuar — assim sua proposta já fica registrada com seus dados.
         </p>
       </div>

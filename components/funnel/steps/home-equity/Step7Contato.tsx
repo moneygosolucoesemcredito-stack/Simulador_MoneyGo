@@ -19,7 +19,7 @@ export function Step7Contato() {
   const router = useRouter()
   const { homeEquity, tracking } = useFunnelStore()
 
-  // Cliente que se cadastrou pelo link do consultor já informou nome, e-mail
+  // Cliente que se cadastrou pelo link do parceiro já informou nome, e-mail
   // e WhatsApp — pré-preenche para não digitar de novo.
   useEffect(() => {
     const supabase = criarSupabaseBrowser()

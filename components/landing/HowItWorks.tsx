@@ -24,7 +24,7 @@ const etapas = [
     numero: "03",
     titulo: "Fale com um especialista",
     descricao:
-      `Um consultor ${BRAND.name} entra em contato no horário que você escolher para apresentar as melhores condições.`,
+      `Um parceiro ${BRAND.name} entra em contato no horário que você escolher para apresentar as melhores condições.`,
   },
   {
     icon: CheckCircle,

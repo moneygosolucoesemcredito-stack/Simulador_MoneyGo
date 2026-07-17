@@ -92,7 +92,7 @@ function LoginForm() {
       </div>
 
       <p className="text-xs text-muted-foreground text-center">
-        Acesso restrito a consultores {BRAND.name}. As contas são criadas pela administração.
+        As contas são criadas pela administração.
       </p>
     </form>
   )

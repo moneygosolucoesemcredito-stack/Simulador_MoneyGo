@@ -45,7 +45,7 @@ export default function NaoQualificadoPage() {
 
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 text-left space-y-1">
           <p className="font-semibold">Próximos passos:</p>
-          <p>Um consultor {BRAND.name} pode entrar em contato para entender melhor sua situação e apresentar alternativas disponíveis.</p>
+          <p>Um parceiro {BRAND.name} pode entrar em contato para entender melhor sua situação e apresentar alternativas disponíveis.</p>
         </div>
 
         <div className="flex flex-col gap-3">
