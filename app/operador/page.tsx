@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import {
   Building2,
   Car,
+  CarFront,
   Home,
   HardHat,
   PlayCircle,
@@ -31,6 +32,7 @@ const PRODUTOS = [
   { id: "auto_equity", rota: "/auto-equity", titulo: "Auto Equity", sub: "Garantia de veículo", icon: Car, fluxoCompleto: false },
   { id: "financiamento_imobiliario", rota: "/financiamento-imobiliario", titulo: "Financiamento Imobiliário", sub: "Compra ou refinanciamento", icon: Home, fluxoCompleto: false },
   { id: "credito_construcao", rota: "/credito-construcao", titulo: "Crédito para Construção", sub: "Construção em terreno", icon: HardHat, fluxoCompleto: false },
+  { id: "financiamento_veiculo", rota: "/financiamento-veiculo", titulo: "Financiamento de Veículo", sub: "Compra de carro novo ou usado", icon: CarFront, fluxoCompleto: false },
 ] as const
 
 export default function OperadorPage() {

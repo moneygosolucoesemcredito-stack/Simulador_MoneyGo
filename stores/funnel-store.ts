@@ -48,6 +48,22 @@ export interface AutoEquityState {
   prazo_meses: number
 }
 
+export interface FinanciamentoVeiculoState {
+  step: number
+  marca_modelo_ano: string
+  ano_veiculo: number
+  /** Valor do veículo (FIPE, ajustável pelo cliente). */
+  valor_veiculo: number
+  /** Placa consultada (quando o usuário escolheu "tenho a placa"). */
+  placa: string
+  combustivel: string
+  potencia: string
+  fipe_codigo: string
+  /** Entrada paga pelo cliente (0 = financia 100%). */
+  valor_entrada: number
+  prazo_meses: number
+}
+
 export interface FinanciamentoImobiliarioState {
   step: number
   valor_imovel: number
@@ -85,18 +101,21 @@ interface FunnelStore {
   autoEquity: AutoEquityState
   financiamentoImobiliario: FinanciamentoImobiliarioState
   creditoConstrucao: CreditoConstrucaoState
+  financiamentoVeiculo: FinanciamentoVeiculoState
   contato: Partial<ContatoFormData>
   tracking: TrackingData
   setHomeEquity: (data: Partial<HomeEquityState>) => void
   setAutoEquity: (data: Partial<AutoEquityState>) => void
   setFinanciamentoImobiliario: (data: Partial<FinanciamentoImobiliarioState>) => void
   setCreditoConstrucao: (data: Partial<CreditoConstrucaoState>) => void
+  setFinanciamentoVeiculo: (data: Partial<FinanciamentoVeiculoState>) => void
   setContato: (data: Partial<ContatoFormData>) => void
   setTracking: (data: TrackingData) => void
   resetHomeEquity: () => void
   resetAutoEquity: () => void
   resetFinanciamentoImobiliario: () => void
   resetCreditoConstrucao: () => void
+  resetFinanciamentoVeiculo: () => void
   resetContato: () => void
 }
 
@@ -134,6 +153,19 @@ const defaultAutoEquity: AutoEquityState = {
   tipo_pessoa: "",
   valor_solicitado: 30_000,
   prazo_meses: 36,
+}
+
+const defaultFinanciamentoVeiculo: FinanciamentoVeiculoState = {
+  step: 1,
+  marca_modelo_ano: "",
+  ano_veiculo: new Date().getFullYear() - 2,
+  valor_veiculo: 0,
+  placa: "",
+  combustivel: "",
+  potencia: "",
+  fipe_codigo: "",
+  valor_entrada: 0,
+  prazo_meses: 48,
 }
 
 const defaultFinanciamentoImobiliario: FinanciamentoImobiliarioState = {
@@ -175,6 +207,7 @@ export const useFunnelStore = create<FunnelStore>()(
       autoEquity: defaultAutoEquity,
       financiamentoImobiliario: defaultFinanciamentoImobiliario,
       creditoConstrucao: defaultCreditoConstrucao,
+      financiamentoVeiculo: defaultFinanciamentoVeiculo,
       contato: {},
       tracking: {},
       setHomeEquity: (data) =>
@@ -185,6 +218,8 @@ export const useFunnelStore = create<FunnelStore>()(
         set((s) => ({ financiamentoImobiliario: { ...s.financiamentoImobiliario, ...data } })),
       setCreditoConstrucao: (data) =>
         set((s) => ({ creditoConstrucao: { ...s.creditoConstrucao, ...data } })),
+      setFinanciamentoVeiculo: (data) =>
+        set((s) => ({ financiamentoVeiculo: { ...s.financiamentoVeiculo, ...data } })),
       setContato: (data) =>
         set((s) => ({ contato: { ...s.contato, ...data } })),
       setTracking: (data) => set({ tracking: data }),
@@ -192,6 +227,7 @@ export const useFunnelStore = create<FunnelStore>()(
       resetAutoEquity: () => set({ autoEquity: defaultAutoEquity }),
       resetFinanciamentoImobiliario: () => set({ financiamentoImobiliario: defaultFinanciamentoImobiliario }),
       resetCreditoConstrucao: () => set({ creditoConstrucao: defaultCreditoConstrucao }),
+      resetFinanciamentoVeiculo: () => set({ financiamentoVeiculo: defaultFinanciamentoVeiculo }),
       resetContato: () => set({ contato: {} }),
     }),
     {

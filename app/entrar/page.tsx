@@ -4,7 +4,7 @@ import { Suspense, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Building2, Car, Home, HardHat, UserCog, UserRound, ArrowRight } from "lucide-react"
+import { Building2, Car, CarFront, Home, HardHat, UserCog, UserRound, ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { BRAND } from "@/lib/brand"
 
@@ -13,6 +13,7 @@ const PRODUTOS = [
   { id: "auto-equity", rota: "/auto-equity", titulo: "Auto Equity", sub: "Garantia de veículo", icon: Car },
   { id: "financiamento-imobiliario", rota: "/financiamento-imobiliario", titulo: "Financiamento Imobiliário", sub: "Compra ou refinanciamento", icon: Home },
   { id: "credito-construcao", rota: "/credito-construcao", titulo: "Crédito para Construção", sub: "Construção em terreno", icon: HardHat },
+  { id: "financiamento-veiculo", rota: "/financiamento-veiculo", titulo: "Financiamento de Veículo", sub: "Compra de carro novo ou usado", icon: CarFront },
 ] as const
 
 function Portaria() {

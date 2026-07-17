@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { Building2, Car, ArrowRight, TrendingDown, Clock, HardHat, Home } from "lucide-react"
+import { Building2, Car, CarFront, ArrowRight, TrendingDown, Clock, HardHat, Home } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -47,6 +47,19 @@ const produtos = [
     modalidade: "Pós-fixada + TR ou IPCA",
     prazo: "até 240 meses",
     ltv: "Crédito até 80% da obra (máx. 50% do VGV)",
+    destaque: false,
+  },
+  {
+    href: "/financiamento-veiculo",
+    icon: CarFront,
+    titulo: "Financiamento de Veículo",
+    subtitulo: "Compra de carro novo ou usado",
+    descricao:
+      "Financie o veículo pelo valor real de mercado (tabela FIPE), com ou sem entrada e parcelas fixas do início ao fim.",
+    taxa: formatarPercentual(CONFIG.financiamentoVeiculo.taxaMensal),
+    modalidade: "Pré-fixada",
+    prazo: "até 60 meses",
+    ltv: "Financia até 100% do valor do bem",
     destaque: false,
   },
   {

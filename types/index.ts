@@ -1,4 +1,4 @@
-export type Produto = "home_equity" | "auto_equity" | "financiamento_imobiliario" | "credito_construcao"
+export type Produto = "home_equity" | "auto_equity" | "financiamento_imobiliario" | "credito_construcao" | "financiamento_veiculo"
 
 // `terreno` = lote sem restrição de condomínio (aceito no Financiamento Imobiliário).
 // `terreno_condominio` = lote em condomínio fechado (única forma de terreno aceita no Home Equity).
@@ -63,6 +63,23 @@ export interface SimulacaoAutoEquity {
   parcela_apos_iof?: number
   /** Quantidade de meses em que o IOF é diluído (até 12) */
   meses_com_iof?: number
+}
+
+export interface SimulacaoFinanciamentoVeiculo {
+  marca_modelo_ano: string
+  valor_veiculo: number
+  /** Entrada paga pelo cliente (0 = financia 100% do bem) */
+  valor_entrada: number
+  /** Valor financiado = veículo − entrada */
+  valor_solicitado: number
+  prazo_meses: number
+  parcela_price: number
+  primeira_parcela_sac: number
+  ultima_parcela_sac: number
+  taxa_mensal: number
+  /** CET anual estimado (sem tarifas adicionais = taxa anual equivalente) */
+  cet_anual?: number
+  modalidade_taxa: ModalidadeTaxa
 }
 
 export interface SimulacaoFinanciamentoImobiliario {
@@ -148,7 +165,7 @@ export interface TrackingData {
 export interface LeadPayload {
   produto: Produto
   qualificado: boolean
-  simulacao: SimulacaoHomeEquity | SimulacaoAutoEquity | SimulacaoFinanciamentoImobiliario | SimulacaoCreditoConstrucao
+  simulacao: SimulacaoHomeEquity | SimulacaoAutoEquity | SimulacaoFinanciamentoImobiliario | SimulacaoCreditoConstrucao | SimulacaoFinanciamentoVeiculo
   contato: Contato
   tracking: TrackingData
   consentimento_lgpd: boolean

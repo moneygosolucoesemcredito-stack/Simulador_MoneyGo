@@ -60,6 +60,7 @@ export function Footer() {
               <li><Link href="/financiamento-imobiliario" className="hover:text-white transition-colors">Financiamento Imobiliário</Link></li>
               <li><Link href="/credito-construcao" className="hover:text-white transition-colors">Crédito de Construção</Link></li>
               <li><Link href="/auto-equity" className="hover:text-white transition-colors">Auto Equity</Link></li>
+              <li><Link href="/financiamento-veiculo" className="hover:text-white transition-colors">Financiamento de Veículo</Link></li>
             </ul>
           </div>
 

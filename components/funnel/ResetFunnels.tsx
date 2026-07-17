@@ -15,6 +15,7 @@ export function ResetFunnels() {
     resetAutoEquity,
     resetFinanciamentoImobiliario,
     resetCreditoConstrucao,
+    resetFinanciamentoVeiculo,
     resetContato,
   } = useFunnelStore()
 
@@ -23,8 +24,9 @@ export function ResetFunnels() {
     resetAutoEquity()
     resetFinanciamentoImobiliario()
     resetCreditoConstrucao()
+    resetFinanciamentoVeiculo()
     resetContato()
-  }, [resetHomeEquity, resetAutoEquity, resetFinanciamentoImobiliario, resetCreditoConstrucao, resetContato])
+  }, [resetHomeEquity, resetAutoEquity, resetFinanciamentoImobiliario, resetCreditoConstrucao, resetFinanciamentoVeiculo, resetContato])
 
   return null
 }

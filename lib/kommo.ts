@@ -49,6 +49,7 @@ const STAGE_BY_PRODUTO: Record<Produto, number> = {
   auto_equity: CONFIG.kommo.autoEquityStageId,
   financiamento_imobiliario: CONFIG.kommo.financiamentoImobiliarioStageId,
   credito_construcao: CONFIG.kommo.creditoConstrucaoStageId,
+  financiamento_veiculo: CONFIG.kommo.financiamentoVeiculoStageId,
 }
 
 function buildKommoPayload(payload: LeadPayload) {
@@ -122,6 +123,10 @@ function buildCustomFields(
   if ("valor_veiculo" in simulacao) {
     addField("CF_MARCA_MODELO_ANO", simulacao.marca_modelo_ano)
     addField("CF_VALOR_VEICULO", simulacao.valor_veiculo)
+  }
+
+  if ("valor_entrada" in simulacao && simulacao.valor_entrada > 0) {
+    addField("CF_VALOR_ENTRADA", simulacao.valor_entrada)
   }
 
   addField("CF_VALOR_SOLICITADO", simulacao.valor_solicitado)

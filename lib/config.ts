@@ -105,6 +105,7 @@ export const CONFIG = {
     autoEquityStageId: Number(process.env.KOMMO_AUTO_EQUITY_STAGE_ID ?? "0"),
     financiamentoImobiliarioStageId: Number(process.env.KOMMO_FINANCIAMENTO_STAGE_ID ?? "0"),
     creditoConstrucaoStageId: Number(process.env.KOMMO_CONSTRUCAO_STAGE_ID ?? "0"),
+    financiamentoVeiculoStageId: Number(process.env.KOMMO_FINANCIAMENTO_VEICULO_STAGE_ID ?? "0"),
   },
 } as const
 
