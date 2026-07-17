@@ -40,19 +40,21 @@ describe("ltvParaTipoImovel", () => {
 })
 
 describe("ltvParaTipoImovelFI (Financiamento Imobiliário)", () => {
-  it("casa e apartamento têm LTV de 80%", () => {
-    expect(ltvParaTipoImovelFI("casa")).toBeCloseTo(0.8, 4)
-    expect(ltvParaTipoImovelFI("apartamento")).toBeCloseTo(0.8, 4)
+  // Todas as tipologias ficam limitadas pelo teto regulatório de 55%
+  // (LTV_MAXIMO_REGULATORIO), mesmo com valores comerciais de 80%/70%.
+  it("casa e apartamento têm LTV efetivo de 55% (teto regulatório)", () => {
+    expect(ltvParaTipoImovelFI("casa")).toBeCloseTo(0.55, 4)
+    expect(ltvParaTipoImovelFI("apartamento")).toBeCloseTo(0.55, 4)
   })
 
-  it("comercial e terreno têm LTV de 70%", () => {
-    expect(ltvParaTipoImovelFI("comercial")).toBeCloseTo(0.7, 4)
-    expect(ltvParaTipoImovelFI("terreno")).toBeCloseTo(0.7, 4)
-    expect(ltvParaTipoImovelFI("terreno_condominio")).toBeCloseTo(0.7, 4)
+  it("comercial e terreno têm LTV efetivo de 55% (teto regulatório)", () => {
+    expect(ltvParaTipoImovelFI("comercial")).toBeCloseTo(0.55, 4)
+    expect(ltvParaTipoImovelFI("terreno")).toBeCloseTo(0.55, 4)
+    expect(ltvParaTipoImovelFI("terreno_condominio")).toBeCloseTo(0.55, 4)
   })
 
-  it("string vazia (tipo ainda não selecionado) usa o fallback de casa (80%)", () => {
-    expect(ltvParaTipoImovelFI("")).toBeCloseTo(0.8, 4)
+  it("string vazia (tipo ainda não selecionado) usa o fallback de casa (55%)", () => {
+    expect(ltvParaTipoImovelFI("")).toBeCloseTo(0.55, 4)
   })
 
   it("cobre todas as categorias de TipoImovel sem lacunas", () => {

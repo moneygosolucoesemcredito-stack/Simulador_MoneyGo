@@ -42,6 +42,7 @@ export function Step6Contato() {
         simulacao: {
           valor_imovel: financiamentoImobiliario.valor_imovel,
           tipo_imovel: financiamentoImobiliario.tipo_imovel as "casa",
+          tipo_pessoa: (financiamentoImobiliario.tipo_pessoa || "PF") as "PF" | "PJ",
           valor_solicitado: financiamentoImobiliario.valor_solicitado,
           prazo_meses: financiamentoImobiliario.prazo_meses,
           parcela_price: resultado.parcela_price,
@@ -49,6 +50,8 @@ export function Step6Contato() {
           ultima_parcela_sac: resultado.ultima_parcela_sac,
           taxa_mensal: taxaMensal,
           modalidade_taxa: modalidadeTaxa,
+          data_simulacao: new Date().toISOString(),
+          nome: formData.nome,
         },
         contato: {
           nome: formData.nome,

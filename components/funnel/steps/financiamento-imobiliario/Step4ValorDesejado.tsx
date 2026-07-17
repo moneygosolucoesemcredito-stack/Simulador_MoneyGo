@@ -10,6 +10,8 @@ import { pushDataLayer } from "@/components/tracking/GTM"
 import { cn } from "@/lib/utils"
 import type { TipoImovel } from "@/types"
 
+type TipoPessoa = "PF" | "PJ"
+
 export function Step4ValorDesejado({ onNext }: { onNext: () => void }) {
   const { financiamentoImobiliario, setFinanciamentoImobiliario } = useFunnelStore()
   const ltv = ltvParaTipoImovelFI(financiamentoImobiliario.tipo_imovel as TipoImovel | "")
@@ -22,14 +24,26 @@ export function Step4ValorDesejado({ onNext }: { onNext: () => void }) {
   const [prazo, setPrazo] = useState(
     financiamentoImobiliario.prazo_meses || CONFIG.financiamentoImobiliario.prazoDefault
   )
+  const [tipoPessoa, setTipoPessoa] = useState<TipoPessoa | "">(
+    (financiamentoImobiliario.tipo_pessoa as TipoPessoa) || ""
+  )
+
+  const podeAvancar = !!tipoPessoa
 
   function handleNext() {
-    setFinanciamentoImobiliario({ valor_solicitado: valor, prazo_meses: prazo })
+    // Trava de LTV: nunca avança acima do teto da tipologia (≤ 55%).
+    if (!podeAvancar || valor > valorMaximo) return
+    setFinanciamentoImobiliario({
+      valor_solicitado: valor,
+      prazo_meses: prazo,
+      tipo_pessoa: tipoPessoa as TipoPessoa,
+    })
     pushDataLayer("step_completed", {
       funil: "financiamento_imobiliario",
       step: 4,
       valor_solicitado: valor,
       prazo_meses: prazo,
+      tipo_pessoa: tipoPessoa,
     })
     onNext()
   }
@@ -87,8 +101,34 @@ export function Step4ValorDesejado({ onNext }: { onNext: () => void }) {
         </p>
       </div>
 
+      <div className="space-y-3">
+        <p className="text-sm font-medium">Tipo de tomador</p>
+        <div className="grid grid-cols-2 gap-3">
+          {([
+            { v: "PF", label: "Pessoa Física", desc: "CPF" },
+            { v: "PJ", label: "Pessoa Jurídica", desc: "CNPJ" },
+          ] as { v: TipoPessoa; label: string; desc: string }[]).map((op) => (
+            <button
+              key={op.v}
+              type="button"
+              onClick={() => setTipoPessoa(op.v)}
+              className={cn(
+                "rounded-xl border-2 p-4 text-left transition-all",
+                tipoPessoa === op.v
+                  ? "border-[var(--gold)] bg-[var(--gold)]/10"
+                  : "border-border hover:border-[var(--gold)]/50"
+              )}
+            >
+              <span className="block text-sm font-medium">{op.label}</span>
+              <span className="block text-xs text-muted-foreground">{op.desc}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       <Button
         onClick={handleNext}
+        disabled={!podeAvancar}
         className="w-full h-12 text-base font-semibold bg-[var(--gold)] text-[var(--gold-foreground)] hover:bg-[var(--gold-dark)]"
       >
         Ver simulação

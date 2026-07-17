@@ -62,7 +62,14 @@ function HomeEquityFunnel() {
       patch.taxa_indicativa = true
     }
 
-    if (pessoa === "PF" || pessoa === "PJ") patch.tipo_pessoa = pessoa
+    // Só o link do operador trava o PF/PJ; em qualquer outro caso o seletor
+    // permanece disponível para o cliente (inclusive ao refazer o funil).
+    if (pessoa === "PF" || pessoa === "PJ") {
+      patch.tipo_pessoa = pessoa
+      patch.pessoa_travada_link = true
+    } else {
+      patch.pessoa_travada_link = false
+    }
     setHomeEquity(patch)
     // Executa apenas na montagem (leitura inicial da URL).
     // eslint-disable-next-line react-hooks/exhaustive-deps

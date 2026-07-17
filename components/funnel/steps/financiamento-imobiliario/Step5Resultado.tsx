@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { useFunnelStore } from "@/stores/funnel-store"
 import { calcularSimulacao, formatarMoeda, formatarPercentual } from "@/lib/simulacao"
@@ -16,6 +16,9 @@ export function Step5Resultado({ onNext }: { onNext: () => void }) {
     () => calcularSimulacao(financiamentoImobiliario.valor_solicitado, taxaMensal, financiamentoImobiliario.prazo_meses),
     [financiamentoImobiliario.valor_solicitado, financiamentoImobiliario.prazo_meses, taxaMensal]
   )
+
+  // Timestamp da simulação — exibido ao usuário e enviado na proposta.
+  const [dataSimulacao] = useState(() => new Date())
 
   function handleNext() {
     pushDataLayer("step_completed", { funil: "financiamento_imobiliario", step: 5 })
@@ -40,11 +43,21 @@ export function Step5Resultado({ onNext }: { onNext: () => void }) {
           <span className="text-sm text-muted-foreground">Prazo</span>
           <span className="font-semibold">{financiamentoImobiliario.prazo_meses} meses ({financiamentoImobiliario.prazo_meses / 12} anos)</span>
         </div>
+        <div className="flex justify-between items-start">
+          <span className="text-sm text-muted-foreground">Tomador</span>
+          <span className="font-semibold">{financiamentoImobiliario.tipo_pessoa || "—"}</span>
+        </div>
+        <div className="flex justify-between items-start">
+          <span className="text-sm text-muted-foreground">Data da simulação</span>
+          <span className="font-semibold">
+            {dataSimulacao.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
+          </span>
+        </div>
         <div className="h-px bg-border" />
 
         <div className="space-y-4">
           <div>
-            <p className="text-xs text-muted-foreground mb-1">Tabela Price (parcela fixa)</p>
+            <p className="text-xs text-muted-foreground mb-1">Tabela Price</p>
             <p className="text-3xl font-bold text-[var(--gold)]">
               {formatarMoeda(resultado.parcela_price)}
               <span className="text-base font-normal text-muted-foreground">/mês</span>

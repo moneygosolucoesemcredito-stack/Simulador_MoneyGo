@@ -91,6 +91,8 @@ export function Step7Contato() {
           taxa_mensal: taxaMensal,
           taxa_anual: resultado.taxaAnual,
           modalidade_taxa: modalidadeTaxa,
+          data_simulacao: new Date().toISOString(),
+          nome: formData.nome,
         },
         contato: {
           nome: formData.nome,

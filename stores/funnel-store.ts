@@ -11,6 +11,9 @@ export interface HomeEquityState {
   situacao: string
   saldo_devedor: number
   tipo_pessoa: "PF" | "PJ" | ""
+  /** true apenas quando o PF/PJ veio travado pelo link do operador (?pessoa=).
+   *  Só nesse caso o seletor deixa de ser exibido ao cliente. */
+  pessoa_travada_link: boolean
   cep: string
   logradouro: string
   numero: string
@@ -68,6 +71,8 @@ export interface FinanciamentoImobiliarioState {
   step: number
   valor_imovel: number
   tipo_imovel: string
+  /** PF/PJ do tomador — mantém a consistência de perfil com o Home Equity */
+  tipo_pessoa: "PF" | "PJ" | ""
   cep: string
   logradouro: string
   numero: string
@@ -126,6 +131,7 @@ const defaultHomeEquity: HomeEquityState = {
   situacao: "",
   saldo_devedor: 0,
   tipo_pessoa: "",
+  pessoa_travada_link: false,
   cep: "",
   logradouro: "",
   numero: "",
@@ -172,6 +178,7 @@ const defaultFinanciamentoImobiliario: FinanciamentoImobiliarioState = {
   step: 1,
   valor_imovel: 400_000,
   tipo_imovel: "",
+  tipo_pessoa: "",
   cep: "",
   logradouro: "",
   numero: "",

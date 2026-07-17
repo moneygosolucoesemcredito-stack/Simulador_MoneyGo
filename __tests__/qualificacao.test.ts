@@ -143,50 +143,42 @@ describe("qualificarFinanciamentoImobiliario", () => {
     expect(motivos).toHaveLength(0)
   })
 
-  it("LTV de imóvel comercial é 70%, não 80%", () => {
-    const { qualificado, motivos } = qualificarFinanciamentoImobiliario({
-      ...base,
-      tipo_imovel: "comercial",
-      valor_solicitado: 375_000, // 75% > 70%
-    })
-    expect(qualificado).toBe(false)
-    expect(motivos.some((m) => m.includes("70%"))).toBe(true)
-  })
-
-  it("aceita casa/apartamento com LTV de 80%", () => {
+  // Teto regulatório: todas as tipologias do FI ficam limitadas a 55%
+  // (LTV_MAXIMO_REGULATORIO), mesmo com valores comerciais de 80%/70%.
+  it("aceita casa/apartamento com LTV de 55%", () => {
     const { qualificado } = qualificarFinanciamentoImobiliario({
       ...base,
-      valor_solicitado: 400_000, // exatamente 80%
+      valor_solicitado: 275_000, // exatamente 55%
     })
     expect(qualificado).toBe(true)
   })
 
-  it("rejeita casa/apartamento acima de 80%", () => {
+  it("rejeita casa/apartamento acima de 55%", () => {
     const { qualificado, motivos } = qualificarFinanciamentoImobiliario({
       ...base,
-      valor_solicitado: 425_000, // 85% > 80%
+      valor_solicitado: 300_000, // 60% > 55%
     })
     expect(qualificado).toBe(false)
-    expect(motivos.some((m) => m.includes("80%"))).toBe(true)
+    expect(motivos.some((m) => m.includes("55%"))).toBe(true)
   })
 
-  it("aceita terreno (sem exigir condomínio) com LTV de 70%", () => {
+  it("aceita terreno (sem exigir condomínio) com LTV de 55%", () => {
     const { qualificado } = qualificarFinanciamentoImobiliario({
       ...base,
       tipo_imovel: "terreno",
-      valor_solicitado: 350_000, // exatamente 70%
+      valor_solicitado: 275_000, // exatamente 55%
     })
     expect(qualificado).toBe(true)
   })
 
-  it("rejeita terreno acima de 70%", () => {
+  it("rejeita terreno acima de 55%", () => {
     const { qualificado, motivos } = qualificarFinanciamentoImobiliario({
       ...base,
       tipo_imovel: "terreno",
-      valor_solicitado: 375_000, // 75% > 70%
+      valor_solicitado: 300_000, // 60% > 55%
     })
     expect(qualificado).toBe(false)
-    expect(motivos.some((m) => m.includes("70%"))).toBe(true)
+    expect(motivos.some((m) => m.includes("55%"))).toBe(true)
   })
 
   it("rejeita cidade não qualificada", () => {

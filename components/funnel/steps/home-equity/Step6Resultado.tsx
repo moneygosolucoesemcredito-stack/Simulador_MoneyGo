@@ -44,6 +44,9 @@ export function Step6Resultado({ onNext }: { onNext: () => void }) {
   )
   const [baixando, setBaixando] = useState(false)
 
+  // Timestamp da simulação — exibido ao usuário e enviado no PDF/proposta.
+  const dataSimulacao = useMemo(() => new Date(), [])
+
   const taxaDigitada = parseTaxaPercent(taxaRaw)
   const digitadaValida = taxaDigitada != null && taxaDentroFaixa(taxaDigitada, "home_equity")
   const taxa = modoCliente
@@ -91,6 +94,7 @@ export function Step6Resultado({ onNext }: { onNext: () => void }) {
         valorImovel: homeEquity.valor_imovel,
         prazoMeses: homeEquity.prazo_meses,
         tomador: (homeEquity.tipo_pessoa || "PF") as "PF" | "PJ",
+        dataSimulacao,
       })
       pushDataLayer("pdf_download", { funil: "home_equity", taxa_mensal: taxa })
     } finally {
@@ -127,6 +131,11 @@ export function Step6Resultado({ onNext }: { onNext: () => void }) {
           </div>
         ))}
       </div>
+
+      <p className="text-xs text-muted-foreground text-center">
+        Data da simulação:{" "}
+        {dataSimulacao.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
+      </p>
 
       {/* Taxa de juros */}
       <div className="space-y-2">
@@ -183,11 +192,9 @@ export function Step6Resultado({ onNext }: { onNext: () => void }) {
             <div className="p-3" />
             <div className="p-3 text-center border-l border-border">
               <p className="text-sm font-bold">SAC</p>
-              <p className="text-[10px] text-muted-foreground">parcela decrescente</p>
             </div>
             <div className="p-3 text-center border-l border-border">
               <p className="text-sm font-bold">PRICE</p>
-              <p className="text-[10px] text-muted-foreground">parcela fixa</p>
             </div>
           </div>
 

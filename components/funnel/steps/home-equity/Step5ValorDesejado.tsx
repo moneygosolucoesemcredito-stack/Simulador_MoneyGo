@@ -14,10 +14,10 @@ type TipoPessoa = "PF" | "PJ"
 
 export function Step5ValorDesejado({ onNext }: { onNext: () => void }) {
   const { homeEquity, setHomeEquity } = useFunnelStore()
-  // Quando o tomador (PF/PJ) já veio definido pelo operador no link (?pessoa=),
-  // não perguntamos de novo. Caso contrário (cliente público), o próprio
-  // usuário escolhe aqui.
-  const precisaEscolherPessoa = !homeEquity.tipo_pessoa
+  // O seletor PF/PJ só fica oculto quando o tomador veio travado pelo link do
+  // operador (?pessoa=). Escolha anterior do próprio usuário não o esconde:
+  // ele permanece visível (pré-selecionado) em toda transição de estado.
+  const precisaEscolherPessoa = !homeEquity.pessoa_travada_link
   const ltv = ltvParaTipoImovel(homeEquity.tipo_imovel as TipoImovel | "")
   const valorMaximo = Math.floor(homeEquity.valor_imovel * ltv)
   const valorMinimo = CONFIG.homeEquity.valorCreditoMinimo
@@ -33,7 +33,8 @@ export function Step5ValorDesejado({ onNext }: { onNext: () => void }) {
   const podeAvancar = precisaEscolherPessoa ? !!tipoPessoa : true
 
   function handleNext() {
-    if (!podeAvancar) return
+    // Trava de LTV: nunca avança acima do teto da tipologia (≤ 55%).
+    if (!podeAvancar || valor > valorMaximo) return
     setHomeEquity({
       valor_solicitado: valor,
       prazo_meses: prazo,

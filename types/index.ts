@@ -38,6 +38,10 @@ export interface SimulacaoHomeEquity {
   renda_sugerida_price?: number
   renda_sugerida_sac?: number
   modalidade_taxa: ModalidadeTaxa
+  /** Timestamp ISO de quando a simulação foi gerada */
+  data_simulacao?: string
+  /** Nome do cliente que realizou a simulação */
+  nome?: string
 }
 
 export interface SimulacaoAutoEquity {
@@ -85,6 +89,8 @@ export interface SimulacaoFinanciamentoVeiculo {
 export interface SimulacaoFinanciamentoImobiliario {
   valor_imovel: number
   tipo_imovel: TipoImovel
+  /** PF/PJ do tomador */
+  tipo_pessoa?: "PF" | "PJ"
   valor_solicitado: number
   prazo_meses: number
   parcela_price: number
@@ -92,6 +98,10 @@ export interface SimulacaoFinanciamentoImobiliario {
   ultima_parcela_sac: number
   taxa_mensal: number
   modalidade_taxa: ModalidadeTaxa
+  /** Timestamp ISO de quando a simulação foi gerada */
+  data_simulacao?: string
+  /** Nome do cliente que realizou a simulação */
+  nome?: string
 }
 
 export interface SimulacaoCreditoConstrucao {

@@ -13,6 +13,8 @@ export interface DadosPdfHomeEquity {
   valorImovel: number
   prazoMeses: number
   tomador: "PF" | "PJ"
+  /** Momento em que a simulação foi gerada (default: agora) */
+  dataSimulacao?: Date
 }
 
 const DISCLAIMER =
@@ -91,6 +93,7 @@ export async function gerarPdfHomeEquity(
     theme: "plain",
     styles: { fontSize: 10, cellPadding: 3 },
     body: [
+      ["Data da simulação", (dados.dataSimulacao ?? new Date()).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })],
       ["Crédito solicitado", formatarMoeda(dados.valorCredito)],
       ["Valor do imóvel", formatarMoeda(dados.valorImovel)],
       ["Prazo", `${dados.prazoMeses} meses`],
@@ -115,7 +118,7 @@ export async function gerarPdfHomeEquity(
 
   autoTable(doc, {
     startY: apos + 18,
-    head: [["Condição", "SAC (decrescente)", "PRICE (fixa)"]],
+    head: [["Condição", "SAC", "PRICE"]],
     body: [
       linha("Primeira parcela aprox.", (t) => formatarMoeda(t.primeiraParcela)),
       linha("Última parcela aprox.", (t) => formatarMoeda(t.ultimaParcela)),

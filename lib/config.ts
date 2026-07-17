@@ -117,6 +117,11 @@ export function limiteCreditoConstrucao(valorObra: number, vgv: number): number 
   return Math.min(valorObra * ltvObra, vgv * ltvVgv)
 }
 
+// Teto regulatório de LTV: nenhuma operação com garantia de imóvel (Home
+// Equity e Financiamento Imobiliário) pode exceder 55% do valor do bem.
+// Tipologias podem impor limites AINDA mais restritivos (nunca mais frouxos).
+export const LTV_MAXIMO_REGULATORIO = 0.55
+
 // LTV (crédito máximo sobre o valor do bem) por categoria de imóvel.
 // Vale apenas para Home Equity — Financiamento Imobiliário usa
 // LTV_POR_TIPO_IMOVEL_FI; Crédito de Construção usa limiteCreditoConstrucao
@@ -132,11 +137,13 @@ export const LTV_POR_TIPO_IMOVEL: Record<TipoImovel, number> = {
 }
 
 export function ltvParaTipoImovel(tipoImovel: TipoImovel | ""): number {
-  return tipoImovel ? LTV_POR_TIPO_IMOVEL[tipoImovel] : LTV_POR_TIPO_IMOVEL.casa
+  const ltv = tipoImovel ? LTV_POR_TIPO_IMOVEL[tipoImovel] : LTV_POR_TIPO_IMOVEL.casa
+  return Math.min(ltv, LTV_MAXIMO_REGULATORIO)
 }
 
 // LTV do Financiamento Imobiliário por categoria de imóvel.
-// Terreno é aceito sem exigir condomínio — ambas as formas ficam em 70%.
+// Terreno é aceito sem exigir condomínio. Os valores comerciais (80%/70%)
+// ficam registrados, mas o efetivo é limitado por LTV_MAXIMO_REGULATORIO.
 export const LTV_POR_TIPO_IMOVEL_FI: Record<TipoImovel, number> = {
   casa: 0.8,
   apartamento: 0.8,
@@ -146,7 +153,8 @@ export const LTV_POR_TIPO_IMOVEL_FI: Record<TipoImovel, number> = {
 }
 
 export function ltvParaTipoImovelFI(tipoImovel: TipoImovel | ""): number {
-  return tipoImovel ? LTV_POR_TIPO_IMOVEL_FI[tipoImovel] : LTV_POR_TIPO_IMOVEL_FI.casa
+  const ltv = tipoImovel ? LTV_POR_TIPO_IMOVEL_FI[tipoImovel] : LTV_POR_TIPO_IMOVEL_FI.casa
+  return Math.min(ltv, LTV_MAXIMO_REGULATORIO)
 }
 
 // Faixa de taxa (a.m., em fração) controlada pelo OPERADOR — nunca pelo cliente.
