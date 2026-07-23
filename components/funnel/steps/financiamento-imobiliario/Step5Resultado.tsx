@@ -6,7 +6,15 @@ import { useFunnelStore } from "@/stores/funnel-store"
 import { calcularSimulacao, formatarMoeda, formatarPercentual } from "@/lib/simulacao"
 import { CONFIG } from "@/lib/config"
 import { pushDataLayer } from "@/components/tracking/GTM"
-import { Info } from "lucide-react"
+import { Info, Zap, Flag, Layers, Percent, CalendarDays, Download } from "lucide-react"
+
+type ColunaTabela = { primeira: number; ultima: number; total: number }
+
+const LINHAS: { key: keyof ColunaTabela; label: string; icon: typeof Zap }[] = [
+  { key: "primeira", label: "Primeira parcela aprox.", icon: Zap },
+  { key: "ultima", label: "Última parcela aprox.", icon: Flag },
+  { key: "total", label: "Total pago", icon: Layers },
+]
 
 export function Step5Resultado({ onNext }: { onNext: () => void }) {
   const { financiamentoImobiliario } = useFunnelStore()
@@ -17,12 +25,42 @@ export function Step5Resultado({ onNext }: { onNext: () => void }) {
     [financiamentoImobiliario.valor_solicitado, financiamentoImobiliario.prazo_meses, taxaMensal]
   )
 
-  // Timestamp da simulação — exibido ao usuário e enviado na proposta.
-  const [dataSimulacao] = useState(() => new Date())
+  // Timestamp da simulação — exibido ao usuário e enviado no PDF/proposta.
+  const dataSimulacao = useMemo(() => new Date(), [])
+  const [baixando, setBaixando] = useState(false)
+
+  // Colunas do comparativo. No PRICE a parcela é fixa (primeira = última).
+  const sac: ColunaTabela = {
+    primeira: resultado.primeira_parcela_sac,
+    ultima: resultado.ultima_parcela_sac,
+    total: resultado.valor_total_sac,
+  }
+  const price: ColunaTabela = {
+    primeira: resultado.parcela_price,
+    ultima: resultado.parcela_price,
+    total: resultado.valor_total_price,
+  }
 
   function handleNext() {
     pushDataLayer("step_completed", { funil: "financiamento_imobiliario", step: 5 })
     onNext()
+  }
+
+  async function handleBaixarPdf() {
+    setBaixando(true)
+    try {
+      const { gerarPdfFinanciamentoImobiliario } = await import("@/lib/pdf-financiamento-imobiliario")
+      await gerarPdfFinanciamentoImobiliario(resultado, {
+        valorImovel: financiamentoImobiliario.valor_imovel,
+        valorCredito: financiamentoImobiliario.valor_solicitado,
+        prazoMeses: financiamentoImobiliario.prazo_meses,
+        tomador: (financiamentoImobiliario.tipo_pessoa || "PF") as "PF" | "PJ",
+        dataSimulacao,
+      })
+      pushDataLayer("pdf_download", { funil: "financiamento_imobiliario" })
+    } finally {
+      setBaixando(false)
+    }
   }
 
   return (
@@ -30,58 +68,93 @@ export function Step5Resultado({ onNext }: { onNext: () => void }) {
       <div className="space-y-2">
         <h2 className="text-2xl font-bold tracking-tight">Sua simulação está pronta!</h2>
         <p className="text-muted-foreground text-sm">
-          Condições estimadas para o seu financiamento imobiliário.
+          Confira as condições nas tabelas SAC e PRICE.
         </p>
       </div>
 
-      <div className="rounded-2xl border border-[var(--gold)]/30 bg-[var(--gold)]/5 p-6 space-y-5">
-        <div className="flex justify-between items-start">
-          <span className="text-sm text-muted-foreground">Valor financiado</span>
-          <span className="font-semibold">{formatarMoeda(financiamentoImobiliario.valor_solicitado)}</span>
-        </div>
-        <div className="flex justify-between items-start">
-          <span className="text-sm text-muted-foreground">Prazo</span>
-          <span className="font-semibold">{financiamentoImobiliario.prazo_meses} meses ({financiamentoImobiliario.prazo_meses / 12} anos)</span>
-        </div>
-        <div className="flex justify-between items-start">
-          <span className="text-sm text-muted-foreground">Tomador</span>
-          <span className="font-semibold">{financiamentoImobiliario.tipo_pessoa || "—"}</span>
-        </div>
-        <div className="flex justify-between items-start">
-          <span className="text-sm text-muted-foreground">Data da simulação</span>
-          <span className="font-semibold">
-            {dataSimulacao.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
-          </span>
-        </div>
-        <div className="h-px bg-border" />
-
-        <div className="space-y-4">
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">Tabela Price</p>
-            <p className="text-3xl font-bold text-[var(--gold)]">
-              {formatarMoeda(resultado.parcela_price)}
-              <span className="text-base font-normal text-muted-foreground">/mês</span>
-            </p>
+      {/* Resumo da operação */}
+      <div className="grid grid-cols-3 gap-2">
+        {[
+          { l: "Valor financiado", v: formatarMoeda(financiamentoImobiliario.valor_solicitado) },
+          { l: "Prazo", v: `${financiamentoImobiliario.prazo_meses} meses` },
+          { l: "Tomador", v: financiamentoImobiliario.tipo_pessoa || "—" },
+        ].map((c) => (
+          <div key={c.l} className="rounded-xl border border-border bg-muted/30 p-3 text-center">
+            <p className="text-[11px] text-muted-foreground">{c.l}</p>
+            <p className="text-sm font-semibold leading-tight mt-0.5">{c.v}</p>
           </div>
+        ))}
+      </div>
 
-          <div className="rounded-xl bg-muted/50 p-4 space-y-2 text-sm">
-            <p className="font-medium">Tabela SAC (amortização constante)</p>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">1ª parcela</span>
-              <span className="font-medium">{formatarMoeda(resultado.primeira_parcela_sac)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Última parcela</span>
-              <span className="font-medium">{formatarMoeda(resultado.ultima_parcela_sac)}</span>
-            </div>
+      <p className="text-xs text-muted-foreground text-center">
+        Data da simulação:{" "}
+        {dataSimulacao.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
+      </p>
+
+      {/* Comparativo SAC × PRICE */}
+      <div className="rounded-2xl border border-[var(--gold)]/30 bg-[var(--gold)]/[0.04] overflow-hidden">
+        <div className="grid grid-cols-[1.25fr_1fr_1fr]">
+          <div className="p-3" />
+          <div className="p-3 text-center border-l border-border">
+            <p className="text-sm font-bold">SAC</p>
           </div>
+          <div className="p-3 text-center border-l border-border">
+            <p className="text-sm font-bold">PRICE</p>
+          </div>
+        </div>
 
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Taxa indicativa</span>
-            <span className="font-medium">{formatarPercentual(taxaMensal)} + IPCA</span>
+        {LINHAS.map((linha) => {
+          const Icon = linha.icon
+          return (
+            <div
+              key={linha.key}
+              className="grid grid-cols-[1.25fr_1fr_1fr] border-t border-border/70"
+            >
+              <div className="flex items-center gap-2 p-3">
+                <Icon className="h-4 w-4 shrink-0 text-[var(--gold-dark)]" />
+                <span className="text-xs leading-tight text-muted-foreground">{linha.label}</span>
+              </div>
+              <div className="p-3 text-center border-l border-border/70 text-sm font-semibold tabular-nums">
+                {formatarMoeda(sac[linha.key])}
+              </div>
+              <div className="p-3 text-center border-l border-border/70 text-sm font-semibold tabular-nums">
+                {formatarMoeda(price[linha.key])}
+              </div>
+            </div>
+          )
+        })}
+
+        {/* Taxa e nº de parcelas (iguais nas duas tabelas) */}
+        <div className="grid grid-cols-[1.25fr_1fr_1fr] border-t border-border/70 bg-muted/30">
+          <div className="flex items-center gap-2 p-3">
+            <Percent className="h-4 w-4 shrink-0 text-[var(--gold-dark)]" />
+            <span className="text-xs leading-tight text-muted-foreground">Taxa de juros</span>
+          </div>
+          <div className="col-span-2 p-3 text-center border-l border-border/70 text-sm font-semibold">
+            {formatarPercentual(resultado.taxa_mensal)} + IPCA
+          </div>
+        </div>
+        <div className="grid grid-cols-[1.25fr_1fr_1fr] border-t border-border/70 bg-muted/30">
+          <div className="flex items-center gap-2 p-3">
+            <CalendarDays className="h-4 w-4 shrink-0 text-[var(--gold-dark)]" />
+            <span className="text-xs leading-tight text-muted-foreground">Quantidade de parcelas</span>
+          </div>
+          <div className="col-span-2 p-3 text-center border-l border-border/70 text-sm font-semibold">
+            {financiamentoImobiliario.prazo_meses} meses
           </div>
         </div>
       </div>
+
+      <Button
+        type="button"
+        variant="outline"
+        onClick={handleBaixarPdf}
+        disabled={baixando}
+        className="w-full h-11 font-medium"
+      >
+        <Download className="h-4 w-4 mr-2" />
+        {baixando ? "Gerando PDF…" : "Baixar PDF (SAC e PRICE)"}
+      </Button>
 
       <div className="flex gap-2 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
         <Info className="w-4 h-4 shrink-0 mt-0.5" />

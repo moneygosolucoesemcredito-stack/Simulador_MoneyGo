@@ -45,6 +45,23 @@ describe("calcularSimulacao", () => {
     expect(result.taxa_mensal).toBe(0.0119)
     expect(result.valor_total_price).toBeCloseTo(result.parcela_price * 180, 1)
   })
+
+  it("total pago no SAC = principal + soma dos juros (i·PV·(n+1)/2)", () => {
+    const pv = 200_000
+    const i = 0.0119
+    const n = 180
+    const result = calcularSimulacao(pv, i, n)
+    const esperado = pv + i * pv * ((n + 1) / 2)
+    expect(result.valor_total_sac).toBeCloseTo(esperado, 2)
+    // No SAC paga-se menos juros que no PRICE, logo o total é menor.
+    expect(result.valor_total_sac).toBeLessThan(result.valor_total_price)
+  })
+
+  it("zera os totais quando os parâmetros são inválidos", () => {
+    const result = calcularSimulacao(0, 0.0119, 180)
+    expect(result.valor_total_sac).toBe(0)
+    expect(result.valor_total_price).toBe(0)
+  })
 })
 
 describe("calcularHomeEquity (planilha Simulacao HE.xlsx, com estruturação zerada)", () => {
