@@ -1,6 +1,6 @@
 "use client"
 
-import { useForm } from "react-hook-form"
+import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { IMaskInput } from "react-imask"
@@ -72,14 +72,17 @@ export function ContatoForm({ onSubmit, loading = false, defaults }: ContatoForm
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     formState: { errors },
   } = useForm<ContatoFormValues>({
     resolver: zodResolver(contatoSchema),
     defaultValues: { melhor_horario: "tarde", ...defaults },
   })
 
-  const horarioSelecionado = watch("melhor_horario")
+  // useWatch (baseado em subscription) no lugar de watch() — o watch() do
+  // react-hook-form não pode ser memoizado pelo React Compiler sem risco de UI
+  // desatualizada (regra react-hooks/incompatible-library).
+  const horarioSelecionado = useWatch({ control, name: "melhor_horario" })
 
   async function handleCepBlur(cep: string) {
     const cleaned = cep.replace(/\D/g, "")
