@@ -26,11 +26,19 @@ describe("teto regulatório de LTV (55%)", () => {
     expect(ltvParaTipoImovel("")).toBeLessThanOrEqual(LTV_MAXIMO_REGULATORIO)
   })
 
-  it("nenhuma tipologia do Financiamento Imobiliário ultrapassa 55%", () => {
-    for (const t of TIPOLOGIAS) {
-      expect(ltvParaTipoImovelFI(t)).toBeLessThanOrEqual(LTV_MAXIMO_REGULATORIO)
-    }
-    expect(ltvParaTipoImovelFI("")).toBeLessThanOrEqual(LTV_MAXIMO_REGULATORIO)
+  it("o Financiamento Imobiliário NÃO está preso ao teto de 55%", () => {
+    // Ao contrário do Home Equity, o FI usa os LTVs cheios por tipologia.
+    expect(ltvParaTipoImovelFI("casa")).toBeGreaterThan(LTV_MAXIMO_REGULATORIO)
+    expect(ltvParaTipoImovelFI("apartamento")).toBeGreaterThan(LTV_MAXIMO_REGULATORIO)
+    expect(ltvParaTipoImovelFI("comercial")).toBeGreaterThan(LTV_MAXIMO_REGULATORIO)
+  })
+
+  it("LTV do FI por tipologia: casa/apto 80%, comercial 70%, terreno 50%", () => {
+    expect(ltvParaTipoImovelFI("casa")).toBeCloseTo(0.8, 4)
+    expect(ltvParaTipoImovelFI("apartamento")).toBeCloseTo(0.8, 4)
+    expect(ltvParaTipoImovelFI("comercial")).toBeCloseTo(0.7, 4)
+    expect(ltvParaTipoImovelFI("terreno")).toBeCloseTo(0.5, 4)
+    expect(ltvParaTipoImovelFI("terreno_condominio")).toBeCloseTo(0.5, 4)
   })
 
   it("tipologias mais restritivas do HE continuam abaixo do teto", () => {
@@ -68,41 +76,40 @@ describe("qualificarHomeEquity — trava de 55%", () => {
   })
 })
 
-describe("qualificarFinanciamentoImobiliario — trava de 55%", () => {
+describe("qualificarFinanciamentoImobiliario — LTV por tipologia (80/70/50)", () => {
   const base = {
     valor_imovel: 500_000,
-    tipo_imovel: "casa" as TipoImovel,
     cidade: "Joinville",
     uf: "SC",
     data_nascimento: "1990-05-15",
   }
 
-  it("rejeita crédito de 56% do valor do imóvel", () => {
-    const { qualificado, motivos } = qualificarFinanciamentoImobiliario({
-      ...base,
-      valor_solicitado: 280_000, // 56% — antes passava (LTV era 80%)
-    })
-    expect(qualificado).toBe(false)
-    expect(motivos.some((m) => m.includes("55%"))).toBe(true)
-  })
-
-  it("aceita crédito de exatamente 55%", () => {
-    const { qualificado } = qualificarFinanciamentoImobiliario({
-      ...base,
-      valor_solicitado: 275_000, // 55%
-    })
-    expect(qualificado).toBe(true)
-  })
-
-  it("rejeita 56% também nas demais tipologias", () => {
-    for (const t of TIPOLOGIAS) {
-      const { qualificado } = qualificarFinanciamentoImobiliario({
-        ...base,
-        tipo_imovel: t,
-        valor_solicitado: 280_000,
-      })
-      // rural não existe em TipoImovel; todas as tipologias devem travar ≥ 56%
-      expect(qualificado).toBe(false)
+  it("casa/apto aceita até 80% e rejeita acima disso", () => {
+    for (const t of ["casa", "apartamento"] as TipoImovel[]) {
+      expect(
+        qualificarFinanciamentoImobiliario({ ...base, tipo_imovel: t, valor_solicitado: 400_000 }).qualificado
+      ).toBe(true) // 80%
+      expect(
+        qualificarFinanciamentoImobiliario({ ...base, tipo_imovel: t, valor_solicitado: 405_000 }).qualificado
+      ).toBe(false) // 81%
     }
+  })
+
+  it("comercial aceita até 70% e rejeita acima disso", () => {
+    expect(
+      qualificarFinanciamentoImobiliario({ ...base, tipo_imovel: "comercial", valor_solicitado: 350_000 }).qualificado
+    ).toBe(true) // 70%
+    expect(
+      qualificarFinanciamentoImobiliario({ ...base, tipo_imovel: "comercial", valor_solicitado: 355_000 }).qualificado
+    ).toBe(false) // 71%
+  })
+
+  it("terreno aceita até 50% e rejeita acima disso", () => {
+    expect(
+      qualificarFinanciamentoImobiliario({ ...base, tipo_imovel: "terreno", valor_solicitado: 250_000 }).qualificado
+    ).toBe(true) // 50%
+    expect(
+      qualificarFinanciamentoImobiliario({ ...base, tipo_imovel: "terreno", valor_solicitado: 255_000 }).qualificado
+    ).toBe(false) // 51%
   })
 })

@@ -42,7 +42,7 @@ export const CONFIG = {
     dfi: 0.000065,
     estruturacaoFixa: 5_000,
     iof: 0,
-    prazosDisponiveis: [120, 180, 240, 300, 360],
+    prazosDisponiveis: [120, 180, 240, 300, 360, 420],
     prazoDefault: 240,
     idadeMinima: 18,
     idadeMaxima: 50,
@@ -142,19 +142,20 @@ export function ltvParaTipoImovel(tipoImovel: TipoImovel | ""): number {
 }
 
 // LTV do Financiamento Imobiliário por categoria de imóvel.
-// Terreno é aceito sem exigir condomínio. Os valores comerciais (80%/70%)
-// ficam registrados, mas o efetivo é limitado por LTV_MAXIMO_REGULATORIO.
+// Diferente do Home Equity, o Financiamento Imobiliário NÃO está sujeito ao
+// teto de 55% (LTV_MAXIMO_REGULATORIO) — os limites por tipologia valem cheios:
+// casa/apartamento 80%, sala comercial 70% e terreno 50%. Terreno é aceito
+// sem exigir condomínio.
 export const LTV_POR_TIPO_IMOVEL_FI: Record<TipoImovel, number> = {
   casa: 0.8,
   apartamento: 0.8,
   comercial: 0.7,
-  terreno: 0.7,
-  terreno_condominio: 0.7,
+  terreno: 0.5,
+  terreno_condominio: 0.5,
 }
 
 export function ltvParaTipoImovelFI(tipoImovel: TipoImovel | ""): number {
-  const ltv = tipoImovel ? LTV_POR_TIPO_IMOVEL_FI[tipoImovel] : LTV_POR_TIPO_IMOVEL_FI.casa
-  return Math.min(ltv, LTV_MAXIMO_REGULATORIO)
+  return tipoImovel ? LTV_POR_TIPO_IMOVEL_FI[tipoImovel] : LTV_POR_TIPO_IMOVEL_FI.casa
 }
 
 // Faixa de taxa (a.m., em fração) controlada pelo OPERADOR — nunca pelo cliente.

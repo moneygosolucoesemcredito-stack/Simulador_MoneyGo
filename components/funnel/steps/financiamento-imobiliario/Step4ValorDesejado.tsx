@@ -31,7 +31,8 @@ export function Step4ValorDesejado({ onNext }: { onNext: () => void }) {
   const podeAvancar = !!tipoPessoa
 
   function handleNext() {
-    // Trava de LTV: nunca avança acima do teto da tipologia (≤ 55%).
+    // Trava de LTV: nunca avança acima do teto da tipologia
+    // (casa/apto 80%, comercial 70%, terreno 50%).
     if (!podeAvancar || valor > valorMaximo) return
     setFinanciamentoImobiliario({
       valor_solicitado: valor,
@@ -80,7 +81,7 @@ export function Step4ValorDesejado({ onNext }: { onNext: () => void }) {
 
       <div className="space-y-3">
         <p className="text-sm font-medium">Prazo de pagamento</p>
-        <div className="grid grid-cols-5 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           {CONFIG.financiamentoImobiliario.prazosDisponiveis.map((p) => (
             <button
               key={p}

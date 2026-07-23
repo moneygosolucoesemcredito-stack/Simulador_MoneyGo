@@ -143,42 +143,61 @@ describe("qualificarFinanciamentoImobiliario", () => {
     expect(motivos).toHaveLength(0)
   })
 
-  // Teto regulatório: todas as tipologias do FI ficam limitadas a 55%
-  // (LTV_MAXIMO_REGULATORIO), mesmo com valores comerciais de 80%/70%.
-  it("aceita casa/apartamento com LTV de 55%", () => {
+  // O FI usa os LTVs cheios por tipologia (casa/apto 80%, comercial 70%,
+  // terreno 50%) — não está sujeito ao teto de 55% do Home Equity.
+  it("aceita casa/apartamento com LTV de 80%", () => {
     const { qualificado } = qualificarFinanciamentoImobiliario({
       ...base,
-      valor_solicitado: 275_000, // exatamente 55%
+      valor_solicitado: 400_000, // exatamente 80%
     })
     expect(qualificado).toBe(true)
   })
 
-  it("rejeita casa/apartamento acima de 55%", () => {
+  it("rejeita casa/apartamento acima de 80%", () => {
     const { qualificado, motivos } = qualificarFinanciamentoImobiliario({
       ...base,
-      valor_solicitado: 300_000, // 60% > 55%
+      valor_solicitado: 410_000, // 82% > 80%
     })
     expect(qualificado).toBe(false)
-    expect(motivos.some((m) => m.includes("55%"))).toBe(true)
+    expect(motivos.some((m) => m.includes("80%"))).toBe(true)
   })
 
-  it("aceita terreno (sem exigir condomínio) com LTV de 55%", () => {
+  it("aceita comercial com LTV de 70%", () => {
     const { qualificado } = qualificarFinanciamentoImobiliario({
       ...base,
-      tipo_imovel: "terreno",
-      valor_solicitado: 275_000, // exatamente 55%
+      tipo_imovel: "comercial",
+      valor_solicitado: 350_000, // exatamente 70%
     })
     expect(qualificado).toBe(true)
   })
 
-  it("rejeita terreno acima de 55%", () => {
+  it("rejeita comercial acima de 70%", () => {
+    const { qualificado, motivos } = qualificarFinanciamentoImobiliario({
+      ...base,
+      tipo_imovel: "comercial",
+      valor_solicitado: 375_000, // 75% > 70%
+    })
+    expect(qualificado).toBe(false)
+    expect(motivos.some((m) => m.includes("70%"))).toBe(true)
+  })
+
+  it("aceita terreno (sem exigir condomínio) com LTV de 50%", () => {
+    const { qualificado } = qualificarFinanciamentoImobiliario({
+      ...base,
+      tipo_imovel: "terreno",
+      valor_solicitado: 250_000, // exatamente 50%
+    })
+    expect(qualificado).toBe(true)
+  })
+
+  it("rejeita terreno acima de 50%", () => {
     const { qualificado, motivos } = qualificarFinanciamentoImobiliario({
       ...base,
       tipo_imovel: "terreno",
-      valor_solicitado: 300_000, // 60% > 55%
+      valor_solicitado: 300_000, // 60% > 50%
     })
     expect(qualificado).toBe(false)
-    expect(motivos.some((m) => m.includes("55%"))).toBe(true)
+    expect(motivos.some((m) => m.includes("50%"))).toBe(true)
   })
 
   it("rejeita cidade não qualificada", () => {
