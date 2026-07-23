@@ -14,6 +14,10 @@ export interface HomeEquityState {
   /** true apenas quando o PF/PJ veio travado pelo link do operador (?pessoa=).
    *  Só nesse caso o seletor deixa de ser exibido ao cliente. */
   pessoa_travada_link: boolean
+  /** Data de nascimento do tomador (YYYY-MM-DD) — trava idade × prazo (≤ 80). */
+  data_nascimento: string
+  /** Nome do lead/tomador — personaliza a simulação (tela de resultado e PDF). */
+  nome_lead: string
   cep: string
   logradouro: string
   numero: string
@@ -132,6 +136,8 @@ const defaultHomeEquity: HomeEquityState = {
   saldo_devedor: 0,
   tipo_pessoa: "",
   pessoa_travada_link: false,
+  data_nascimento: "",
+  nome_lead: "",
   cep: "",
   logradouro: "",
   numero: "",

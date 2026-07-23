@@ -1,5 +1,12 @@
 import cidades from "./ibge-cidades.json"
-import { CONFIG, limiteCreditoConstrucao, ltvParaTipoImovel, ltvParaTipoImovelFI } from "./config"
+import {
+  CONFIG,
+  HE_IDADE_MAIS_PRAZO_MAXIMO_ANOS,
+  limiteCreditoConstrucao,
+  ltvParaTipoImovel,
+  ltvParaTipoImovelFI,
+  prazoMaximoHomeEquity,
+} from "./config"
 import type { TipoImovel } from "@/types"
 
 const cidadesSet = new Set(
@@ -48,6 +55,8 @@ export function qualificarHomeEquity(params: {
   cidade: string
   uf: string
   data_nascimento: string
+  /** Prazo pretendido (meses). Quando informado, valida a trava idade × prazo. */
+  prazo_meses?: number
 }): ResultadoQualificacao {
   const { homeEquity: cfg } = CONFIG
   const motivos: string[] = []
@@ -76,9 +85,23 @@ export function qualificarHomeEquity(params: {
     motivos.push(`Valor solicitado superior a ${Math.round(ltv * 100)}% do valor do imóvel`)
   }
 
+  // Trava de seguro habitacional: idade + prazo (anos) ≤ 80. Substitui o teto
+  // fixo de idade — um tomador acima de 60 anos continua elegível, mas o prazo
+  // máximo cai para (80 − idade) × 12 meses (ex.: 61 anos → 228 meses).
   const idade = calcularIdade(params.data_nascimento)
-  if (idade < cfg.idadeMinima || idade > cfg.idadeMaxima) {
-    motivos.push(`Idade fora da faixa permitida (${cfg.idadeMinima}–${cfg.idadeMaxima} anos)`)
+  if (idade < cfg.idadeMinima) {
+    motivos.push(`Idade mínima de ${cfg.idadeMinima} anos não atingida`)
+  } else {
+    const prazoMax = prazoMaximoHomeEquity(idade)
+    if (prazoMax <= 0) {
+      motivos.push(
+        `Idade acima do limite: idade + prazo deve ser ≤ ${HE_IDADE_MAIS_PRAZO_MAXIMO_ANOS} anos`
+      )
+    } else if (params.prazo_meses !== undefined && params.prazo_meses > prazoMax) {
+      motivos.push(
+        `Prazo acima do máximo para a idade (${prazoMax} meses): idade + prazo deve ser ≤ ${HE_IDADE_MAIS_PRAZO_MAXIMO_ANOS} anos`
+      )
+    }
   }
 
   return { qualificado: motivos.length === 0, motivos }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { criarSupabaseServer } from "@/lib/supabase/server"
 import { criarLeadKommo } from "@/lib/kommo"
+import { enviarLeadGoogleSheets, sheetsConfigurado } from "@/lib/sheets"
 import type { LeadPayload } from "@/types"
 
 // Usa Node runtime: o cliente Supabase SSR lê cookies de sessão do operador.
@@ -67,15 +68,35 @@ export async function POST(req: NextRequest) {
 
     // Envia ao CRM em paralelo ao registro; falha no Kommo não derruba a proposta.
     let lead_id: number | string | null = null
+    let kommoOk = false
     try {
       lead_id = await criarLeadKommo(payload)
+      kommoOk = true
     } catch (err) {
       if (process.env.NODE_ENV !== "production") {
         console.error("[/api/proposta] kommo:", err instanceof Error ? err.message : err)
       }
     }
 
-    return NextResponse.json({ ok: true, lead_id, persisted: !erroInsert })
+    // Fallback: se o Kommo falhou, tenta o Google Sheets (quando configurado)
+    // para não perder o lead. Falha no fallback também não derruba a proposta.
+    let sheets_fallback = false
+    if (!kommoOk && sheetsConfigurado()) {
+      try {
+        sheets_fallback = await enviarLeadGoogleSheets(payload)
+      } catch (err) {
+        if (process.env.NODE_ENV !== "production") {
+          console.error("[/api/proposta] sheets:", err instanceof Error ? err.message : err)
+        }
+      }
+    }
+
+    return NextResponse.json({
+      ok: true,
+      lead_id,
+      persisted: !erroInsert,
+      sheets_fallback,
+    })
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro interno"
     return NextResponse.json({ ok: false, error: message }, { status: 500 })

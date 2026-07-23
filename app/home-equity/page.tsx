@@ -87,6 +87,12 @@ function HomeEquityFunnel() {
     router.push("/nao-qualificado")
   }
 
+  // Lead-gen: para o LEAD (pessoa física, fluxo público/parceiro-link) o
+  // cadastro é preenchido ANTES do resultado, reduzindo o abandono e permitindo
+  // remarketing. Para o PARCEIRO (operador autenticado) mantém-se a simulação
+  // direta: resultado primeiro, contato depois.
+  const ehParceiro = homeEquity.modo === "operador"
+
   const content = () => {
     switch (step) {
       case 1:
@@ -105,9 +111,17 @@ function HomeEquityFunnel() {
       case 5:
         return <Step5ValorDesejado onNext={() => goTo(6)} />
       case 6:
-        return <Step6Resultado onNext={() => goTo(7)} />
+        return ehParceiro ? (
+          <Step6Resultado onNext={() => goTo(7)} />
+        ) : (
+          <Step7Contato aoConcluir="avancar" onEnviado={() => goTo(7)} />
+        )
       case 7:
-        return <Step7Contato />
+        return ehParceiro ? (
+          <Step7Contato aoConcluir="redirect" />
+        ) : (
+          <Step6Resultado terminal onNext={() => router.push("/obrigado")} />
+        )
       default:
         return null
     }

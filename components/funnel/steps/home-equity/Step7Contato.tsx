@@ -13,34 +13,49 @@ import { pushDataLayer } from "@/components/tracking/GTM"
 import { toast } from "sonner"
 import type { LeadPayload } from "@/types"
 
-export function Step7Contato() {
+interface Step7ContatoProps {
+  /**
+   * O que fazer após o envio bem-sucedido:
+   *  - "redirect" (parceiro): vai direto para a página de agradecimento.
+   *  - "avancar" (lead): segue no funil para a tela de resultado personalizada.
+   */
+  aoConcluir?: "redirect" | "avancar"
+  onEnviado?: () => void
+}
+
+export function Step7Contato({ aoConcluir = "redirect", onEnviado }: Step7ContatoProps) {
   const [loading, setLoading] = useState(false)
   const [defaults, setDefaults] = useState<Partial<ContatoFormValues> | null>(null)
   const router = useRouter()
-  const { homeEquity, tracking } = useFunnelStore()
+  const { homeEquity, tracking, setHomeEquity } = useFunnelStore()
 
   // Cliente que se cadastrou pelo link do parceiro já informou nome, e-mail
-  // e WhatsApp — pré-preenche para não digitar de novo.
+  // e WhatsApp — pré-preenche para não digitar de novo. A data de nascimento,
+  // quando já informada no passo de valor, também é reaproveitada.
   useEffect(() => {
+    const dataNascimento = homeEquity.data_nascimento || undefined
     const supabase = criarSupabaseBrowser()
     supabase.auth
       .getUser()
       .then(async ({ data }) => {
-        if (!data.user) return {}
+        if (!data.user) return { data_nascimento: dataNascimento }
         const { data: cliente } = await supabase
           .from("clientes")
           .select("nome, email, telefone")
           .eq("id", data.user.id)
           .maybeSingle()
-        if (!cliente) return {}
+        if (!cliente) return { data_nascimento: dataNascimento }
         return {
           nome: cliente.nome || undefined,
           email: cliente.email || undefined,
           telefone: cliente.telefone || undefined,
+          data_nascimento: dataNascimento,
         }
       })
       .then(setDefaults)
-      .catch(() => setDefaults({}))
+      .catch(() => setDefaults({ data_nascimento: dataNascimento }))
+    // Lê o cadastro apenas na montagem.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function handleSubmit(formData: ContatoFormValues) {
@@ -65,6 +80,14 @@ export function Step7Contato() {
         valor_solicitado: homeEquity.valor_solicitado,
         cidade: homeEquity.cidade,
         uf: homeEquity.uf,
+        data_nascimento: formData.data_nascimento,
+        prazo_meses: homeEquity.prazo_meses,
+      })
+
+      // Guarda nome e nascimento no funil para personalizar a tela de resultado
+      // e o PDF ("Simulação preparada para [Nome]").
+      setHomeEquity({
+        nome_lead: formData.nome,
         data_nascimento: formData.data_nascimento,
       })
 
@@ -130,7 +153,16 @@ export function Step7Contato() {
       trackLead({ produto: "home_equity", qualificado })
       pushDataLayer("lead_submitted", { funil: "home_equity", qualificado })
 
-      router.push(qualificado ? "/obrigado" : "/nao-qualificado")
+      // Lead não qualificado sempre encerra na página informativa. Qualificado:
+      // no fluxo de lead (captura antes do resultado) seguimos para a tela de
+      // resultado personalizada; no fluxo do parceiro, agradecemos direto.
+      if (!qualificado) {
+        router.push("/nao-qualificado")
+      } else if (aoConcluir === "avancar") {
+        onEnviado?.()
+      } else {
+        router.push("/obrigado")
+      }
     } catch (err) {
       console.error(err)
       toast.error("Ocorreu um erro ao enviar seus dados. Tente novamente.")

@@ -15,6 +15,8 @@ export interface DadosPdfHomeEquity {
   tomador: "PF" | "PJ"
   /** Momento em que a simulação foi gerada (default: agora) */
   dataSimulacao?: Date
+  /** Nome do cliente — personaliza o PDF ("Simulação preparada para [Nome]") */
+  nome?: string
 }
 
 const DISCLAIMER =
@@ -87,12 +89,23 @@ export async function gerarPdfHomeEquity(
   doc.text("Crédito com garantia de imóvel · pós-fixado + IPCA", margem, y)
   doc.setTextColor(0, 0, 0)
 
+  // Personalização: "Simulação preparada para [Nome]"
+  const nome = dados.nome?.trim()
+  if (nome) {
+    y += 16
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(11)
+    doc.text(`Simulação preparada para ${nome}`, margem, y)
+    doc.setFont("helvetica", "normal")
+  }
+
   // Resumo da operação
   autoTable(doc, {
     startY: y + 16,
     theme: "plain",
     styles: { fontSize: 10, cellPadding: 3 },
     body: [
+      ...(nome ? [["Cliente", nome]] : []),
       ["Data da simulação", (dados.dataSimulacao ?? new Date()).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })],
       ["Crédito solicitado", formatarMoeda(dados.valorCredito)],
       ["Valor do imóvel", formatarMoeda(dados.valorImovel)],

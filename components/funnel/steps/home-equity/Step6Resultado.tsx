@@ -34,9 +34,20 @@ const LINHAS: { key: keyof ResultadoTabelaHE; label: string; icon: typeof Zap; t
   { key: "cetAnual", label: "Custo efetivo total", icon: Layers, tipo: "anual" },
 ]
 
-export function Step6Resultado({ onNext }: { onNext: () => void }) {
+interface Step6ResultadoProps {
+  onNext: () => void
+  /**
+   * true no fluxo de lead, em que o cadastro já foi enviado antes do resultado.
+   * A tela vira o encerramento do funil (sem novo envio de proposta).
+   */
+  terminal?: boolean
+}
+
+export function Step6Resultado({ onNext, terminal = false }: Step6ResultadoProps) {
   const { homeEquity, setHomeEquity } = useFunnelStore()
   const modoCliente = homeEquity.modo === "cliente"
+  const nomeLead = homeEquity.nome_lead?.trim()
+  const primeiroNome = nomeLead ? nomeLead.split(/\s+/)[0] : ""
 
   // No modo operador a taxa é digitada aqui; no modo cliente vem travada da URL.
   const [taxaRaw, setTaxaRaw] = useState(
@@ -95,6 +106,7 @@ export function Step6Resultado({ onNext }: { onNext: () => void }) {
         prazoMeses: homeEquity.prazo_meses,
         tomador: (homeEquity.tipo_pessoa || "PF") as "PF" | "PJ",
         dataSimulacao,
+        nome: nomeLead || undefined,
       })
       pushDataLayer("pdf_download", { funil: "home_equity", taxa_mensal: taxa })
     } finally {
@@ -110,7 +122,14 @@ export function Step6Resultado({ onNext }: { onNext: () => void }) {
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <h2 className="text-2xl font-bold tracking-tight">Sua simulação está pronta!</h2>
+        <h2 className="text-2xl font-bold tracking-tight">
+          {primeiroNome ? `${primeiroNome}, sua simulação está pronta!` : "Sua simulação está pronta!"}
+        </h2>
+        {nomeLead && (
+          <p className="text-sm font-medium text-[var(--gold-dark)]">
+            Simulação preparada para {nomeLead}.
+          </p>
+        )}
         <p className="text-muted-foreground text-sm">
           {modoCliente
             ? "Confira as condições nas tabelas SAC e PRICE."
@@ -273,7 +292,11 @@ export function Step6Resultado({ onNext }: { onNext: () => void }) {
         disabled={!taxa}
         className="w-full h-12 text-base font-semibold bg-[var(--gold)] text-[var(--gold-foreground)] hover:bg-[var(--gold-dark)] disabled:opacity-50"
       >
-        {modoCliente ? "Subir proposta" : "Quero falar com um especialista"}
+        {terminal
+          ? "Concluir"
+          : modoCliente
+            ? "Subir proposta"
+            : "Quero falar com um especialista"}
       </Button>
     </div>
   )

@@ -111,6 +111,34 @@ export const CONFIG = {
 
 export type IndexadorConstrucao = keyof typeof CONFIG.creditoConstrucao.taxas
 
+// Trava de seguro habitacional (padrão de mercado para crédito com garantia de
+// imóvel): a soma "idade do tomador + prazo (em anos)" não pode ultrapassar 80.
+// Acima de 60 anos o prazo de 240 meses (20 anos) deixa de estar disponível e o
+// teto passa a ser (80 − idade) × 12 meses. Ex.: 61 anos → 228 meses.
+export const HE_IDADE_MAIS_PRAZO_MAXIMO_ANOS = 80
+
+/**
+ * Prazo máximo (em meses) do Home Equity para um tomador de determinada idade,
+ * aplicando a trava "idade + prazo ≤ 80 anos":
+ *   prazo_maximo = (80 − idade) × 12, limitado ao teto do produto (240 meses).
+ * Retorna 0 quando a idade já esgota o limite (idade ≥ 80).
+ */
+export function prazoMaximoHomeEquity(idade: number): number {
+  if (!Number.isFinite(idade) || idade < 0) return 0
+  const tetoProduto = Math.max(...CONFIG.homeEquity.prazosDisponiveis)
+  const limiteIdade = (HE_IDADE_MAIS_PRAZO_MAXIMO_ANOS - idade) * 12
+  return Math.max(0, Math.min(tetoProduto, limiteIdade))
+}
+
+/**
+ * Prazos discretos do Home Equity efetivamente ofertáveis para a idade,
+ * filtrando `prazosDisponiveis` pelo teto calculado em `prazoMaximoHomeEquity`.
+ */
+export function prazosDisponiveisHomeEquity(idade: number): number[] {
+  const max = prazoMaximoHomeEquity(idade)
+  return CONFIG.homeEquity.prazosDisponiveis.filter((p) => p <= max)
+}
+
 /** Limite de crédito da construção: o menor entre 80% do custo da obra e 50% do VGV. */
 export function limiteCreditoConstrucao(valorObra: number, vgv: number): number {
   const { ltvObra, ltvVgv } = CONFIG.creditoConstrucao
