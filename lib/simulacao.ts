@@ -4,6 +4,7 @@ export interface ResultadoSimulacao {
   ultima_parcela_sac: number
   taxa_mensal: number
   valor_total_price: number
+  valor_total_sac: number
 }
 
 /**
@@ -44,12 +45,19 @@ export function calcularSimulacao(
 ): ResultadoSimulacao {
   const parcela_price = calcularPrice(valorCredito, taxaMensal, prazoMeses)
   const { primeira, ultima } = calcularSAC(valorCredito, taxaMensal, prazoMeses)
+  // Total pago no SAC: principal + juros. Como o saldo cai linearmente, a soma
+  // dos juros é i × PV × (n+1)/2 (média aritmética dos saldos × taxa × prazo).
+  const valor_total_sac =
+    prazoMeses > 0 && taxaMensal > 0 && valorCredito > 0
+      ? valorCredito + taxaMensal * valorCredito * ((prazoMeses + 1) / 2)
+      : 0
   return {
     parcela_price,
     primeira_parcela_sac: primeira,
     ultima_parcela_sac: ultima,
     taxa_mensal: taxaMensal,
     valor_total_price: parcela_price * prazoMeses,
+    valor_total_sac,
   }
 }
 

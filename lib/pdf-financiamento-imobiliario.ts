@@ -1,0 +1,139 @@
+import { jsPDF } from "jspdf"
+import { autoTable } from "jspdf-autotable"
+import {
+  formatarMoeda,
+  formatarPercentual,
+  type ResultadoSimulacao,
+} from "./simulacao"
+import { BRAND } from "./brand"
+
+export interface DadosPdfFinanciamentoImobiliario {
+  valorImovel: number
+  valorCredito: number
+  prazoMeses: number
+  tomador: "PF" | "PJ"
+  /** Momento em que a simulação foi gerada (default: agora) */
+  dataSimulacao?: Date
+}
+
+const DISCLAIMER =
+  "Para fins de simulação apenas. Modalidade pós-fixada com correção pelo IPCA. " +
+  "Taxas e valores sujeitos à aprovação de crédito e às demais condições do produto " +
+  "vigentes no momento da contratação. IOF isento para pessoa física."
+
+const ACCENT: [number, number, number] = BRAND.pdfAccentRgb
+const CINZA: [number, number, number] = [110, 110, 110]
+
+/** Lê o `finalY` da última tabela desenhada (anexado pelo plugin em runtime). */
+function finalY(doc: jsPDF): number | undefined {
+  return (doc as unknown as { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY
+}
+
+/** Carrega a logo da marca como data URL (com proporção) para o jsPDF. */
+async function carregarLogo(src: string): Promise<{ dataUrl: string; ratio: number } | null> {
+  try {
+    const res = await fetch(src)
+    if (!res.ok) return null
+    const blob = await res.blob()
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = reject
+      reader.readAsDataURL(blob)
+    })
+    const img = new Image()
+    await new Promise((resolve, reject) => {
+      img.onload = resolve
+      img.onerror = reject
+      img.src = dataUrl
+    })
+    return { dataUrl, ratio: img.width / img.height }
+  } catch {
+    // Sem logo o PDF continua válido — segue apenas com o cabeçalho em texto.
+    return null
+  }
+}
+
+/**
+ * Gera e baixa um PDF da simulação de Financiamento Imobiliário espelhando a
+ * tela de resultado: logo, cabeçalho com os dados da operação e tabela
+ * comparativa SAC × PRICE.
+ */
+export async function gerarPdfFinanciamentoImobiliario(
+  resultado: ResultadoSimulacao,
+  dados: DadosPdfFinanciamentoImobiliario
+) {
+  const doc = new jsPDF({ unit: "pt", format: "a4" })
+  const margem = 40
+  let y = 48
+
+  // Logo da marca no topo
+  const logo = await carregarLogo(BRAND.logos.full)
+  if (logo) {
+    const alturaLogo = 30
+    doc.addImage(logo.dataUrl, "PNG", margem, y - 24, alturaLogo * logo.ratio, alturaLogo)
+    y += 34
+  }
+
+  // Cabeçalho
+  doc.setFont("helvetica", "bold")
+  doc.setFontSize(18)
+  doc.text(`${BRAND.name} — Simulação Financiamento Imobiliário`, margem, y)
+
+  y += 18
+  doc.setFont("helvetica", "normal")
+  doc.setFontSize(10)
+  doc.setTextColor(...CINZA)
+  doc.text("Financiamento com garantia de imóvel · pós-fixado + IPCA", margem, y)
+  doc.setTextColor(0, 0, 0)
+
+  // Resumo da operação
+  autoTable(doc, {
+    startY: y + 16,
+    theme: "plain",
+    styles: { fontSize: 10, cellPadding: 3 },
+    body: [
+      ["Data da simulação", (dados.dataSimulacao ?? new Date()).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })],
+      ["Valor do imóvel", formatarMoeda(dados.valorImovel)],
+      ["Valor financiado", formatarMoeda(dados.valorCredito)],
+      ["Prazo", `${dados.prazoMeses} meses (${dados.prazoMeses / 12} anos)`],
+      ["Tomador", dados.tomador === "PF" ? "Pessoa Física" : "Pessoa Jurídica"],
+      ["Taxa de juros (mensal)", `${formatarPercentual(resultado.taxa_mensal)} + IPCA`],
+    ],
+    columnStyles: {
+      0: { textColor: CINZA, cellWidth: 150 },
+      1: { fontStyle: "bold" },
+    },
+  })
+
+  const apos = finalY(doc) ?? y + 60
+
+  // Comparativo SAC × PRICE
+  autoTable(doc, {
+    startY: apos + 18,
+    head: [["Condição", "SAC", "PRICE"]],
+    body: [
+      ["Primeira parcela aprox.", formatarMoeda(resultado.primeira_parcela_sac), formatarMoeda(resultado.parcela_price)],
+      ["Última parcela aprox.", formatarMoeda(resultado.ultima_parcela_sac), formatarMoeda(resultado.parcela_price)],
+      ["Total pago", formatarMoeda(resultado.valor_total_sac), formatarMoeda(resultado.valor_total_price)],
+      ["Quantidade de parcelas", `${dados.prazoMeses}`, `${dados.prazoMeses}`],
+    ],
+    styles: { fontSize: 10, cellPadding: 6 },
+    headStyles: { fillColor: ACCENT, textColor: [20, 20, 20], fontStyle: "bold" },
+    columnStyles: {
+      0: { textColor: CINZA },
+      1: { halign: "right", fontStyle: "bold" },
+      2: { halign: "right", fontStyle: "bold" },
+    },
+  })
+
+  // Disclaimer no rodapé
+  const fim = finalY(doc) ?? apos + 120
+  doc.setFontSize(8)
+  doc.setTextColor(...CINZA)
+  const largura = doc.internal.pageSize.getWidth() - margem * 2
+  doc.text(doc.splitTextToSize(DISCLAIMER, largura), margem, fim + 24)
+
+  const data = new Date().toISOString().slice(0, 10)
+  doc.save(`${BRAND.id}-financiamento-imobiliario-${data}.pdf`)
+}
