@@ -7,12 +7,11 @@ import { Label } from "@/components/ui/label"
 import { useFunnelStore } from "@/stores/funnel-store"
 import { pushDataLayer } from "@/components/tracking/GTM"
 import { buscarCEP } from "@/lib/viacep"
-import { isCidadeQualificada } from "@/lib/qualificacao"
 import { IMaskInput } from "react-imask"
 import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-export function Step4Localizacao({ onNext, onNaoQualificado }: { onNext: () => void; onNaoQualificado: () => void }) {
+export function Step4Localizacao({ onNext }: { onNext: () => void }) {
   const { homeEquity, setHomeEquity } = useFunnelStore()
   const [cep, setCep] = useState(homeEquity.cep || "")
   const [logradouro, setLogradouro] = useState(homeEquity.logradouro || "")
@@ -45,10 +44,8 @@ export function Step4Localizacao({ onNext, onNaoQualificado }: { onNext: () => v
     setHomeEquity({ cep, logradouro, bairro, cidade, uf })
     pushDataLayer("step_completed", { funil: "home_equity", step: 4, cidade, uf })
 
-    if (!isCidadeQualificada(cidade, uf)) {
-      onNaoQualificado()
-      return
-    }
+    // Home Equity aceita imóveis em cidades de qualquer porte — sem trava de
+    // população nesta etapa. Demais critérios seguem validados no envio final.
     onNext()
   }
 

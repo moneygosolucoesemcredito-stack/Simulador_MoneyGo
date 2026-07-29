@@ -65,9 +65,9 @@ export function qualificarHomeEquity(params: {
     motivos.push(`Valor do imóvel abaixo do mínimo de ${cfg.valorImovelMinimo.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`)
   }
 
-  if (!isCidadeQualificada(params.cidade, params.uf)) {
-    motivos.push("Cidade não atendida (município com menos de 50.000 habitantes)")
-  }
+  // Trava de população removida no Home Equity: imóveis em cidades de qualquer
+  // porte são aceitos, desde que atendam aos demais critérios de garantia.
+  // (Financiamento Imobiliário e Construção mantêm o filtro geográfico.)
 
   if (params.tipo_imovel === ("rural" as TipoImovel)) {
     motivos.push("Imóvel rural não aceito nesta modalidade")

@@ -30,7 +30,8 @@ export const CONFIG = {
     prazoDefault: 180,
     idadeMinima: 18,
     idadeMaxima: 60,
-    populacaoMunicipalMinima: 50_000,
+    // Trava de população removida no Home Equity (2026-07): aceita municípios de
+    // qualquer porte. FI e Construção mantêm `populacaoMunicipalMinima`.
   },
   financiamentoImobiliario: {
     taxaMensal: 0.0083,

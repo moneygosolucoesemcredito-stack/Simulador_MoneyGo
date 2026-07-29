@@ -65,9 +65,14 @@ describe("qualificarHomeEquity", () => {
     expect(qualificado).toBe(false)
   })
 
-  it("rejeita cidade não qualificada", () => {
-    const { qualificado } = qualificarHomeEquity({ ...base, cidade: "Cidade Pequena" })
-    expect(qualificado).toBe(false)
+  it("aceita cidade de qualquer porte (trava de população removida no Home Equity)", () => {
+    const { qualificado, motivos } = qualificarHomeEquity({
+      ...base,
+      cidade: "Cidade Pequena",
+      uf: "SC",
+    })
+    expect(qualificado).toBe(true)
+    expect(motivos.some((m) => m.includes("habitantes"))).toBe(false)
   })
 
   it("rejeita menor de 18 anos", () => {

@@ -83,10 +83,6 @@ function HomeEquityFunnel() {
     setHomeEquity({ step: s })
   }
 
-  function handleNaoQualificado() {
-    router.push("/nao-qualificado")
-  }
-
   // Lead-gen: para o LEAD (pessoa física, fluxo público/parceiro-link) o
   // cadastro é preenchido ANTES do resultado, reduzindo o abandono e permitindo
   // remarketing. Para o PARCEIRO (operador autenticado) mantém-se a simulação
@@ -102,12 +98,7 @@ function HomeEquityFunnel() {
       case 3:
         return <Step3Situacao onNext={() => goTo(4)} />
       case 4:
-        return (
-          <Step4Localizacao
-            onNext={() => goTo(5)}
-            onNaoQualificado={handleNaoQualificado}
-          />
-        )
+        return <Step4Localizacao onNext={() => goTo(5)} />
       case 5:
         return <Step5ValorDesejado onNext={() => goTo(6)} />
       case 6:
