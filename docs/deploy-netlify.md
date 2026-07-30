@@ -31,6 +31,20 @@ erros (19 rotas geradas).
 
 As etapas 1 e 2 exigem acesso aos painéis — precisam ser feitas por você.
 
+### As contas envolvidas
+
+São três contas distintas, em dois serviços. Todo o trabalho na Netlify é feito
+na conta da **MoneyGo**; a conta pessoal da Netlify não participa da solução.
+
+| Serviço | Conta | Papel |
+|---|---|---|
+| **Netlify** | `moneygosolucoesemcredito@gmail.com` (team MoneyGo) | Dona do site `simuladormoneygo`. É aqui que se faz tudo. |
+| **Netlify** | conta pessoal | Hospeda a Capita Max. Citada só como comparação. |
+| **GitHub** | `moneygosolucoesemcredito-stack` | Dona do repositório, permissão `admin`. |
+| **GitHub** | `SandroLimoli` | Permissão `write` — insuficiente para vincular. |
+
+A restrição de permissão descrita no passo 1 é do **GitHub**, não da Netlify.
+
 ### São duas ligações independentes
 
 Confundir as duas é o motivo mais comum de travar aqui:
@@ -46,8 +60,11 @@ Instalar o app no GitHub **não** autoriza a Netlify. A conta
 
 ### 1. Usar a conta GitHub certa (admin do repositório)
 
-O dono do repositório é a conta **`moneygosolucoesemcredito-stack`** — uma conta
-pessoal do GitHub, não uma organização.
+> Este passo é inteiramente no **GitHub**. Não muda nada na conta Netlify da
+> MoneyGo, que segue sendo a única usada no passo 2.
+
+O dono do repositório é a conta GitHub **`moneygosolucoesemcredito-stack`** — uma
+conta pessoal do GitHub, não uma organização.
 
 | Conta GitHub | Permissão no repo |
 |---|---|
