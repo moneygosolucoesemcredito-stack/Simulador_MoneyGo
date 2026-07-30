@@ -29,22 +29,42 @@ erros (19 rotas geradas).
 
 ## O que fazer para liberar o deploy
 
-As etapas 1 e 2 exigem acesso ao painel — precisam ser feitas por você.
+As etapas 1 e 2 exigem acesso aos painéis — precisam ser feitas por você.
 
-### 1. Instalar o app da Netlify na organização do GitHub
+### São duas ligações independentes
 
-O repositório está sob a **organização** `moneygosolucoesemcredito-stack`, não
-sob um usuário pessoal. Aplicativos instalados numa conta pessoal não enxergam
-repositórios de organização — é por isso que o repo tende a não aparecer na
-lista da Netlify.
+Confundir as duas é o motivo mais comum de travar aqui:
 
-1. Acesse <https://github.com/apps/netlify/installations/new>
-2. Escolha a organização **`moneygosolucoesemcredito-stack`** (não a conta pessoal).
-3. Em *Repository access*, marque **`Simulador_MoneyGo`** (ou *All repositories*).
-4. Confirme com **Install**.
+| Ligação | Onde | Status |
+|---|---|---|
+| App da Netlify instalado no GitHub | GitHub | ✅ feito |
+| Conta Netlify autorizada no GitHub | Netlify | ❌ **faltando** (`connected_accounts` vazio) |
 
-> Se você não for owner da organização, o GitHub envia um pedido de aprovação
-> para quem é — o botão vira *Request*. Sem essa aprovação, nada adiante prossegue.
+Instalar o app no GitHub **não** autoriza a Netlify. A conta
+`moneygosolucoesemcredito@gmail.com` entra por senha (`login_providers:
+["password"]`) e nunca passou pelo OAuth do GitHub.
+
+### 1. Usar a conta GitHub certa (admin do repositório)
+
+O dono do repositório é a conta **`moneygosolucoesemcredito-stack`** — uma conta
+pessoal do GitHub, não uma organização.
+
+| Conta GitHub | Permissão no repo |
+|---|---|
+| `moneygosolucoesemcredito-stack` | **admin** (dona) |
+| `SandroLimoli` | **write** |
+
+A Netlify precisa de permissão **admin** no repositório para vincular: ela cria
+uma *deploy key* e um *webhook*, e nenhum dos dois é permitido com `write`.
+Autorizar a Netlify logado como `SandroLimoli` faz o vínculo falhar mesmo com o
+app já instalado.
+
+Escolha um caminho antes de seguir:
+
+- **(a)** No navegador, entre no GitHub como **`moneygosolucoesemcredito-stack`**
+  e faça a autorização do passo 2 por essa conta. *(mais direto)*
+- **(b)** Ou promova `SandroLimoli` a **Admin** no repositório
+  (*Settings › Collaborators*) e autorize com a sua conta.
 
 ### 2. Conectar o repositório ao site na Netlify
 
@@ -52,12 +72,16 @@ Feito na conta **`moneygosolucoesemcredito@gmail.com`** (team **MoneyGo**):
 
 1. <https://app.netlify.com/projects/simuladormoneygo/configuration/deploys>
 2. Em **Continuous deployment › Build settings**, clique em **Link repository**.
-3. Escolha **GitHub** e autorize (é aqui que a conta ganha o `connected_account`
-   que hoje está vazio).
+3. Escolha **GitHub** e autorize — é aqui que a conta ganha o
+   `connected_account` que hoje está vazio. Confirme que a tela de autorização
+   do GitHub mostra a conta escolhida no passo 1.
 4. Selecione `moneygosolucoesemcredito-stack/Simulador_MoneyGo`.
 5. Branch de produção: **`main`**.
 6. Build command e publish directory podem ficar em branco — o `netlify.toml`
    na raiz do repositório define ambos (`npm run build` → `.next`).
+
+> Se o repositório não aparecer na lista, é sinal de conta errada no passo 1:
+> saia do GitHub no navegador, entre com a conta dona do repo e refaça.
 
 ### 3. Conferir as variáveis de ambiente do site
 
