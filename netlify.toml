@@ -1,0 +1,34 @@
+# =============================================================================
+# Netlify — configuração de build do Simulador
+#
+# ATENÇÃO: este mesmo repositório alimenta MAIS DE UM site na Netlify
+# (MoneyGo e Capita Max). Por isso este arquivo é deliberadamente NEUTRO
+# quanto à marca: NÃO defina NEXT_PUBLIC_BRAND aqui.
+#
+# Valores em [build.environment] do netlify.toml têm precedência sobre as
+# variáveis definidas no painel da Netlify. Fixar a marca aqui faria o site
+# da Capita Max construir com a identidade da MoneyGo.
+#
+# A marca é escolhida por site, em:
+#   Netlify > Project configuration > Environment variables
+#     NEXT_PUBLIC_BRAND = moneygo    (site simuladormoneygo)
+#     NEXT_PUBLIC_BRAND = capitamax  (site da Capita Max)
+#
+# Sem a variável, lib/brand/index.ts assume "moneygo" como default.
+# =============================================================================
+
+[build]
+  # `next build` puro: a marca vem do ambiente, não do script.
+  # (Não use build:moneygo/build:capitamax aqui — travaria a marca no repo.)
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  # Mesma major do runtime das funções geradas pelo plugin do Next.
+  NODE_VERSION = "22"
+
+# Runtime oficial do Next.js na Netlify (SSR, rotas de API, middleware).
+# A Netlify instala automaticamente ao detectar Next, mas declarar aqui deixa
+# o build reprodutível e independente da auto-detecção.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
