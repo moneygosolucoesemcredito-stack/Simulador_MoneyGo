@@ -100,7 +100,45 @@ Feito na conta **`moneygosolucoesemcredito@gmail.com`** (team **MoneyGo**):
 > Se o repositório não aparecer na lista, é sinal de conta errada no passo 1:
 > saia do GitHub no navegador, entre com a conta dona do repo e refaça.
 
-### 3. Conferir as variáveis de ambiente do site
+### 3. Vincular a conta Netlify ao GitHub (*Git contributors*)
+
+Sintoma: o build falha com **"Build failed: unrecognized Git contributor —
+your plan allows only one contributor on private repos"**.
+
+A palavra é *unrecognized*, não *too many*: o limite não foi estourado, a vaga
+não foi **ocupada**. Vincular o site ao repositório (passo 2) **não** vincula a
+conta Netlify ao GitHub — são coisas distintas. Enquanto a conta
+`moneygosolucoesemcredito@gmail.com` entrar só por senha
+(`connected_accounts` vazio), a Netlify não consegue mapear o autor do commit a
+nenhum membro do time e trata todo commit como contribuidor externo.
+
+1. Na mensagem de erro, clique em **manage Git contributors**
+   (ou *Team settings › Git contributors*).
+2. **Link Git account** → **GitHub** → autorize como
+   **`moneygosolucoesemcredito-stack`**.
+3. Volte ao deploy que falhou e clique em **Retry**.
+
+O plano Free permite **1 contribuidor Git em repositório privado** — é contagem
+de identidades de commit, não de projetos. Por isso todo commit deve sair sob a
+mesma identidade:
+
+```
+git config user.name  "MoneyGo Soluções em Crédito"
+git config user.email "moneygosolucoesemcredito@gmail.com"
+```
+
+Autoria de outra identidade volta a quebrar o deploy. O crédito de quem
+colaborou continua registrado pelo trailer `Co-Authored-By`, que não conta como
+contribuidor.
+
+> Remover colaboradores do repositório **não** resolve: a Netlify conta os
+> autores dos commits já existentes no histórico, não quem tem acesso hoje.
+
+Alternativas, se o modelo de identidade única ficar apertado: tornar o
+repositório público (repos públicos não têm limite de contribuidores) ou migrar
+o time para o plano Pro.
+
+### 4. Conferir as variáveis de ambiente do site
 
 Em **Project configuration › Environment variables**. Um build vindo do Git roda
 do zero e só enxerga o que estiver cadastrado aqui:
@@ -119,7 +157,7 @@ do zero e só enxerga o que estiver cadastrado aqui:
 As sem prefixo `NEXT_PUBLIC_` são segredos de servidor: nunca as renomeie para
 `NEXT_PUBLIC_`, isso as exporia no navegador.
 
-### 4. Validar
+### 5. Validar
 
 Faça um push em `main` e confirme em **Deploys** que surge um build com origem
 **GitHub** (e não `api`), publicando o commit mais recente.
