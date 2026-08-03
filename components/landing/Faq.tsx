@@ -23,11 +23,11 @@ const PERGUNTAS = [
   },
   {
     q: "O que é crédito com garantia de veículo (Auto Equity)?",
-    a: "Você utiliza seu carro de passeio quitado como garantia e obtém crédito com taxas pré-fixadas competitivas. O veículo permanece em seu uso durante todo o período.",
+    a: "Você utiliza seu veículo quitado como garantia e obtém crédito com taxas pré-fixadas competitivas. O veículo permanece em seu uso durante todo o período.",
   },
   {
     q: "Que tipos de veículo são aceitos no Auto Equity?",
-    a: "Apenas carros de passeio quitados, com até 20 anos de fabricação e valor de tabela FIPE a partir de R$ 30.000. Veículos financiados, motos, caminhonetes e utilitários não são aceitos nesta modalidade.",
+    a: "Veículos quitados com valor de tabela FIPE a partir de R$ 30.000. Veículos leves (carros, SUVs e picapes) são aceitos com até 20 anos de fabricação; veículos pesados (caminhões, cavalos mecânicos e ônibus), com até 15 anos. Veículos financiados não são aceitos nesta modalidade.",
   },
   {
     q: "Quanto tempo leva para receber o crédito?",

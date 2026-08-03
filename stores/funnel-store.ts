@@ -2,7 +2,7 @@
 
 import { create } from "zustand"
 import { persist, createJSONStorage } from "zustand/middleware"
-import type { TrackingData, ContatoFormData } from "@/types"
+import type { TrackingData, ContatoFormData, CategoriaVeiculo } from "@/types"
 
 export interface HomeEquityState {
   step: number
@@ -40,6 +40,8 @@ export interface AutoEquityState {
   marca_modelo_ano: string
   ano_veiculo: number
   valor_veiculo: number
+  /** Leve (carro/SUV/picape, até 20 anos) ou pesado (caminhão/ônibus, até 15 anos). */
+  categoria_veiculo: CategoriaVeiculo
   /** Placa consultada (quando o usuário escolheu "tenho a placa"). */
   placa: string
   /** Combustível (FIPE/placa): Gasolina, Álcool, Flex, Diesel… */
@@ -157,6 +159,7 @@ const defaultAutoEquity: AutoEquityState = {
   marca_modelo_ano: "",
   ano_veiculo: new Date().getFullYear() - 2,
   valor_veiculo: 80_000,
+  categoria_veiculo: "leve",
   placa: "",
   combustivel: "",
   potencia: "",

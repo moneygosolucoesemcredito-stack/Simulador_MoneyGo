@@ -1,0 +1,123 @@
+LOG DE PROGRESSO — MÓDULO AUTO EQUITY
+Branch: claude/auto-equity-module-update-x79lrh
+Data: 2026-08-03
+Status: FASE CONCLUÍDA (validação por categoria + limpeza de UI + bloqueio de
+        veículo inelegível já no Step 1)
+
+====================================================================
+1. OBJETIVO DESTA FASE
+====================================================================
+- Novos limites de idade do veículo no Auto Equity:
+    * veículo LEVE   → até 20 anos de fabricação
+    * veículo PESADO → até 15 anos de fabricação
+- Remover a restrição "Atendemos apenas carros de passeio" da interface.
+- Decisão de negócio (03/08): lead sem veículo elegível não interessa à
+  operação nem para contato posterior → a jornada é encerrada no Step 1 e
+  nenhum lead é enviado ao CRM.
+
+====================================================================
+2. EXPLORAÇÃO — ONDE A REGRA VIVE
+====================================================================
+- lib/config.ts .................. parâmetros do produto (CONFIG.autoEquity)
+- lib/qualificacao.ts ............ qualificarAutoEquity() = trava de descarte
+- lib/fipe.ts .................... consulta FIPE (tabela carros/caminhões)
+- stores/funnel-store.ts ......... estado do funil (AutoEquityState)
+- types/index.ts ................. tipos do produto/simulação
+- components/funnel/steps/auto-equity/Step1VeiculoInfo.tsx ... entrada do veículo
+- components/funnel/steps/auto-equity/Step6Contato.tsx ...... chama a qualificação
+- components/landing/Faq.tsx, components/landing/ProductCards.tsx ... copy público
+
+Ocorrências da frase "carros de passeio" encontradas (grep):
+  * Step1VeiculoInfo.tsx (componente AvisoPasseio)  -> REMOVIDO
+  * Faq.tsx (2 respostas)                           -> REESCRITAS
+  * ProductCards.tsx (card Auto Equity)             -> REESCRITO
+  * prompt-ideal-claude-code-moneygo.md             -> NÃO alterado (documento
+    histórico de especificação, não é UI)
+
+====================================================================
+3. TESTES (escritos ANTES da implementação)
+====================================================================
+Arquivo: __tests__/auto-equity-validacao.test.ts
+  (a convenção do repositório é __tests__/*.test.ts + vitest, por isso não foi
+   usado o caminho de exemplo tests/auto_equity_validation.test.js)
+
+Cenários cobertos:
+  [OK] leve   19 anos  -> qualificado
+  [OK] leve   20 anos  -> qualificado (limite exato)
+  [OK] leve   21 anos  -> DESCARTE, motivo cita "20 anos"
+  [OK] pesado 14 anos  -> qualificado
+  [OK] pesado 15 anos  -> qualificado (limite exato)
+  [OK] pesado 16 anos  -> DESCARTE, motivo cita "15 anos"
+  [OK] pesado 19 anos  -> DESCARTE (idade só aceita para leve)
+  [OK] sem categoria informada -> tratado como leve
+  [OK] idadeMaximaVeiculo/anoMinimoVeiculo por categoria
+  [OK] demais travas (financiado, LTV 80%) continuam valendo
+
+====================================================================
+4. IMPLEMENTAÇÃO
+====================================================================
+types/index.ts
+  + type CategoriaVeiculo = "leve" | "pesado"
+  + categoria_veiculo em SimulacaoAutoEquity e AutoEquityFunnelState
+
+lib/config.ts
+  - idadeVeiculoMaxima: 20            (removido)
+  + idadeVeiculoMaximaLeve: 20
+  + idadeVeiculoMaximaPesado: 15
+  + idadeMaximaVeiculo(categoria = "leve")
+  + anoMinimoVeiculo(categoria = "leve", anoReferencia = ano atual)
+
+lib/qualificacao.ts
+  + qualificarAutoEquity aceita categoria_veiculo (default "leve")
+  + idade máxima passa a ser resolvida por categoria; motivo do descarte
+    informa a categoria e o limite ("Veículo pesado com mais de 15 anos...")
+
+lib/fipe.ts
+  + TabelaFipe = "carros" | "caminhoes" e tabelaFipeDaCategoria()
+  + listarMarcas/listarModelos/listarAnos/consultarPreco aceitam a tabela
+    (default "carros" — chamadas antigas seguem funcionando)
+
+stores/funnel-store.ts
+  + categoria_veiculo no AutoEquityState (default "leve")
+
+Step1VeiculoInfo.tsx
+  - componente AvisoPasseio (frase "Atendemos apenas carros de passeio")
+  + seletor de categoria (Leve / Pesado) com o limite de idade em cada card
+  + o caminho manual usa a tabela FIPE da categoria (carros ou caminhões)
+  + aviso de idade passa a ser por categoria (AvisoIdade)
+  + categoria enviada ao dataLayer no step_completed
+
+Step6Contato.tsx
+  + categoria_veiculo enviada para qualificarAutoEquity e para o payload do lead
+
+Faq.tsx / ProductCards.tsx
+  + copy sem exclusividade de carro de passeio; FAQ cita os dois limites
+
+====================================================================
+5. VERIFICAÇÃO
+====================================================================
+npm test        -> 11 arquivos, 142 testes, todos passando
+npx tsc --noEmit-> sem erros
+npm run lint    -> sem novos problemas (baseline 6 -> 5, todos pré-existentes)
+npm run build   -> build de produção concluído
+
+Comportamento do descarte confirmado: veículo acima do limite da categoria
+faz qualificarAutoEquity retornar { qualificado: false, motivos: [...] };
+o Step6Contato envia o lead com qualificado=false (tag nao_qualificado no
+Kommo) e redireciona para /nao-qualificado — ou seja, a simulação não segue
+para aprovação, mas o contato continua sendo capturado.
+
+====================================================================
+6. PONTOS EM ABERTO PARA A PRÓXIMA SESSÃO
+====================================================================
+- A categoria é informada pelo cliente. A consulta por placa (/api/placa)
+  não devolve segmento/tipo do veículo hoje; se o provedor expuser esse campo,
+  dá para inferir a categoria e validar a escolha do cliente.
+- Não foi criado campo de categoria no Kommo (CF_*). Se o CRM precisar do dado,
+  criar o custom field lá e mapear em lib/kommo.ts (buildCustomFields).
+- A UI continua permitindo seguir com veículo fora do limite (captura de lead);
+  o descarte acontece na qualificação final. Se o produto quiser bloquear já no
+  Step 1, é uma mudança pequena em Step1VeiculoInfo (desabilitar "Continuar").
+- prompt-ideal-claude-code-moneygo.md ainda descreve a regra antiga de
+  "apenas carros de passeio" — atualizar se o documento for tratado como
+  especificação viva.

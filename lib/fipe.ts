@@ -1,12 +1,29 @@
 /**
- * Consulta à Tabela FIPE (carros) pela API pública e gratuita da parallelum,
- * usada no caminho "Continuar sem placa" do funil de Auto Equity.
+ * Consulta à Tabela FIPE pela API pública e gratuita da parallelum, usada no
+ * caminho "Continuar sem placa" do funil de Auto Equity.
  * Fluxo em cascata: marca → modelo → ano → preço.
+ *
+ * A tabela é escolhida pela categoria do veículo: `carros` para leves (carro,
+ * SUV, picape) e `caminhoes` para pesados (caminhão, cavalo mecânico, ônibus).
  *
  * Sem chave de API. Se a API estiver indisponível, as funções retornam
  * vazio/null e a UI trata o fallback.
  */
-const BASE = "https://parallelum.com.br/fipe/api/v1/carros"
+import type { CategoriaVeiculo } from "@/types"
+
+const API = "https://parallelum.com.br/fipe/api/v1"
+
+/** Tabelas FIPE usadas pelo Auto Equity. */
+export type TabelaFipe = "carros" | "caminhoes"
+
+/** leve → tabela de carros; pesado → tabela de caminhões. */
+export function tabelaFipeDaCategoria(categoria: CategoriaVeiculo = "leve"): TabelaFipe {
+  return categoria === "pesado" ? "caminhoes" : "carros"
+}
+
+function base(tabela: TabelaFipe = "carros"): string {
+  return `${API}/${tabela}`
+}
 
 export interface FipeItem {
   codigo: string
@@ -39,23 +56,37 @@ async function getJson<T>(url: string): Promise<T | null> {
   }
 }
 
-export async function listarMarcas(): Promise<FipeItem[]> {
-  return (await getJson<FipeItem[]>(`${BASE}/marcas`)) ?? []
+export async function listarMarcas(tabela: TabelaFipe = "carros"): Promise<FipeItem[]> {
+  return (await getJson<FipeItem[]>(`${base(tabela)}/marcas`)) ?? []
 }
 
-export async function listarModelos(codigoMarca: string): Promise<FipeItem[]> {
-  const data = await getJson<{ modelos: FipeItem[] }>(`${BASE}/marcas/${codigoMarca}/modelos`)
+export async function listarModelos(
+  codigoMarca: string,
+  tabela: TabelaFipe = "carros"
+): Promise<FipeItem[]> {
+  const data = await getJson<{ modelos: FipeItem[] }>(
+    `${base(tabela)}/marcas/${codigoMarca}/modelos`
+  )
   return data?.modelos ?? []
 }
 
-export async function listarAnos(codigoMarca: string, codigoModelo: string): Promise<FipeItem[]> {
-  return (await getJson<FipeItem[]>(`${BASE}/marcas/${codigoMarca}/modelos/${codigoModelo}/anos`)) ?? []
+export async function listarAnos(
+  codigoMarca: string,
+  codigoModelo: string,
+  tabela: TabelaFipe = "carros"
+): Promise<FipeItem[]> {
+  return (
+    (await getJson<FipeItem[]>(
+      `${base(tabela)}/marcas/${codigoMarca}/modelos/${codigoModelo}/anos`
+    )) ?? []
+  )
 }
 
 export async function consultarPreco(
   codigoMarca: string,
   codigoModelo: string,
-  codigoAno: string
+  codigoAno: string,
+  tabela: TabelaFipe = "carros"
 ): Promise<FipePreco | null> {
   const data = await getJson<{
     Valor: string
@@ -64,7 +95,7 @@ export async function consultarPreco(
     AnoModelo: number
     Combustivel: string
     CodigoFipe: string
-  }>(`${BASE}/marcas/${codigoMarca}/modelos/${codigoModelo}/anos/${codigoAno}`)
+  }>(`${base(tabela)}/marcas/${codigoMarca}/modelos/${codigoModelo}/anos/${codigoAno}`)
   if (!data) return null
   return {
     valor: parseValorFipe(data.Valor),

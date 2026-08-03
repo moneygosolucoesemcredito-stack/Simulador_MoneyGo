@@ -68,7 +68,7 @@ const produtos = [
     titulo: "Auto Equity",
     subtitulo: "Crédito com garantia de veículo",
     descricao:
-      "Utilize seu carro de passeio como garantia e acesse crédito rápido com taxa pré-fixada. Continue usando o veículo normalmente.",
+      "Utilize seu veículo leve ou pesado como garantia e acesse crédito rápido com taxa pré-fixada. Continue usando o veículo normalmente.",
     taxa: formatarPercentual(CONFIG.autoEquity.taxaMensal),
     modalidade: "Pré-fixada",
     prazo: "até 48 meses",
