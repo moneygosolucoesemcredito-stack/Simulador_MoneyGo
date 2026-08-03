@@ -32,7 +32,7 @@ export function Step6Contato() {
         iofPJ,
       })
 
-      const { qualificado } = qualificarAutoEquity({
+      const { qualificado, motivos } = qualificarAutoEquity({
         valor_veiculo: autoEquity.valor_veiculo,
         ano_veiculo: autoEquity.ano_veiculo,
         valor_solicitado: autoEquity.valor_solicitado,
@@ -40,9 +40,19 @@ export function Step6Contato() {
         categoria_veiculo: autoEquity.categoria_veiculo,
       })
 
+      // Veículo inelegível não vira lead: a operação não trabalha esses
+      // contatos. O Step 1 já barra o veículo — aqui é a última trava, para
+      // estado antigo em sessão ou dado alterado no caminho.
+      if (!qualificado) {
+        pushDataLayer("lead_descartado", { funil: "auto_equity", motivos })
+        router.push("/nao-qualificado")
+        return
+      }
+
+      // Só chega aqui quem passou na qualificação.
       const payload: LeadPayload = {
         produto: "auto_equity",
-        qualificado,
+        qualificado: true,
         simulacao: {
           marca_modelo_ano: autoEquity.marca_modelo_ano,
           valor_veiculo: autoEquity.valor_veiculo,
@@ -97,10 +107,10 @@ export function Step6Contato() {
         throw new Error(json.error ?? "Erro ao enviar")
       }
 
-      trackLead({ produto: "auto_equity", qualificado })
-      pushDataLayer("lead_submitted", { funil: "auto_equity", qualificado })
+      trackLead({ produto: "auto_equity", qualificado: true })
+      pushDataLayer("lead_submitted", { funil: "auto_equity", qualificado: true })
 
-      router.push(qualificado ? "/obrigado" : "/nao-qualificado")
+      router.push("/obrigado")
     } catch (err) {
       console.error(err)
       toast.error("Ocorreu um erro ao enviar seus dados. Tente novamente.")

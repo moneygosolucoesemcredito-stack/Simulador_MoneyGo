@@ -1,7 +1,8 @@
 LOG DE PROGRESSO — MÓDULO AUTO EQUITY
 Branch: claude/auto-equity-module-update-x79lrh
 Data: 2026-08-03
-Status: FASE CONCLUÍDA (validação por categoria + limpeza de UI)
+Status: FASE CONCLUÍDA (validação por categoria + limpeza de UI + bloqueio de
+        veículo inelegível já no Step 1)
 
 ====================================================================
 1. OBJETIVO DESTA FASE
@@ -10,6 +11,9 @@ Status: FASE CONCLUÍDA (validação por categoria + limpeza de UI)
     * veículo LEVE   → até 20 anos de fabricação
     * veículo PESADO → até 15 anos de fabricação
 - Remover a restrição "Atendemos apenas carros de passeio" da interface.
+- Decisão de negócio (03/08): lead sem veículo elegível não interessa à
+  operação nem para contato posterior → a jornada é encerrada no Step 1 e
+  nenhum lead é enviado ao CRM.
 
 ====================================================================
 2. EXPLORAÇÃO — ONDE A REGRA VIVE

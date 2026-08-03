@@ -201,6 +201,41 @@ export function qualificarFinanciamentoVeiculo(params: {
   return { qualificado: motivos.length === 0, motivos }
 }
 
+/**
+ * Elegibilidade do BEM, avaliada já no primeiro passo do funil (valor FIPE
+ * mínimo e idade máxima da categoria). Veículo inelegível encerra a jornada
+ * ali: a MoneyGo não trabalha esses leads, nem para contato posterior.
+ */
+export function qualificarVeiculoAutoEquity(params: {
+  valor_veiculo: number
+  ano_veiculo: number
+  /** Categoria do veículo — define a idade máxima (leve 20 anos / pesado 15 anos).
+   *  Ausente ou inválida cai no padrão do funil: `leve`. */
+  categoria_veiculo?: CategoriaVeiculo | string
+}): ResultadoQualificacao {
+  const { autoEquity: cfg } = CONFIG
+  const motivos: string[] = []
+  const anoAtual = new Date().getFullYear()
+  const categoria: CategoriaVeiculo = params.categoria_veiculo === "pesado" ? "pesado" : "leve"
+
+  if (params.valor_veiculo < cfg.valorVeiculoMinimo) {
+    motivos.push(`Valor do veículo abaixo do mínimo de ${cfg.valorVeiculoMinimo.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`)
+  }
+
+  // Idade máxima por categoria: leve 20 anos, pesado 15 anos. Sem o ano de
+  // fabricação não há como aplicar a trava — o veículo também não passa.
+  const idadeMaxima = idadeMaximaVeiculo(categoria)
+  if (!params.ano_veiculo || params.ano_veiculo <= 0) {
+    motivos.push("Ano de fabricação do veículo não identificado")
+  } else if (params.ano_veiculo < anoAtual - idadeMaxima) {
+    motivos.push(
+      `Veículo ${categoria} com mais de ${idadeMaxima} anos não aceito`
+    )
+  }
+
+  return { qualificado: motivos.length === 0, motivos }
+}
+
 export function qualificarAutoEquity(params: {
   valor_veiculo: number
   ano_veiculo: number
@@ -212,25 +247,13 @@ export function qualificarAutoEquity(params: {
 }): ResultadoQualificacao {
   const { autoEquity: cfg } = CONFIG
   const motivos: string[] = []
-  const anoAtual = new Date().getFullYear()
-  const categoria: CategoriaVeiculo = params.categoria_veiculo === "pesado" ? "pesado" : "leve"
 
   if (params.situacao === "financiado") {
     motivos.push("Veículo financiado não aceito — apenas veículos quitados")
   }
 
-  if (params.valor_veiculo < cfg.valorVeiculoMinimo) {
-    motivos.push(`Valor do veículo abaixo do mínimo de ${cfg.valorVeiculoMinimo.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`)
-  }
-
-  // Idade máxima por categoria: leve 20 anos, pesado 15 anos. Acima do limite a
-  // simulação é descartada (lead segue para /nao-qualificado).
-  const idadeMaxima = idadeMaximaVeiculo(categoria)
-  if (params.ano_veiculo < anoAtual - idadeMaxima) {
-    motivos.push(
-      `Veículo ${categoria} com mais de ${idadeMaxima} anos não aceito`
-    )
-  }
+  // Valor mínimo e idade máxima: mesma trava aplicada no Step 1 do funil.
+  motivos.push(...qualificarVeiculoAutoEquity(params).motivos)
 
   const ltvMaximo = params.valor_veiculo * cfg.ltv
   if (params.valor_solicitado > ltvMaximo) {

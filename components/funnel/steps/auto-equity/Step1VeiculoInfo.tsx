@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { useFunnelStore } from "@/stores/funnel-store"
 import { pushDataLayer } from "@/components/tracking/GTM"
 import { formatarMoeda } from "@/lib/simulacao"
-import { Car, Truck, ThumbsUp, Loader2, CheckCircle2, ArrowLeft, Search } from "lucide-react"
+import { AlertCircle, Car, Truck, ThumbsUp, Loader2, CheckCircle2, ArrowLeft, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { consultarPlaca, normalizarPlaca, placaValida } from "@/lib/placa"
 import {
@@ -18,7 +18,8 @@ import {
   tabelaFipeDaCategoria,
   type FipeItem,
 } from "@/lib/fipe"
-import { anoMinimoVeiculo, idadeMaximaVeiculo } from "@/lib/config"
+import { CONFIG, anoMinimoVeiculo, idadeMaximaVeiculo } from "@/lib/config"
+import { qualificarVeiculoAutoEquity } from "@/lib/qualificacao"
 import type { CategoriaVeiculo } from "@/types"
 
 const anoAtual = new Date().getFullYear()
@@ -54,14 +55,31 @@ interface VeiculoConfirmado {
 const inputSelectClass =
   "flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-base disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
 
-/** Aviso de idade: acima do limite da categoria a simulação não é aprovada. */
-function AvisoIdade({ categoria }: { categoria: CategoriaVeiculo }) {
+/** Veículo fora dos critérios de garantia: a jornada para aqui. */
+function VeiculoInelegivel({
+  categoria,
+  motivos,
+}: {
+  categoria: CategoriaVeiculo
+  motivos: string[]
+}) {
   return (
-    <p className="text-xs text-amber-700">
-      Aceitamos veículos {rotuloCategoria[categoria]} com até {idadeMaximaVeiculo(categoria)} anos
-      (fabricados a partir de {anoMinimoVeiculo(categoria, anoAtual)}). Acima disso a simulação não
-      segue para aprovação, mas você pode continuar e falar com um especialista.
-    </p>
+    <div className="flex gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+      <div className="space-y-1">
+        <p className="font-medium">Este veículo não é aceito como garantia.</p>
+        <ul className="list-disc pl-4 text-xs">
+          {motivos.map((m) => (
+            <li key={m}>{m}</li>
+          ))}
+        </ul>
+        <p className="text-xs">
+          Aceitamos veículos {rotuloCategoria[categoria]} com até {idadeMaximaVeiculo(categoria)}{" "}
+          anos (fabricados a partir de {anoMinimoVeiculo(categoria, anoAtual)}) e valor de tabela
+          FIPE a partir de {formatarMoeda(CONFIG.autoEquity.valorVeiculoMinimo)}.
+        </p>
+      </div>
+    </div>
   )
 }
 
@@ -157,8 +175,11 @@ function PlacaForm({
   }
 
   if (veiculo) {
-    const muitoAntigo =
-      veiculo.ano_veiculo > 0 && veiculo.ano_veiculo < anoMinimoVeiculo(categoria, anoAtual)
+    const elegibilidade = qualificarVeiculoAutoEquity({
+      valor_veiculo: veiculo.valor_veiculo,
+      ano_veiculo: veiculo.ano_veiculo,
+      categoria_veiculo: categoria,
+    })
     return (
       <div className="space-y-5">
         <CartaoVeiculo
@@ -168,13 +189,16 @@ function PlacaForm({
           potencia={veiculo.potencia}
           valorFipe={veiculo.valor_veiculo}
         />
-        {muitoAntigo && <AvisoIdade categoria={categoria} />}
-        <Button
-          onClick={() => onConfirm(veiculo)}
-          className="w-full h-12 text-base font-semibold bg-[var(--gold)] text-[var(--gold-foreground)] hover:bg-[var(--gold-dark)]"
-        >
-          Continuar
-        </Button>
+        {elegibilidade.qualificado ? (
+          <Button
+            onClick={() => onConfirm(veiculo)}
+            className="w-full h-12 text-base font-semibold bg-[var(--gold)] text-[var(--gold-foreground)] hover:bg-[var(--gold-dark)]"
+          >
+            Continuar
+          </Button>
+        ) : (
+          <VeiculoInelegivel categoria={categoria} motivos={elegibilidade.motivos} />
+        )}
         <button
           onClick={() => setVeiculo(null)}
           className="w-full text-sm text-muted-foreground hover:text-foreground"
@@ -312,8 +336,13 @@ function ManualForm({
     })
   }
 
-  const muitoAntigo =
-    veiculo && veiculo.ano_veiculo > 0 && veiculo.ano_veiculo < anoMinimoVeiculo(categoria, anoAtual)
+  const elegibilidade = veiculo
+    ? qualificarVeiculoAutoEquity({
+        valor_veiculo: veiculo.valor_veiculo,
+        ano_veiculo: veiculo.ano_veiculo,
+        categoria_veiculo: categoria,
+      })
+    : null
 
   return (
     <div className="space-y-5">
@@ -373,7 +402,7 @@ function ManualForm({
 
       {erro && <p className="text-destructive text-xs">{erro}</p>}
 
-      {veiculo && (
+      {veiculo && elegibilidade && (
         <>
           <CartaoVeiculo
             titulo={veiculo.marca_modelo_ano}
@@ -381,13 +410,16 @@ function ManualForm({
             combustivel={veiculo.combustivel}
             valorFipe={veiculo.valor_veiculo}
           />
-          {muitoAntigo && <AvisoIdade categoria={categoria} />}
-          <Button
-            onClick={() => onConfirm(veiculo)}
-            className="w-full h-12 text-base font-semibold bg-[var(--gold)] text-[var(--gold-foreground)] hover:bg-[var(--gold-dark)]"
-          >
-            Continuar
-          </Button>
+          {elegibilidade.qualificado ? (
+            <Button
+              onClick={() => onConfirm(veiculo)}
+              className="w-full h-12 text-base font-semibold bg-[var(--gold)] text-[var(--gold-foreground)] hover:bg-[var(--gold-dark)]"
+            >
+              Continuar
+            </Button>
+          ) : (
+            <VeiculoInelegivel categoria={categoria} motivos={elegibilidade.motivos} />
+          )}
         </>
       )}
     </div>

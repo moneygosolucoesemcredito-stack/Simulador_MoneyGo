@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { qualificarAutoEquity } from "@/lib/qualificacao"
+import { qualificarAutoEquity, qualificarVeiculoAutoEquity } from "@/lib/qualificacao"
 import { anoMinimoVeiculo, idadeMaximaVeiculo } from "@/lib/config"
 import type { CategoriaVeiculo } from "@/types"
 
@@ -93,6 +93,58 @@ describe("Auto Equity — categoria padrão e limites configurados", () => {
   it("calcula o ano mínimo de fabricação por categoria", () => {
     expect(anoMinimoVeiculo("leve", 2026)).toBe(2006)
     expect(anoMinimoVeiculo("pesado", 2026)).toBe(2011)
+  })
+
+  it("barra o veículo já no Step 1 (qualificarVeiculoAutoEquity)", () => {
+    const veiculo = { valor_veiculo: 80_000 }
+
+    expect(
+      qualificarVeiculoAutoEquity({
+        ...veiculo,
+        ano_veiculo: anoAtual - 19,
+        categoria_veiculo: "leve",
+      }).qualificado
+    ).toBe(true)
+    expect(
+      qualificarVeiculoAutoEquity({
+        ...veiculo,
+        ano_veiculo: anoAtual - 21,
+        categoria_veiculo: "leve",
+      }).qualificado
+    ).toBe(false)
+    expect(
+      qualificarVeiculoAutoEquity({
+        ...veiculo,
+        ano_veiculo: anoAtual - 14,
+        categoria_veiculo: "pesado",
+      }).qualificado
+    ).toBe(true)
+    expect(
+      qualificarVeiculoAutoEquity({
+        ...veiculo,
+        ano_veiculo: anoAtual - 16,
+        categoria_veiculo: "pesado",
+      }).qualificado
+    ).toBe(false)
+  })
+
+  it("barra veículo abaixo do valor FIPE mínimo", () => {
+    const { qualificado, motivos } = qualificarVeiculoAutoEquity({
+      valor_veiculo: 20_000,
+      ano_veiculo: anoAtual - 3,
+      categoria_veiculo: "leve",
+    })
+    expect(qualificado).toBe(false)
+    expect(motivos.some((m) => m.includes("30.000"))).toBe(true)
+  })
+
+  it("barra veículo sem ano de fabricação identificado", () => {
+    const { qualificado, motivos } = qualificarVeiculoAutoEquity({
+      valor_veiculo: 80_000,
+      ano_veiculo: 0,
+    })
+    expect(qualificado).toBe(false)
+    expect(motivos.some((m) => m.includes("Ano de fabricação"))).toBe(true)
   })
 
   it("mantém as demais travas independentes da categoria", () => {
