@@ -1,4 +1,4 @@
-import type { TipoImovel } from "@/types"
+import type { CategoriaVeiculo, TipoImovel } from "@/types"
 
 export const CONFIG = {
   homeEquity: {
@@ -91,7 +91,11 @@ export const CONFIG = {
     valorVeiculoMaximo: 500_000,
     // 80% da FIPE — percentual não deve aparecer na interface (só o valor máximo)
     ltv: 0.8,
-    idadeVeiculoMaxima: 20,
+    // Idade máxima de fabricação por categoria (2026-08): veículo leve (carro,
+    // SUV, picape, utilitário leve) até 20 anos; veículo pesado (caminhão,
+    // ônibus, cavalo mecânico) até 15 anos. Ver idadeMaximaVeiculo().
+    idadeVeiculoMaximaLeve: 20,
+    idadeVeiculoMaximaPesado: 15,
     // IOF embutido no principal, por tipo de pessoa (mesmas alíquotas do HE)
     iofPF: 0.0338,
     iofPJ: 0.0188,
@@ -138,6 +142,24 @@ export function prazoMaximoHomeEquity(idade: number): number {
 export function prazosDisponiveisHomeEquity(idade: number): number[] {
   const max = prazoMaximoHomeEquity(idade)
   return CONFIG.homeEquity.prazosDisponiveis.filter((p) => p <= max)
+}
+
+/**
+ * Idade máxima (anos de fabricação) aceita no Auto Equity para a categoria:
+ * 20 anos para veículo leve e 15 anos para veículo pesado. Sem categoria
+ * informada assume-se `leve` (categoria padrão do funil).
+ */
+export function idadeMaximaVeiculo(categoria: CategoriaVeiculo = "leve"): number {
+  const { idadeVeiculoMaximaLeve, idadeVeiculoMaximaPesado } = CONFIG.autoEquity
+  return categoria === "pesado" ? idadeVeiculoMaximaPesado : idadeVeiculoMaximaLeve
+}
+
+/** Ano de fabricação mais antigo aceito para a categoria (ex.: leve em 2026 → 2006). */
+export function anoMinimoVeiculo(
+  categoria: CategoriaVeiculo = "leve",
+  anoReferencia: number = new Date().getFullYear()
+): number {
+  return anoReferencia - idadeMaximaVeiculo(categoria)
 }
 
 /** Limite de crédito da construção: o menor entre 80% do custo da obra e 50% do VGV. */

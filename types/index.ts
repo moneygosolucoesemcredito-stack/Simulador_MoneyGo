@@ -5,6 +5,10 @@ export type Produto = "home_equity" | "auto_equity" | "financiamento_imobiliario
 export type TipoImovel = "casa" | "apartamento" | "comercial" | "terreno" | "terreno_condominio"
 export type SituacaoImovel = "quitado" | "financiado"
 export type SituacaoVeiculo = "quitado" | "financiado"
+// Categoria do veículo no Auto Equity — define a idade máxima aceita:
+// `leve` = carros, SUVs, picapes e utilitários leves (até 20 anos);
+// `pesado` = caminhões, ônibus, cavalos mecânicos e utilitários pesados (até 15 anos).
+export type CategoriaVeiculo = "leve" | "pesado"
 export type MelhorHorario = "manha" | "tarde"
 export type ModalidadeTaxa = "pos_fixada" | "pre_fixada"
 
@@ -47,6 +51,8 @@ export interface SimulacaoHomeEquity {
 export interface SimulacaoAutoEquity {
   marca_modelo_ano: string
   valor_veiculo: number
+  /** Leve (até 20 anos) ou pesado (até 15 anos) — ver CategoriaVeiculo. */
+  categoria_veiculo?: CategoriaVeiculo
   situacao: SituacaoVeiculo
   valor_solicitado: number
   prazo_meses: number
@@ -203,6 +209,7 @@ export interface AutoEquityFunnelState {
   step: number
   marca_modelo_ano: string
   valor_veiculo: number
+  categoria_veiculo: CategoriaVeiculo
   situacao: SituacaoVeiculo | ""
   valor_solicitado: number
   prazo_meses: number

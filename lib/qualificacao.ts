@@ -2,12 +2,13 @@ import cidades from "./ibge-cidades.json"
 import {
   CONFIG,
   HE_IDADE_MAIS_PRAZO_MAXIMO_ANOS,
+  idadeMaximaVeiculo,
   limiteCreditoConstrucao,
   ltvParaTipoImovel,
   ltvParaTipoImovelFI,
   prazoMaximoHomeEquity,
 } from "./config"
-import type { TipoImovel } from "@/types"
+import type { CategoriaVeiculo, TipoImovel } from "@/types"
 
 const cidadesSet = new Set(
   (cidades as { n: string; u: string }[]).map(
@@ -205,10 +206,14 @@ export function qualificarAutoEquity(params: {
   ano_veiculo: number
   valor_solicitado: number
   situacao?: "quitado" | "financiado" | string
+  /** Categoria do veículo — define a idade máxima (leve 20 anos / pesado 15 anos).
+   *  Ausente ou inválida cai no padrão do funil: `leve`. */
+  categoria_veiculo?: CategoriaVeiculo | string
 }): ResultadoQualificacao {
   const { autoEquity: cfg } = CONFIG
   const motivos: string[] = []
   const anoAtual = new Date().getFullYear()
+  const categoria: CategoriaVeiculo = params.categoria_veiculo === "pesado" ? "pesado" : "leve"
 
   if (params.situacao === "financiado") {
     motivos.push("Veículo financiado não aceito — apenas veículos quitados")
@@ -218,8 +223,13 @@ export function qualificarAutoEquity(params: {
     motivos.push(`Valor do veículo abaixo do mínimo de ${cfg.valorVeiculoMinimo.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`)
   }
 
-  if (params.ano_veiculo < anoAtual - cfg.idadeVeiculoMaxima) {
-    motivos.push(`Veículo com mais de ${cfg.idadeVeiculoMaxima} anos não aceito`)
+  // Idade máxima por categoria: leve 20 anos, pesado 15 anos. Acima do limite a
+  // simulação é descartada (lead segue para /nao-qualificado).
+  const idadeMaxima = idadeMaximaVeiculo(categoria)
+  if (params.ano_veiculo < anoAtual - idadeMaxima) {
+    motivos.push(
+      `Veículo ${categoria} com mais de ${idadeMaxima} anos não aceito`
+    )
   }
 
   const ltvMaximo = params.valor_veiculo * cfg.ltv

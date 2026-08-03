@@ -7,16 +7,38 @@ import { Button } from "@/components/ui/button"
 import { useFunnelStore } from "@/stores/funnel-store"
 import { pushDataLayer } from "@/components/tracking/GTM"
 import { formatarMoeda } from "@/lib/simulacao"
-import { AlertCircle, Car, ThumbsUp, Loader2, CheckCircle2, ArrowLeft, Search } from "lucide-react"
+import { Car, Truck, ThumbsUp, Loader2, CheckCircle2, ArrowLeft, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { consultarPlaca, normalizarPlaca, placaValida } from "@/lib/placa"
-import { listarMarcas, listarModelos, listarAnos, consultarPreco, type FipeItem } from "@/lib/fipe"
-import { CONFIG } from "@/lib/config"
+import {
+  listarMarcas,
+  listarModelos,
+  listarAnos,
+  consultarPreco,
+  tabelaFipeDaCategoria,
+  type FipeItem,
+} from "@/lib/fipe"
+import { anoMinimoVeiculo, idadeMaximaVeiculo } from "@/lib/config"
+import type { CategoriaVeiculo } from "@/types"
 
 const anoAtual = new Date().getFullYear()
-const ANO_MINIMO = anoAtual - CONFIG.autoEquity.idadeVeiculoMaxima
 
 type Mode = "choice" | "placa" | "manual"
+
+const CATEGORIAS: {
+  valor: CategoriaVeiculo
+  titulo: string
+  exemplos: string
+  icon: typeof Car
+}[] = [
+  { valor: "leve", titulo: "Leve", exemplos: "Carro, SUV, picape ou utilitário leve", icon: Car },
+  { valor: "pesado", titulo: "Pesado", exemplos: "Caminhão, cavalo mecânico ou ônibus", icon: Truck },
+]
+
+const rotuloCategoria: Record<CategoriaVeiculo, string> = {
+  leve: "leve",
+  pesado: "pesado",
+}
 
 /** Dados consolidados do veículo, vindos da placa OU do preenchimento manual. */
 interface VeiculoConfirmado {
@@ -32,15 +54,14 @@ interface VeiculoConfirmado {
 const inputSelectClass =
   "flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-base disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
 
-function AvisoPasseio() {
+/** Aviso de idade: acima do limite da categoria a simulação não é aprovada. */
+function AvisoIdade({ categoria }: { categoria: CategoriaVeiculo }) {
   return (
-    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 flex gap-2 text-amber-800 text-xs">
-      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-      <p>
-        Atendemos apenas <strong>carros de passeio</strong> nesta modalidade. Motos,
-        caminhonetes e utilitários não são aceitos.
-      </p>
-    </div>
+    <p className="text-xs text-amber-700">
+      Aceitamos veículos {rotuloCategoria[categoria]} com até {idadeMaximaVeiculo(categoria)} anos
+      (fabricados a partir de {anoMinimoVeiculo(categoria, anoAtual)}). Acima disso a simulação não
+      segue para aprovação, mas você pode continuar e falar com um especialista.
+    </p>
   )
 }
 
@@ -95,9 +116,11 @@ function CartaoVeiculo({
 
 /** Caminho "Sim, tenho a placa". */
 function PlacaForm({
+  categoria,
   onConfirm,
   irParaManual,
 }: {
+  categoria: CategoriaVeiculo
   onConfirm: (v: VeiculoConfirmado) => void
   irParaManual: () => void
 }) {
@@ -134,7 +157,8 @@ function PlacaForm({
   }
 
   if (veiculo) {
-    const muitoAntigo = veiculo.ano_veiculo > 0 && veiculo.ano_veiculo < ANO_MINIMO
+    const muitoAntigo =
+      veiculo.ano_veiculo > 0 && veiculo.ano_veiculo < anoMinimoVeiculo(categoria, anoAtual)
     return (
       <div className="space-y-5">
         <CartaoVeiculo
@@ -144,12 +168,7 @@ function PlacaForm({
           potencia={veiculo.potencia}
           valorFipe={veiculo.valor_veiculo}
         />
-        {muitoAntigo && (
-          <p className="text-xs text-amber-700">
-            Aceitamos veículos a partir de {ANO_MINIMO}. Você pode continuar, mas a aprovação
-            está sujeita à análise.
-          </p>
-        )}
+        {muitoAntigo && <AvisoIdade categoria={categoria} />}
         <Button
           onClick={() => onConfirm(veiculo)}
           className="w-full h-12 text-base font-semibold bg-[var(--gold)] text-[var(--gold-foreground)] hover:bg-[var(--gold-dark)]"
@@ -218,7 +237,15 @@ function PlacaForm({
 }
 
 /** Caminho "Continuar sem placa" — FIPE grátis em cascata (marca → modelo → ano). */
-function ManualForm({ onConfirm }: { onConfirm: (v: VeiculoConfirmado) => void }) {
+function ManualForm({
+  categoria,
+  onConfirm,
+}: {
+  categoria: CategoriaVeiculo
+  onConfirm: (v: VeiculoConfirmado) => void
+}) {
+  // Leves usam a tabela de carros; pesados, a de caminhões.
+  const tabela = tabelaFipeDaCategoria(categoria)
   const [marcas, setMarcas] = useState<FipeItem[]>([])
   const [modelos, setModelos] = useState<FipeItem[]>([])
   const [anos, setAnos] = useState<FipeItem[]>([])
@@ -230,12 +257,12 @@ function ManualForm({ onConfirm }: { onConfirm: (v: VeiculoConfirmado) => void }
   const [erro, setErro] = useState<string | null>(null)
 
   useEffect(() => {
-    listarMarcas().then((m) => {
+    listarMarcas(tabela).then((m) => {
       setMarcas(m)
       setCarregando(null)
       if (m.length === 0) setErro("Não foi possível carregar a tabela FIPE agora. Tente novamente.")
     })
-  }, [])
+  }, [tabela])
 
   async function selecionarMarca(codigo: string) {
     setMarca(codigo)
@@ -246,7 +273,7 @@ function ManualForm({ onConfirm }: { onConfirm: (v: VeiculoConfirmado) => void }
     setVeiculo(null)
     if (!codigo) return
     setCarregando("modelos")
-    setModelos(await listarModelos(codigo))
+    setModelos(await listarModelos(codigo, tabela))
     setCarregando(null)
   }
 
@@ -257,7 +284,7 @@ function ManualForm({ onConfirm }: { onConfirm: (v: VeiculoConfirmado) => void }
     setVeiculo(null)
     if (!codigo) return
     setCarregando("anos")
-    setAnos(await listarAnos(marca, codigo))
+    setAnos(await listarAnos(marca, codigo, tabela))
     setCarregando(null)
   }
 
@@ -266,7 +293,7 @@ function ManualForm({ onConfirm }: { onConfirm: (v: VeiculoConfirmado) => void }
     setVeiculo(null)
     if (!codigo) return
     setCarregando("preco")
-    const preco = await consultarPreco(marca, modelo, codigo)
+    const preco = await consultarPreco(marca, modelo, codigo, tabela)
     setCarregando(null)
     if (!preco) {
       setErro("Não foi possível obter o valor FIPE. Tente outro ano.")
@@ -285,7 +312,8 @@ function ManualForm({ onConfirm }: { onConfirm: (v: VeiculoConfirmado) => void }
     })
   }
 
-  const muitoAntigo = veiculo && veiculo.ano_veiculo > 0 && veiculo.ano_veiculo < ANO_MINIMO
+  const muitoAntigo =
+    veiculo && veiculo.ano_veiculo > 0 && veiculo.ano_veiculo < anoMinimoVeiculo(categoria, anoAtual)
 
   return (
     <div className="space-y-5">
@@ -353,12 +381,7 @@ function ManualForm({ onConfirm }: { onConfirm: (v: VeiculoConfirmado) => void }
             combustivel={veiculo.combustivel}
             valorFipe={veiculo.valor_veiculo}
           />
-          {muitoAntigo && (
-            <p className="text-xs text-amber-700">
-              Aceitamos veículos a partir de {ANO_MINIMO}. Você pode continuar, mas a aprovação
-              está sujeita à análise.
-            </p>
-          )}
+          {muitoAntigo && <AvisoIdade categoria={categoria} />}
           <Button
             onClick={() => onConfirm(veiculo)}
             className="w-full h-12 text-base font-semibold bg-[var(--gold)] text-[var(--gold-foreground)] hover:bg-[var(--gold-dark)]"
@@ -372,11 +395,20 @@ function ManualForm({ onConfirm }: { onConfirm: (v: VeiculoConfirmado) => void }
 }
 
 export function Step1VeiculoInfo({ onNext }: { onNext: () => void }) {
-  const { setAutoEquity } = useFunnelStore()
+  const { autoEquity, setAutoEquity } = useFunnelStore()
   const [mode, setMode] = useState<Mode>("choice")
+  const [categoria, setCategoria] = useState<CategoriaVeiculo>(
+    autoEquity.categoria_veiculo ?? "leve"
+  )
+
+  function escolherCategoria(nova: CategoriaVeiculo) {
+    setCategoria(nova)
+    setAutoEquity({ categoria_veiculo: nova })
+  }
 
   function confirmar(v: VeiculoConfirmado) {
     setAutoEquity({
+      categoria_veiculo: categoria,
       marca_modelo_ano: v.marca_modelo_ano,
       ano_veiculo: v.ano_veiculo,
       valor_veiculo: v.valor_veiculo,
@@ -388,6 +420,7 @@ export function Step1VeiculoInfo({ onNext }: { onNext: () => void }) {
     pushDataLayer("step_completed", {
       funil: "auto_equity",
       step: 1,
+      categoria_veiculo: categoria,
       origem_veiculo: v.placa ? "placa" : "manual",
     })
     onNext()
@@ -395,14 +428,39 @@ export function Step1VeiculoInfo({ onNext }: { onNext: () => void }) {
 
   return (
     <div className="space-y-6">
-      <AvisoPasseio />
-
       {mode === "choice" ? (
         <div className="space-y-5">
           <div className="space-y-2">
             <h2 className="text-2xl font-bold tracking-tight">Informe os dados do veículo</h2>
-            <p className="text-muted-foreground text-sm">Você possui a placa do veículo?</p>
+            <p className="text-muted-foreground text-sm">Qual é o tipo do veículo?</p>
           </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {CATEGORIAS.map(({ valor, titulo, exemplos, icon: Icone }) => (
+              <button
+                key={valor}
+                type="button"
+                onClick={() => escolherCategoria(valor)}
+                className={cn(
+                  "rounded-xl border-2 p-4 text-left transition-all",
+                  categoria === valor
+                    ? "border-[var(--gold)] bg-[var(--gold)]/10"
+                    : "border-border hover:border-[var(--gold)]/60 hover:bg-[var(--gold)]/5"
+                )}
+              >
+                <span className="flex items-center gap-2 text-sm font-medium">
+                  <Icone className="w-4 h-4 shrink-0" />
+                  {titulo}
+                </span>
+                <span className="mt-1 block text-xs text-muted-foreground">{exemplos}</span>
+                <span className="mt-1 block text-xs text-muted-foreground">
+                  Até {idadeMaximaVeiculo(valor)} anos de fabricação
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <p className="text-muted-foreground text-sm">Você possui a placa do veículo?</p>
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
@@ -439,12 +497,21 @@ export function Step1VeiculoInfo({ onNext }: { onNext: () => void }) {
                 ? "Vamos identificar o modelo, ano e valor FIPE automaticamente."
                 : "Escolha marca, modelo e ano — o valor FIPE é preenchido automaticamente."}
             </p>
+            <p className="text-xs text-muted-foreground">
+              Veículo {rotuloCategoria[categoria]} · até {idadeMaximaVeiculo(categoria)} anos de
+              fabricação
+            </p>
           </div>
 
           {mode === "placa" ? (
-            <PlacaForm onConfirm={confirmar} irParaManual={() => setMode("manual")} />
+            <PlacaForm
+              categoria={categoria}
+              onConfirm={confirmar}
+              irParaManual={() => setMode("manual")}
+            />
           ) : (
-            <ManualForm onConfirm={confirmar} />
+            // key: trocar a categoria remonta a cascata FIPE (tabela diferente)
+            <ManualForm key={categoria} categoria={categoria} onConfirm={confirmar} />
           )}
         </div>
       )}

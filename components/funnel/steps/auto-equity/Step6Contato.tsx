@@ -37,6 +37,7 @@ export function Step6Contato() {
         ano_veiculo: autoEquity.ano_veiculo,
         valor_solicitado: autoEquity.valor_solicitado,
         situacao: autoEquity.situacao,
+        categoria_veiculo: autoEquity.categoria_veiculo,
       })
 
       const payload: LeadPayload = {
@@ -45,6 +46,7 @@ export function Step6Contato() {
         simulacao: {
           marca_modelo_ano: autoEquity.marca_modelo_ano,
           valor_veiculo: autoEquity.valor_veiculo,
+          categoria_veiculo: autoEquity.categoria_veiculo,
           situacao: autoEquity.situacao as "quitado" | "financiado",
           valor_solicitado: autoEquity.valor_solicitado,
           prazo_meses: autoEquity.prazo_meses,
