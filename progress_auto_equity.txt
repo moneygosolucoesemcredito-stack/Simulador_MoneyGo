@@ -107,17 +107,33 @@ o Step6Contato envia o lead com qualificado=false (tag nao_qualificado no
 Kommo) e redireciona para /nao-qualificado — ou seja, a simulação não segue
 para aprovação, mas o contato continua sendo capturado.
 
+Bloqueio no funil (decisão de 03/08):
+  - Step 1 só habilita "Continuar" para veículo elegível; fora dos critérios
+    exibe o motivo e a jornada termina ali.
+  - Step 6 não envia lead não qualificado ao Kommo (trava para sessão antiga).
+  - qualificarVeiculoAutoEquity() é a fonte única da regra do bem, reusada
+    por qualificarAutoEquity().
+
 ====================================================================
-6. PONTOS EM ABERTO PARA A PRÓXIMA SESSÃO
+6. PUBLICAÇÃO
+====================================================================
+PR #3 -> merge em main (commit de merge c5e298e).
+Hospedagem: NETLIFY (o README ainda cita Vercel — corrigir).
+Sites que buildam do repositório:
+  - simuladormoneygo    (https://simuladormoneygo.netlify.app)
+  - simulador-capitamax
+Deploy previews do PR: build OK nos dois sites antes do merge.
+
+====================================================================
+7. PONTOS EM ABERTO PARA A PRÓXIMA SESSÃO
 ====================================================================
 - A categoria é informada pelo cliente. A consulta por placa (/api/placa)
   não devolve segmento/tipo do veículo hoje; se o provedor expuser esse campo,
   dá para inferir a categoria e validar a escolha do cliente.
 - Não foi criado campo de categoria no Kommo (CF_*). Se o CRM precisar do dado,
   criar o custom field lá e mapear em lib/kommo.ts (buildCustomFields).
-- A UI continua permitindo seguir com veículo fora do limite (captura de lead);
-  o descarte acontece na qualificação final. Se o produto quiser bloquear já no
-  Step 1, é uma mudança pequena em Step1VeiculoInfo (desabilitar "Continuar").
+- README diz "Deploy Vercel", mas a hospedagem real é Netlify (dois sites).
+  Atualizar a seção de deploy do README numa próxima passada.
 - prompt-ideal-claude-code-moneygo.md ainda descreve a regra antiga de
   "apenas carros de passeio" — atualizar se o documento for tratado como
   especificação viva.
