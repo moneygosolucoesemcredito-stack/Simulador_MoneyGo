@@ -9,6 +9,9 @@ export type SituacaoVeiculo = "quitado" | "financiado"
 // `leve` = carros, SUVs, picapes e utilitários leves (até 20 anos);
 // `pesado` = caminhões, ônibus, cavalos mecânicos e utilitários pesados (até 15 anos).
 export type CategoriaVeiculo = "leve" | "pesado"
+// Tomador da operação — define alíquota de IOF e, no Financiamento
+// Imobiliário, também o LTV máximo por tipologia (ver LTV_POR_TIPO_IMOVEL_FI).
+export type TipoPessoa = "PF" | "PJ"
 export type MelhorHorario = "manha" | "tarde"
 export type ModalidadeTaxa = "pos_fixada" | "pre_fixada"
 

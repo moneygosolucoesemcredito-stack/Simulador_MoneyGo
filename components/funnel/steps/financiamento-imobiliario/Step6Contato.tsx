@@ -34,6 +34,8 @@ export function Step6Contato() {
         cidade: financiamentoImobiliario.cidade,
         uf: financiamentoImobiliario.uf,
         data_nascimento: formData.data_nascimento,
+        // O LTV máximo depende do tomador (PJ é mais restritivo).
+        tipo_pessoa: (financiamentoImobiliario.tipo_pessoa || "PF") as "PF" | "PJ",
       })
 
       const payload: LeadPayload = {

@@ -47,8 +47,9 @@ describe("Financiamento Imobiliário — Step5 resultado (SAC × PRICE + PDF)", 
     setFI(cenario)
     render(<Step5Resultado onNext={() => {}} />)
 
-    expect(screen.getByText("SAC")).toBeTruthy()
-    expect(screen.getByText("PRICE")).toBeTruthy()
+    // "SAC"/"PRICE" aparecem no comparativo e nas abas da tabela de amortização.
+    expect(screen.getAllByText("SAC").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("PRICE").length).toBeGreaterThan(0)
 
     const r = calcularSimulacao(
       cenario.valor_solicitado,
@@ -57,8 +58,8 @@ describe("Financiamento Imobiliário — Step5 resultado (SAC × PRICE + PDF)", 
     )
     // A parcela fixa do PRICE aparece na tela (primeira = última).
     expect(screen.getAllByText(brl(r.parcela_price)).length).toBeGreaterThan(0)
-    // A primeira parcela do SAC também.
-    expect(screen.getByText(brl(r.primeira_parcela_sac))).toBeTruthy()
+    // A primeira parcela do SAC também (comparativo + linha 1 da tabela).
+    expect(screen.getAllByText(brl(r.primeira_parcela_sac)).length).toBeGreaterThan(0)
     // Taxa e prazo (o prazo aparece no card-resumo e na tabela).
     expect(screen.getByText("0,83% a.m. + IPCA")).toBeTruthy()
     expect(screen.getAllByText("420 meses").length).toBeGreaterThan(0)

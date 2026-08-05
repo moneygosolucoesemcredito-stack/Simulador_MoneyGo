@@ -1,0 +1,189 @@
+LOG DE PROGRESSO — MÓDULO FINANCIAMENTO IMOBILIÁRIO
+Branch: claude/home-equity-property-value-limit-77nb38
+Data: 2026-08-05
+Status: FASE CONCLUÍDA (elegibilidade/LTV + renda necessária + tabelas de
+        amortização completas na UI e no PDF)
+
+====================================================================
+1. OBJETIVO DESTA FASE
+====================================================================
+FASE 1 — Elegibilidade e LTV
+  - Remover a trava de R$ 5.000.000 no valor do imóvel (entrada livre).
+  - LTV PJ: casa/apartamento/comercial 70%; terreno 60%.
+  - LTV PF: terreno passa de 50% para 60% (demais tipologias inalteradas).
+FASE 2 — UI e renda
+  - Na tela de simulação pronta, "TOTAL PAGO" vira "RENDA NECESSÁRIA".
+  - O valor exibido reflete a política de comprometimento de renda (30%).
+FASE 3 — Engenharia financeira
+  - Tabelas SAC e PRICE completas (todas as parcelas), renderizadas na UI.
+  - PDF com o detalhamento completo dos dois sistemas.
+
+====================================================================
+2. EXPLORAÇÃO — ONDE AS REGRAS VIVIAM
+====================================================================
+lib/config.ts ........................ CONFIG.financiamentoImobiliario e
+                                       LTV_POR_TIPO_IMOVEL_FI (tabela plana,
+                                       sem distinção PF/PJ)
+lib/qualificacao.ts .................. qualificarFinanciamentoImobiliario()
+lib/simulacao.ts ..................... calcularSimulacao (só agregados:
+                                       primeira/última parcela e total)
+lib/pdf-financiamento-imobiliario.ts . resumo + comparativo SAC × PRICE
+Step1ValorImovel.tsx (FI) ............ `const MAX = 5_000_000` hardcoded no
+                                       componente (não vinha do CONFIG)
+Step4ValorDesejado.tsx (FI) .......... slider preso a ltvParaTipoImovelFI(tipo)
+Step5Resultado.tsx (FI) .............. linha "Total pago" no comparativo
+Step6Contato.tsx (FI) ................ chama a qualificação sem tipo_pessoa
+
+Confirmado por grep: o teto de 5M era só de front-end; nem a qualificação, nem
+/api/lead, nem /api/proposta, nem o Supabase validavam valor de imóvel.
+
+====================================================================
+3. TESTES (escritos ANTES da implementação)
+====================================================================
+__tests__/real_estate_financing.test.ts   (30 testes — suíte principal)
+  Nome pedido no briefing: 'tests/real_estate_financing.test.js'. Mantido o
+  stem `real_estate_financing`, mas em __tests__/ e TypeScript, que é a
+  convenção do repositório (vitest + alias "@/" + tipos compartilhados).
+  - teto de 5M: CONFIG sem valorImovelMaximo; imóveis de 10mi e 35mi
+    qualificam; piso de 200.000 preservado
+  - LTV PF: casa/apto 80% (405.000 reprova), comercial 70%, terreno 60%
+    (275.000 = 55% passava a reprovar na regra antiga e agora aprova)
+  - LTV PJ: casa/apto/comercial 70%, terreno 60%
+  - PJ mais restritivo que PF no mesmo cenário (75% aprova PF, reprova PJ)
+  - motivo da reprova cita o percentual E o tomador ("70% ... (PJ)")
+  - sem tipo_pessoa a qualificação assume PF
+  - renda necessária: parcela / 0,30; SAC parte da PRIMEIRA parcela (a maior)
+  - tabelas SAC/PRICE: numeração 1..n, amortização constante (SAC), parcela
+    fixa (PRICE), juros decrescentes, Σ amortizações = principal, saldo final
+    exatamente 0, casamento com calcularSimulacao e com valor_total_price
+  - bordas: entradas inválidas devolvem [] (sem laço), prazo > 600 recusado
+  - desempenho: 20 gerações de 420 parcelas (SAC+PRICE) < 1s
+
+__tests__/fi-ui-ltv-amortizacao.test.tsx  (12 testes — UI)
+  - Step 1: aceita R$ 12.000.000, régua acompanha, piso de 200.000 bloqueia
+  - Step 4: casa PF 80% × PJ 70%; terreno 60% nos dois; trocar PF→PJ rebaixa
+    o valor já escolhido (800.000 → 700.000); sem tomador não avança
+  - Step 5: "Renda necessária" presente e "Total pago" ausente; valores batem
+    com parcela/0,30; tabela renderiza 420 linhas + cabeçalho; alternância
+    SAC/PRICE mantém as 420; só um <table> montado por vez
+
+__tests__/fi-pdf-amortizacao.test.ts      (4 testes — PDF, jsPDF mockado)
+  - desenha 4 tabelas (resumo, comparativo, SAC, PRICE) e 2 páginas novas
+  - as tabelas completas têm 420 linhas cada, numeradas de 1 a 420
+  - comparativo traz "Renda necessária" e não "Total pago", com os valores
+    de SAC e PRICE conferidos
+  - gera as tabelas sozinho quando a tela não as repassa (fallback)
+
+Testes existentes atualizados pela mudança de regra:
+  __tests__/ltv-trava.test.ts ... matriz PF/PJ; terreno 50% → 60%
+  __tests__/config.test.ts ...... LTV_POR_TIPO_IMOVEL_FI agora é PF/PJ
+  __tests__/qualificacao.test.ts  terreno do FI 50% → 60%
+  __tests__/fi-resultado.test.tsx "SAC"/"PRICE" agora aparecem também nas
+                                  abas da tabela → getAllByText
+
+====================================================================
+4. IMPLEMENTAÇÃO
+====================================================================
+types/index.ts
+  + TipoPessoa = "PF" | "PJ" (tipo canônico, antes só inline)
+
+lib/config.ts
+  - CONFIG.financiamentoImobiliario: nenhum teto de valor de imóvel
+  + valorImovelSliderReferencia: 5_000_000  (escala do slider, NÃO é teto)
+  + comprometimentoRenda: 0.3
+  ~ LTV_POR_TIPO_IMOVEL_FI vira Record<TipoPessoa, Record<TipoImovel, number>>
+      PF → casa/apto 0.80 · comercial 0.70 · terreno 0.60
+      PJ → casa/apto 0.70 · comercial 0.70 · terreno 0.60
+  ~ ltvParaTipoImovelFI(tipoImovel, tipoPessoa = "PF")
+
+lib/qualificacao.ts
+  + qualificarFinanciamentoImobiliario aceita tipo_pessoa (default PF)
+  ~ motivo da reprova identifica o tomador: "...superior a 70% ... (PJ)"
+
+lib/simulacao.ts
+  + rendaNecessaria(parcela, comprometimento = 0.3)
+  + ParcelaAmortizacao { numero, juros, amortizacao, parcela, saldoDevedor }
+  + gerarTabelaSAC / gerarTabelaPrice / gerarTabelasAmortizacao
+  + totalPagoTabela
+  A última parcela de cada tabela liquida o resíduo de arredondamento —
+  o saldo devedor final é exatamente 0.
+
+components/funnel/TabelaAmortizacao.tsx  (NOVO)
+  + abas SAC | PRICE; renderiza TODAS as parcelas do sistema selecionado
+  + cabeçalho fixo (sticky) e rolagem confinada ao contêiner
+
+Step1ValorImovel.tsx (FI)
+  - const MAX = 5_000_000                                (REMOVIDO)
+  + CurrencyInput sem `max` + régua que se estende até o valor digitado
+  + copy: "Mínimo R$ 200.000,00 — não há valor máximo."
+
+Step4ValorDesejado.tsx (FI)
+  + o seletor PF/PJ subiu para ANTES do valor (é ele que define o teto)
+  + cada opção mostra o LTV correspondente ("Até 80% do valor do imóvel")
+  + valorEfetivo = min(valor, teto vigente) — trocar PF→PJ rebaixa o valor
+    sem mutar estado durante o render
+  + aviso quando o teto da tipologia fica abaixo do crédito mínimo
+
+Step5Resultado.tsx (FI)
+  ~ linha "Total pago" → "Renda necessária" (ícone Wallet)
+      SAC   → primeira parcela / 0,30 (a maior do sistema)
+      PRICE → parcela fixa / 0,30
+  + nota explicando o comprometimento de 30%
+  + <TabelaAmortizacao> com as tabelas completas
+  + tabelas repassadas ao gerador de PDF
+
+Step6Contato.tsx (FI)
+  + tipo_pessoa enviado à qualificação (o LTV depende do tomador)
+
+lib/pdf-financiamento-imobiliario.ts
+  ~ comparativo: "Total pago" → "Renda necessária" (SAC e PRICE)
+  + nota do comprometimento de 30% abaixo do comparativo
+  + desenharTabelaCompleta(): uma página por sistema com todas as parcelas
+    (Nº, juros, amortização, parcela, saldo devedor); o autoTable pagina e
+    repete o cabeçalho
+  + aceita `tabelas` prontas da tela; se não vierem, gera internamente
+
+====================================================================
+5. DESEMPENHO DAS TABELAS
+====================================================================
+- Geração O(n) sem alocação intermediária (array pré-dimensionado); 420
+  parcelas × 2 sistemas custam ~1ms. Teste cobre 20 gerações < 1s.
+- useMemo no Step 5: as tabelas só são recalculadas quando crédito, prazo ou
+  taxa mudam.
+- A formatação monetária das linhas usa UMA instância de Intl.NumberFormat no
+  componente (formatarMoeda instancia uma por chamada — seriam ~1.700 por
+  render) e roda dentro de useMemo por conjunto de parcelas.
+- Só o sistema selecionado é montado no DOM (uma tabela por vez, ~420 linhas),
+  com rolagem confinada a um contêiner de altura fixa.
+
+====================================================================
+6. VERIFICAÇÃO
+====================================================================
+npm test         -> 17 arquivos, 218 testes, todos passando
+                    (46 novos nesta fase)
+npx tsc --noEmit -> sem erros
+npm run lint     -> sem novos problemas (5 pré-existentes, todos em arquivos
+                    não tocados)
+npm run build    -> build de produção concluído
+
+Efeitos colaterais checados:
+  - Home Equity intocado: LTV 55%/45%/35% e suíte do HE seguem verdes.
+  - Auto Equity, Construção e Financiamento de Veículo: nenhuma alteração.
+  - O PDF do Home Equity continua no formato antigo (só agregados) — a
+    mudança de tabelas completas foi aplicada apenas ao FI, conforme o escopo.
+
+====================================================================
+7. PONTOS EM ABERTO PARA A PRÓXIMA SESSÃO
+====================================================================
+- O funil não pergunta a renda do cliente; "Renda necessária" é informativa e
+  não bloqueia o avanço. Se o produto quiser reprovar por renda insuficiente,
+  falta capturar a renda no formulário e ligar à qualificação.
+- A tabela de amortização do FI não inclui seguros (MIP/DFI) nem tarifa de
+  administração — o CONFIG traz mip/dfi/estruturacaoFixa, mas calcularSimulacao
+  do FI trabalha só com juros. Incluir encargos mudaria parcela e renda.
+- O Home Equity poderia reusar TabelaAmortizacao (o cálculo do HE tem seguros
+  embutidos, então precisaria de um gerador próprio).
+- Sem teto de valor de imóvel, o crédito máximo do FI cresce junto (até 80%).
+  Não existe limite de exposição por operação no código.
+- prompt-ideal-claude-code-moneygo.md e docs/ ainda descrevem terreno a 50%
+  e o teto de 5M — atualizar se forem tratados como especificação viva.

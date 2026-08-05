@@ -148,8 +148,10 @@ describe("qualificarFinanciamentoImobiliario", () => {
     expect(motivos).toHaveLength(0)
   })
 
-  // O FI usa os LTVs cheios por tipologia (casa/apto 80%, comercial 70%,
-  // terreno 50%) — não está sujeito ao teto de 55% do Home Equity.
+  // O FI usa os LTVs cheios por tipologia e por tomador (PF: casa/apto 80%,
+  // comercial 70%, terreno 60%) — não está sujeito ao teto de 55% do HE.
+  // Sem `tipo_pessoa` a qualificação assume PF. A matriz PF × PJ completa fica
+  // em __tests__/real_estate_financing.test.ts.
   it("aceita casa/apartamento com LTV de 80%", () => {
     const { qualificado } = qualificarFinanciamentoImobiliario({
       ...base,
@@ -186,23 +188,23 @@ describe("qualificarFinanciamentoImobiliario", () => {
     expect(motivos.some((m) => m.includes("70%"))).toBe(true)
   })
 
-  it("aceita terreno (sem exigir condomínio) com LTV de 50%", () => {
+  it("aceita terreno (sem exigir condomínio) com LTV de 60%", () => {
     const { qualificado } = qualificarFinanciamentoImobiliario({
       ...base,
       tipo_imovel: "terreno",
-      valor_solicitado: 250_000, // exatamente 50%
+      valor_solicitado: 300_000, // exatamente 60%
     })
     expect(qualificado).toBe(true)
   })
 
-  it("rejeita terreno acima de 50%", () => {
+  it("rejeita terreno acima de 60%", () => {
     const { qualificado, motivos } = qualificarFinanciamentoImobiliario({
       ...base,
       tipo_imovel: "terreno",
-      valor_solicitado: 300_000, // 60% > 50%
+      valor_solicitado: 325_000, // 65% > 60%
     })
     expect(qualificado).toBe(false)
-    expect(motivos.some((m) => m.includes("50%"))).toBe(true)
+    expect(motivos.some((m) => m.includes("60%"))).toBe(true)
   })
 
   it("rejeita cidade não qualificada", () => {

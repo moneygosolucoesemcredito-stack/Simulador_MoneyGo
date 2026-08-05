@@ -8,7 +8,7 @@ import {
   ltvParaTipoImovelFI,
   prazoMaximoHomeEquity,
 } from "./config"
-import type { CategoriaVeiculo, TipoImovel } from "@/types"
+import type { CategoriaVeiculo, TipoImovel, TipoPessoa } from "@/types"
 
 const cidadesSet = new Set(
   (cidades as { n: string; u: string }[]).map(
@@ -117,10 +117,13 @@ export function qualificarFinanciamentoImobiliario(params: {
   cidade: string
   uf: string
   data_nascimento: string
+  /** Tomador — muda o LTV máximo (PJ é mais restritivo). Ausente assume PF. */
+  tipo_pessoa?: TipoPessoa | ""
 }): ResultadoQualificacao {
   const { financiamentoImobiliario: cfg } = CONFIG
   const motivos: string[] = []
 
+  // Só há piso de valor do imóvel: o teto de R$ 5.000.000 foi removido (2026-08).
   if (params.valor_imovel < cfg.valorImovelMinimo) {
     motivos.push(`Valor do imóvel abaixo do mínimo de ${cfg.valorImovelMinimo.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`)
   }
@@ -133,10 +136,15 @@ export function qualificarFinanciamentoImobiliario(params: {
     motivos.push("Imóvel rural não aceito nesta modalidade")
   }
 
-  const ltv = ltvParaTipoImovelFI(params.tipo_imovel)
+  // LTV por tipologia E por tomador: PF casa/apto 80%, comercial 70%, terreno 60%;
+  // PJ casa/apto/comercial 70%, terreno 60%.
+  const tipoPessoa = params.tipo_pessoa || "PF"
+  const ltv = ltvParaTipoImovelFI(params.tipo_imovel, tipoPessoa)
   const ltvMaximo = params.valor_imovel * ltv
   if (params.valor_solicitado > ltvMaximo) {
-    motivos.push(`Valor solicitado superior a ${Math.round(ltv * 100)}% do valor do imóvel`)
+    motivos.push(
+      `Valor solicitado superior a ${Math.round(ltv * 100)}% do valor do imóvel (${tipoPessoa})`
+    )
   }
 
   const idade = calcularIdade(params.data_nascimento)

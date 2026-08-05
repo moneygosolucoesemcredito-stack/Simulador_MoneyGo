@@ -61,6 +61,129 @@ export function calcularSimulacao(
   }
 }
 
+/**
+ * Renda necessária para suportar a parcela dentro da política de
+ * comprometimento de renda (default 30%): renda = parcela / comprometimento.
+ */
+export function rendaNecessaria(parcela: number, comprometimento = 0.3): number {
+  if (parcela <= 0 || comprometimento <= 0) return 0
+  return parcela / comprometimento
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Tabelas de amortização completas (SAC e PRICE), parcela a parcela.
+// Usadas na tela de resultado e no PDF do Financiamento Imobiliário.
+// ──────────────────────────────────────────────────────────────────────────
+
+export interface ParcelaAmortizacao {
+  /** Número da parcela, de 1 a prazoMeses. */
+  numero: number
+  /** Juros do período (saldo devedor anterior × taxa). */
+  juros: number
+  /** Parcela do principal amortizada no período. */
+  amortizacao: number
+  /** Valor da parcela (juros + amortização). */
+  parcela: number
+  /** Saldo devedor DEPOIS do pagamento (zero na última parcela). */
+  saldoDevedor: number
+}
+
+export interface TabelasAmortizacao {
+  sac: ParcelaAmortizacao[]
+  price: ParcelaAmortizacao[]
+}
+
+/** Entradas válidas para gerar uma tabela (evita laços com valores absurdos). */
+function entradaValida(pv: number, taxaMensal: number, prazoMeses: number): boolean {
+  return (
+    pv > 0 &&
+    taxaMensal > 0 &&
+    Number.isFinite(prazoMeses) &&
+    prazoMeses > 0 &&
+    prazoMeses <= 600
+  )
+}
+
+/**
+ * Tabela SAC completa: amortização constante (PV / n) e juros decrescentes.
+ * A última parcela liquida qualquer resíduo de arredondamento do saldo.
+ */
+export function gerarTabelaSAC(
+  pv: number,
+  taxaMensal: number,
+  prazoMeses: number
+): ParcelaAmortizacao[] {
+  if (!entradaValida(pv, taxaMensal, prazoMeses)) return []
+
+  const amortizacaoConstante = pv / prazoMeses
+  const parcelas: ParcelaAmortizacao[] = new Array(prazoMeses)
+  let saldo = pv
+
+  for (let numero = 1; numero <= prazoMeses; numero++) {
+    const juros = saldo * taxaMensal
+    const amortizacao = numero === prazoMeses ? saldo : amortizacaoConstante
+    saldo = numero === prazoMeses ? 0 : saldo - amortizacao
+    parcelas[numero - 1] = {
+      numero,
+      juros,
+      amortizacao,
+      parcela: amortizacao + juros,
+      saldoDevedor: saldo,
+    }
+  }
+
+  return parcelas
+}
+
+/**
+ * Tabela PRICE completa: parcela fixa (PMT), amortização crescente. A última
+ * parcela absorve o resíduo de arredondamento para zerar o saldo devedor.
+ */
+export function gerarTabelaPrice(
+  pv: number,
+  taxaMensal: number,
+  prazoMeses: number
+): ParcelaAmortizacao[] {
+  if (!entradaValida(pv, taxaMensal, prazoMeses)) return []
+
+  const pmt = calcularPrice(pv, taxaMensal, prazoMeses)
+  const parcelas: ParcelaAmortizacao[] = new Array(prazoMeses)
+  let saldo = pv
+
+  for (let numero = 1; numero <= prazoMeses; numero++) {
+    const juros = saldo * taxaMensal
+    const ultima = numero === prazoMeses
+    const amortizacao = ultima ? saldo : pmt - juros
+    saldo = ultima ? 0 : saldo - amortizacao
+    parcelas[numero - 1] = {
+      numero,
+      juros,
+      amortizacao,
+      parcela: amortizacao + juros,
+      saldoDevedor: saldo,
+    }
+  }
+
+  return parcelas
+}
+
+/** Gera as duas tabelas de uma vez (mesmo principal, taxa e prazo). */
+export function gerarTabelasAmortizacao(
+  pv: number,
+  taxaMensal: number,
+  prazoMeses: number
+): TabelasAmortizacao {
+  return {
+    sac: gerarTabelaSAC(pv, taxaMensal, prazoMeses),
+    price: gerarTabelaPrice(pv, taxaMensal, prazoMeses),
+  }
+}
+
+/** Soma das parcelas de uma tabela — total efetivamente pago. */
+export function totalPagoTabela(parcelas: ParcelaAmortizacao[]): number {
+  return parcelas.reduce((soma, p) => soma + p.parcela, 0)
+}
+
 export function formatarMoeda(valor: number): string {
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
 }

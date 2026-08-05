@@ -33,12 +33,24 @@ describe("teto regulatório de LTV (55%)", () => {
     expect(ltvParaTipoImovelFI("comercial")).toBeGreaterThan(LTV_MAXIMO_REGULATORIO)
   })
 
-  it("LTV do FI por tipologia: casa/apto 80%, comercial 70%, terreno 50%", () => {
+  it("LTV do FI para PF: casa/apto 80%, comercial 70%, terreno 60%", () => {
+    expect(ltvParaTipoImovelFI("casa", "PF")).toBeCloseTo(0.8, 4)
+    expect(ltvParaTipoImovelFI("apartamento", "PF")).toBeCloseTo(0.8, 4)
+    expect(ltvParaTipoImovelFI("comercial", "PF")).toBeCloseTo(0.7, 4)
+    expect(ltvParaTipoImovelFI("terreno", "PF")).toBeCloseTo(0.6, 4)
+    expect(ltvParaTipoImovelFI("terreno_condominio", "PF")).toBeCloseTo(0.6, 4)
+  })
+
+  it("LTV do FI para PJ: casa/apto/comercial 70%, terreno 60%", () => {
+    expect(ltvParaTipoImovelFI("casa", "PJ")).toBeCloseTo(0.7, 4)
+    expect(ltvParaTipoImovelFI("apartamento", "PJ")).toBeCloseTo(0.7, 4)
+    expect(ltvParaTipoImovelFI("comercial", "PJ")).toBeCloseTo(0.7, 4)
+    expect(ltvParaTipoImovelFI("terreno", "PJ")).toBeCloseTo(0.6, 4)
+  })
+
+  it("sem tomador informado assume PF (perfil padrão do funil)", () => {
     expect(ltvParaTipoImovelFI("casa")).toBeCloseTo(0.8, 4)
-    expect(ltvParaTipoImovelFI("apartamento")).toBeCloseTo(0.8, 4)
-    expect(ltvParaTipoImovelFI("comercial")).toBeCloseTo(0.7, 4)
-    expect(ltvParaTipoImovelFI("terreno")).toBeCloseTo(0.5, 4)
-    expect(ltvParaTipoImovelFI("terreno_condominio")).toBeCloseTo(0.5, 4)
+    expect(ltvParaTipoImovelFI("casa", "")).toBeCloseTo(0.8, 4)
   })
 
   it("tipologias mais restritivas do HE continuam abaixo do teto", () => {
@@ -76,12 +88,13 @@ describe("qualificarHomeEquity — trava de 55%", () => {
   })
 })
 
-describe("qualificarFinanciamentoImobiliario — LTV por tipologia (80/70/50)", () => {
+describe("qualificarFinanciamentoImobiliario — LTV por tipologia (PF: 80/70/60)", () => {
   const base = {
     valor_imovel: 500_000,
     cidade: "Joinville",
     uf: "SC",
     data_nascimento: "1990-05-15",
+    tipo_pessoa: "PF" as const,
   }
 
   it("casa/apto aceita até 80% e rejeita acima disso", () => {
@@ -104,12 +117,12 @@ describe("qualificarFinanciamentoImobiliario — LTV por tipologia (80/70/50)", 
     ).toBe(false) // 71%
   })
 
-  it("terreno aceita até 50% e rejeita acima disso", () => {
+  it("terreno aceita até 60% e rejeita acima disso", () => {
     expect(
-      qualificarFinanciamentoImobiliario({ ...base, tipo_imovel: "terreno", valor_solicitado: 250_000 }).qualificado
-    ).toBe(true) // 50%
+      qualificarFinanciamentoImobiliario({ ...base, tipo_imovel: "terreno", valor_solicitado: 300_000 }).qualificado
+    ).toBe(true) // 60%
     expect(
-      qualificarFinanciamentoImobiliario({ ...base, tipo_imovel: "terreno", valor_solicitado: 255_000 }).qualificado
-    ).toBe(false) // 51%
+      qualificarFinanciamentoImobiliario({ ...base, tipo_imovel: "terreno", valor_solicitado: 305_000 }).qualificado
+    ).toBe(false) // 61%
   })
 })

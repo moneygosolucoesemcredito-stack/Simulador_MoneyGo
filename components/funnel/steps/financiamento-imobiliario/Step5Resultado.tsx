@@ -3,25 +3,44 @@
 import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { useFunnelStore } from "@/stores/funnel-store"
-import { calcularSimulacao, formatarMoeda, formatarPercentual } from "@/lib/simulacao"
+import {
+  calcularSimulacao,
+  formatarMoeda,
+  formatarPercentual,
+  gerarTabelasAmortizacao,
+  rendaNecessaria,
+} from "@/lib/simulacao"
+import { TabelaAmortizacao } from "@/components/funnel/TabelaAmortizacao"
 import { CONFIG } from "@/lib/config"
 import { pushDataLayer } from "@/components/tracking/GTM"
-import { Info, Zap, Flag, Layers, Percent, CalendarDays, Download } from "lucide-react"
+import { Info, Zap, Flag, Wallet, Percent, CalendarDays, Download } from "lucide-react"
 
-type ColunaTabela = { primeira: number; ultima: number; total: number }
+type ColunaTabela = { primeira: number; ultima: number; renda: number }
 
 const LINHAS: { key: keyof ColunaTabela; label: string; icon: typeof Zap }[] = [
   { key: "primeira", label: "Primeira parcela aprox.", icon: Zap },
   { key: "ultima", label: "Última parcela aprox.", icon: Flag },
-  { key: "total", label: "Total pago", icon: Layers },
+  { key: "renda", label: "Renda necessária", icon: Wallet },
 ]
 
 export function Step5Resultado({ onNext }: { onNext: () => void }) {
   const { financiamentoImobiliario } = useFunnelStore()
-  const { taxaMensal } = CONFIG.financiamentoImobiliario
+  const { taxaMensal, comprometimentoRenda } = CONFIG.financiamentoImobiliario
 
   const resultado = useMemo(
     () => calcularSimulacao(financiamentoImobiliario.valor_solicitado, taxaMensal, financiamentoImobiliario.prazo_meses),
+    [financiamentoImobiliario.valor_solicitado, financiamentoImobiliario.prazo_meses, taxaMensal]
+  )
+
+  // Tabelas completas (todas as parcelas). Recalculadas só quando crédito,
+  // prazo ou taxa mudam — a formatação das linhas fica no componente da tabela.
+  const tabelas = useMemo(
+    () =>
+      gerarTabelasAmortizacao(
+        financiamentoImobiliario.valor_solicitado,
+        taxaMensal,
+        financiamentoImobiliario.prazo_meses
+      ),
     [financiamentoImobiliario.valor_solicitado, financiamentoImobiliario.prazo_meses, taxaMensal]
   )
 
@@ -30,15 +49,17 @@ export function Step5Resultado({ onNext }: { onNext: () => void }) {
   const [baixando, setBaixando] = useState(false)
 
   // Colunas do comparativo. No PRICE a parcela é fixa (primeira = última).
+  // A renda necessária parte da MAIOR parcela do sistema (no SAC, a primeira),
+  // aplicando a política de comprometimento de renda (30%).
   const sac: ColunaTabela = {
     primeira: resultado.primeira_parcela_sac,
     ultima: resultado.ultima_parcela_sac,
-    total: resultado.valor_total_sac,
+    renda: rendaNecessaria(resultado.primeira_parcela_sac, comprometimentoRenda),
   }
   const price: ColunaTabela = {
     primeira: resultado.parcela_price,
     ultima: resultado.parcela_price,
-    total: resultado.valor_total_price,
+    renda: rendaNecessaria(resultado.parcela_price, comprometimentoRenda),
   }
 
   function handleNext() {
@@ -56,6 +77,8 @@ export function Step5Resultado({ onNext }: { onNext: () => void }) {
         prazoMeses: financiamentoImobiliario.prazo_meses,
         tomador: (financiamentoImobiliario.tipo_pessoa || "PF") as "PF" | "PJ",
         dataSimulacao,
+        tabelas,
+        comprometimentoRenda,
       })
       pushDataLayer("pdf_download", { funil: "financiamento_imobiliario" })
     } finally {
@@ -145,6 +168,14 @@ export function Step5Resultado({ onNext }: { onNext: () => void }) {
         </div>
       </div>
 
+      <p className="text-xs text-muted-foreground">
+        Renda necessária estimada com comprometimento de{" "}
+        {Math.round(comprometimentoRenda * 100)}% da renda mensal sobre a maior parcela do sistema.
+      </p>
+
+      {/* Tabela de amortização completa — todas as parcelas, SAC e PRICE */}
+      <TabelaAmortizacao sac={tabelas.sac} price={tabelas.price} />
+
       <Button
         type="button"
         variant="outline"
@@ -153,7 +184,7 @@ export function Step5Resultado({ onNext }: { onNext: () => void }) {
         className="w-full h-11 font-medium"
       >
         <Download className="h-4 w-4 mr-2" />
-        {baixando ? "Gerando PDF…" : "Baixar PDF (SAC e PRICE)"}
+        {baixando ? "Gerando PDF…" : "Baixar PDF (tabelas SAC e PRICE completas)"}
       </Button>
 
       <div className="flex gap-2 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">

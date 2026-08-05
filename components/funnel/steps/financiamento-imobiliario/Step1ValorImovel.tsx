@@ -3,20 +3,34 @@
 import { useState } from "react"
 import { Slider } from "@/components/ui/slider"
 import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import { CurrencyInput } from "@/components/funnel/CurrencyInput"
 import { useFunnelStore } from "@/stores/funnel-store"
 import { formatarMoeda } from "@/lib/simulacao"
 import { CONFIG } from "@/lib/config"
 import { pushDataLayer } from "@/components/tracking/GTM"
 
 const MIN = CONFIG.financiamentoImobiliario.valorImovelMinimo
-const MAX = 5_000_000
+// Escala inicial da régua — NÃO é teto. O campo de digitação aceita qualquer
+// valor acima e o slider se estende para acompanhar o que foi informado.
+const SLIDER_REFERENCIA = CONFIG.financiamentoImobiliario.valorImovelSliderReferencia
 const STEP = 10_000
+
+/** Limite superior da régua: a referência ou o valor digitado, o que for maior. */
+function escalaSlider(valor: number): number {
+  if (!Number.isFinite(valor) || valor <= SLIDER_REFERENCIA) return SLIDER_REFERENCIA
+  return Math.ceil(valor / STEP) * STEP
+}
 
 export function Step1ValorImovel({ onNext }: { onNext: () => void }) {
   const { financiamentoImobiliario, setFinanciamentoImobiliario } = useFunnelStore()
   const [valor, setValor] = useState(financiamentoImobiliario.valor_imovel || MIN)
 
+  const abaixoDoMinimo = valor > 0 && valor < MIN
+  const sliderMax = escalaSlider(valor)
+
   function handleNext() {
+    if (valor < MIN) return
     setFinanciamentoImobiliario({ valor_imovel: valor })
     pushDataLayer("step_completed", { funil: "financiamento_imobiliario", step: 1, valor_imovel: valor })
     onNext()
@@ -27,7 +41,8 @@ export function Step1ValorImovel({ onNext }: { onNext: () => void }) {
       <div className="space-y-2">
         <h2 className="text-2xl font-bold tracking-tight">Qual o valor do imóvel?</h2>
         <p className="text-muted-foreground text-sm">
-          Informe o valor de avaliação do imóvel a ser financiado. Mínimo: {formatarMoeda(MIN)}.
+          Informe o valor de avaliação do imóvel a ser financiado. Mínimo: {formatarMoeda(MIN)} — não
+          há valor máximo.
         </p>
       </div>
 
@@ -38,17 +53,36 @@ export function Step1ValorImovel({ onNext }: { onNext: () => void }) {
           </span>
         </div>
 
+        <div className="space-y-2">
+          <Label htmlFor="fi-valor-imovel">Valor do imóvel</Label>
+          <CurrencyInput
+            id="fi-valor-imovel"
+            value={valor}
+            onChange={setValor}
+            placeholder="R$ 0,00"
+            min={0}
+          />
+          {abaixoDoMinimo ? (
+            <p className="text-destructive text-xs">
+              Valor abaixo do mínimo de {formatarMoeda(MIN)}.
+            </p>
+          ) : (
+            <p className="text-muted-foreground text-xs">
+              Digite o valor de avaliação do imóvel — imóveis de alto padrão são aceitos, sem teto.
+            </p>
+          )}
+        </div>
+
         <Slider
           min={MIN}
-          max={MAX}
+          max={sliderMax}
           step={STEP}
-          value={[valor]}
+          value={[Math.min(Math.max(valor, MIN), sliderMax)]}
           onValueChange={(vals) => setValor(Array.isArray(vals) ? vals[0] : vals)}
         />
 
-        <div className="flex justify-between text-xs text-muted-foreground">
-          <span>{formatarMoeda(MIN)}</span>
-          <span>{formatarMoeda(MAX)}</span>
+        <div className="flex text-xs text-muted-foreground">
+          <span>Mínimo {formatarMoeda(MIN)}</span>
         </div>
       </div>
 
