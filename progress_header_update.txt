@@ -1,0 +1,120 @@
+LOG DE PROGRESSO — CABEÇALHO DA ÁREA DO OPERADOR
+Branch: claude/home-equity-property-value-limit-77nb38
+Data: 05/08/2026
+Status: FASE CONCLUÍDA
+
+====================================================================
+1. OBJETIVO
+====================================================================
+1. Trocar a exibição do e-mail do parceiro logado por uma saudação amigável:
+   "Olá, [Nome do Colaborador]".
+2. Deixar a saudação e o botão "Sair" alinhados à extrema direita da tela,
+   de forma responsiva.
+
+====================================================================
+2. EXPLORAÇÃO — ONDE ISSO VIVE
+====================================================================
+Não existe Header global (nem App.js / Header.tsx). O cabeçalho logado é
+local da página do operador:
+
+  app/operador/page.tsx:105 ....... <header> com logo + e-mail + "Sair"
+  app/operador/page.tsx:51 ........ supabase.auth.getUser() → setEmail(...)
+  app/operador/login/page.tsx ..... login por e-mail/senha (sem cadastro)
+  proxy.ts ........................ protege /operador (sessão + allowlist
+                                    `operadores`)
+  supabase/migrations/ ............ existe tabela `clientes` (clientes finais),
+                                    NÃO existe tabela de parceiros/operadores
+
+Origem do nome: como o operador é provisionado direto no Supabase Auth, o
+único lugar possível para o nome é o `user_metadata` do usuário. Por isso a
+leitura aceita várias chaves e o e-mail permanece como fallback.
+
+====================================================================
+3. IMPLEMENTAÇÃO
+====================================================================
+lib/operador.ts (NOVO)
+  + nomeColaborador(user)         — lê o nome do user_metadata, testando as
+                                    chaves nome, full_name, name,
+                                    nome_completo e display_name (nessa ordem),
+                                    normalizando espaços e ignorando valores
+                                    vazios ou de outro tipo
+  + primeiroNomeColaborador(user) — só o primeiro nome, que é o que cabe
+  + saudacaoColaborador(user)     — "Olá, Daiana" com nome; "Olá, <e-mail>"
+                                    sem nome; string vazia sem usuário
+
+components/operador/OperadorHeader.tsx (NOVO)
+  + cabeçalho extraído da página (a página tinha o markup inline e não dava
+    para testar nem reaproveitar)
+  + LAYOUT: a barra passa a ocupar a largura total (`w-full px-4`) — antes era
+    `max-w-lg mx-auto`, o mesmo container estreito do conteúdo, o que em telas
+    largas colava o e-mail na logo no meio da tela, em vez de jogar para a
+    borda direita (era exatamente o que aparecia no print).
+  + o grupo "saudação + Sair" é empurrado com `ml-auto` (flexbox), então gruda
+    na borda direita em qualquer resolução, sem largura fixa
+  + a saudação usa `min-w-0 truncate` + `title`: e-mail longo vira reticências
+    e o texto completo aparece no hover
+  + o botão "Sair" leva `shrink-0` — nunca é espremido pelo texto ao lado
+  + no celular entra a marca compacta (BRAND.logos.mark) no lugar da logo
+    completa: com a logo cheia (proporção ~6,7:1) sobravam ~40px e a saudação
+    virava "Ol…"
+
+app/operador/page.tsx
+  ~ estado `email` vira `saudacao`, preenchido por saudacaoColaborador(user)
+  ~ o <header> inline dá lugar a <OperadorHeader saudacao={...} onSair={sair} />
+  - imports que ficaram órfãos (Link, Image, LogOut, BRAND)
+
+====================================================================
+4. TESTES
+====================================================================
+__tests__/operador-header.test.ts (8 testes — lógica)
+  - as cinco chaves de nome aceitas e a ordem de precedência entre elas
+  - normalização de espaços; valores vazios, numéricos ou ausentes → null
+  - só o primeiro nome vai para o cabeçalho
+  - "Olá, Daiana" com nome; "Olá, <e-mail>" sem nome
+  - a saudação nunca sai sem o "Olá," na frente
+  - sem usuário identificado, string vazia (o cabeçalho não mostra texto solto)
+
+__tests__/operador-header-ui.test.tsx (7 testes — componente)
+  - exibe a saudação e NÃO exibe mais o e-mail cru quando há nome
+  - fallback por e-mail
+  - saudação e "Sair" no mesmo grupo, com `ml-auto`, saudação antes do botão
+  - a barra é `w-full`, sem `max-w-lg`/`mx-auto` (trava a regressão do print)
+  - mobile: saudação com `truncate` + `title`, botão com `shrink-0`
+  - sem sessão carregada, só o "Sair"
+  - o clique dispara o logout
+
+====================================================================
+5. VERIFICAÇÃO
+====================================================================
+npm test         -> 25 arquivos, 328 testes, todos passando (15 novos)
+npx tsc --noEmit -> sem erros
+npm run lint     -> de volta ao baseline (5 problemas pré-existentes, em
+                    arquivos não tocados)
+npm run build    -> ✓ Compiled successfully
+
+Medição no navegador (Playwright), com o componente montado numa rota de
+preview temporária — /operador exige sessão real do Supabase mais registro na
+allowlist `operadores`, que este ambiente não consegue produzir. A rota foi
+removida depois da medição (nada dela ficou no repositório).
+
+  desktop 1280px  saudação e "Sair" a 16px da borda direita (o padding da
+                  barra), ambos na metade direita da tela
+  mobile  390px   idem, com "Olá, Daiana" inteiro ao lado do "Sair"
+  mobile  390px   fallback com e-mail longo: trunca em
+   (fallback)     "Olá, moneygosolucoesemcredito@gmail.co…" e o "Sair"
+                  continua inteiro, a 16px da borda
+
+====================================================================
+6. PONTOS EM ABERTO
+====================================================================
+- O nome só aparece se o usuário do Supabase Auth tiver `nome` (ou full_name /
+  name / nome_completo / display_name) no user_metadata. Hoje, pelo print, a
+  conta em uso não tem — por isso o cabeçalho continuará mostrando o e-mail
+  até alguém preencher o campo. Isso é feito no dashboard do Supabase
+  (Authentication → Users → o usuário → User Metadata) ou por API. Se
+  preferir, dá para criar uma tabela `operadores.nome` e ler de lá.
+- A allowlist `operadores` já existe (usada em proxy.ts) e seria o lugar
+  natural para guardar o nome do parceiro, se o negócio quiser gerenciar isso
+  fora do painel de autenticação.
+- O cabeçalho agora é um componente reaproveitável: se surgirem outras telas
+  logadas do operador, é só montar o mesmo <OperadorHeader>.

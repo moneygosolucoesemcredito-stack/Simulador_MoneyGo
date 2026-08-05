@@ -1,8 +1,6 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import Link from "next/link"
-import Image from "next/image"
 import { useRouter } from "next/navigation"
 import {
   Building2,
@@ -15,14 +13,14 @@ import {
   Copy,
   Check,
   ArrowRight,
-  LogOut,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { criarSupabaseBrowser } from "@/lib/supabase/client"
 import { parseTaxaPercent, taxaDentroFaixa, taxaParaPercentStr, descricaoFaixa } from "@/lib/taxa"
-import { BRAND } from "@/lib/brand"
+import { saudacaoColaborador } from "@/lib/operador"
+import { OperadorHeader } from "@/components/operador/OperadorHeader"
 
 type TipoPessoa = "PF" | "PJ"
 type FormaOfertar = "simular" | "link"
@@ -37,7 +35,7 @@ const PRODUTOS = [
 
 export default function OperadorPage() {
   const router = useRouter()
-  const [email, setEmail] = useState<string | null>(null)
+  const [saudacao, setSaudacao] = useState("")
   const [operadorId, setOperadorId] = useState<string | null>(null)
   const [pessoa, setPessoa] = useState<TipoPessoa | "">("")
   const [produtoId, setProdutoId] = useState<(typeof PRODUTOS)[number]["id"] | "">("")
@@ -49,7 +47,8 @@ export default function OperadorPage() {
   useEffect(() => {
     const supabase = criarSupabaseBrowser()
     supabase.auth.getUser().then(({ data }) => {
-      setEmail(data.user?.email ?? null)
+      // Nome vem do user_metadata; sem ele a saudação usa o e-mail.
+      setSaudacao(saudacaoColaborador(data.user))
       setOperadorId(data.user?.id ?? null)
     })
   }, [])
@@ -102,30 +101,7 @@ export default function OperadorPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <header className="border-b border-border bg-white sticky top-0 z-30">
-        <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
-          <Link href="/" className="shrink-0">
-            <Image
-              src={BRAND.logos.full}
-              alt={BRAND.fullName}
-              width={BRAND.logos.width}
-              height={BRAND.logos.height}
-              unoptimized
-              priority
-              className="h-12 w-auto"
-            />
-          </Link>
-          <div className="flex items-center gap-3">
-            {email && <span className="text-xs text-muted-foreground hidden sm:block">{email}</span>}
-            <button
-              onClick={sair}
-              className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
-            >
-              <LogOut className="h-3.5 w-3.5" /> Sair
-            </button>
-          </div>
-        </div>
-      </header>
+      <OperadorHeader saudacao={saudacao} onSair={sair} />
 
       <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6 space-y-8">
         <div className="space-y-1">
