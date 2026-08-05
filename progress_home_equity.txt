@@ -1,0 +1,130 @@
+LOG DE PROGRESSO — MÓDULO HOME EQUITY
+Branch: claude/home-equity-property-value-limit-77nb38
+Data: 2026-08-05
+Status: FASE CONCLUÍDA (remoção do teto de R$ 5.000.000 no valor do imóvel)
+
+====================================================================
+1. OBJETIVO DESTA FASE
+====================================================================
+- Remover a trava que limitava o "Valor do Imóvel" do Home Equity a
+  R$ 5.000.000,00.
+- O campo passa a aceitar qualquer valor acima do mínimo do produto
+  (R$ 250.000), sem teto — imóveis de alto padrão entram na simulação.
+- Nenhuma mudança nos demais produtos (Auto Equity, Financiamento
+  Imobiliário, Crédito de Construção, Financiamento de Veículo).
+
+====================================================================
+2. EXPLORAÇÃO — ONDE A TRAVA VIVIA
+====================================================================
+grep por 5000000 / 5.000.000 / 5_000_000 / 5e6:
+
+  lib/config.ts:12
+    CONFIG.homeEquity.valorImovelMaximo = 5_000_000     -> ÚNICA constante
+  components/funnel/steps/home-equity/Step1ValorImovel.tsx:12
+    const MAX = CONFIG.homeEquity.valorImovelMaximo     -> teto do slider
+  components/funnel/steps/financiamento-imobiliario/Step1ValorImovel.tsx:12
+    const MAX = 5_000_000                               -> OUTRO produto (FI),
+                                                           NÃO alterado
+  __tests__/simulacao.test.ts / lib/simulacao.ts
+    imóvel de 5.000.000 apenas como cenário-base da planilha — não é limite
+
+Back-end / qualificação:
+  lib/qualificacao.ts -> qualificarHomeEquity() só tinha piso
+    (valorImovelMinimo). NÃO existia teto de valor do imóvel no back-end.
+  app/api/lead e app/api/proposta -> não validam valor de imóvel.
+  Supabase -> sem constraint de valor.
+
+Conclusão: a trava era exclusivamente de front-end (o slider do Step 1, que
+não permitia arrastar acima de R$ 5.000.000 e não tinha campo de digitação).
+
+====================================================================
+3. TESTES (escritos ANTES da implementação)
+====================================================================
+Arquivo: __tests__/home-equity-valor-imovel.test.ts   (unitário)
+  - CONFIG.homeEquity não expõe mais `valorImovelMaximo`
+  - piso de R$ 250.000 preservado (imóvel de 200.000 reprova)
+  - imóvel de R$ 10.000.000 com crédito de 5.500.000 (55%) -> QUALIFICADO
+  - imóvel de R$ 50.000.000 -> qualificado, nenhum motivo cita "máximo"
+  - imóvel de R$ 12.000.000 financiado (saldo devedor < 50%) -> qualificado
+  - LTV segue sendo a trava: 60% de 10.000.000 -> reprovado (motivo "55%")
+  - calcularHomeEquity roda normalmente com imóvel de 10.000.000
+  - imóvel acima de R$ 10mi usa o DFI majorado (0,0085% vs 0,0065%)
+  - sem impacto: FI mantém piso de 200.000 e LTV de 80%; Auto Equity mantém
+    valorVeiculoMaximo = 500.000
+
+Arquivo: __tests__/home-equity-step1-valor-imovel.test.tsx   (componente/jsdom)
+  - digitar R$ 10.000.000 -> "Continuar" habilitado e store recebe 10.000.000
+  - digitar R$ 42.500.000 -> store recebe 42.500.000
+  - a régua (slider) se estende até o valor digitado (não trava em 5.000.000)
+  - nenhum texto do passo anuncia valor máximo; copy diz "não há valor máximo"
+  - abaixo de R$ 250.000 continua bloqueado (botão desabilitado + mensagem)
+
+Observação de teste: o campo usa react-imask; em jsdom o valor deve ser
+enviado como dígitos puros (fireEvent.input com "10000000"), como o usuário
+digita. Colar uma string já formatada ("10.000.000") é remascarado pela lib.
+
+====================================================================
+4. IMPLEMENTAÇÃO
+====================================================================
+lib/config.ts
+  - valorImovelMaximo: 5_000_000                        (REMOVIDO)
+  + valorImovelSliderReferencia: 5_000_000
+      escala inicial do slider do Step 1 — explicitamente NÃO é teto; o campo
+      de digitação aceita qualquer valor acima e a régua acompanha.
+  + comentário registrando a remoção do teto (2026-08) e que a trava efetiva
+    da operação é o LTV da tipologia (LTV_POR_TIPO_IMOVEL, ≤ 55%).
+
+components/funnel/steps/home-equity/Step1ValorImovel.tsx
+  - const MAX = CONFIG.homeEquity.valorImovelMaximo     (REMOVIDO)
+  + CurrencyInput (campo digitável, sem prop `max`) rotulado "Valor do imóvel"
+  + escalaSlider(valor): régua vai até a referência OU até o valor digitado,
+    o que for maior (arredondado ao passo de 10.000)
+  + copy: "Valor mínimo: R$ 250.000,00 — não há valor máximo."
+  + mensagem de erro apenas para valor abaixo do mínimo
+  + o rodapé da régua mostra só o mínimo (não há mais rótulo de máximo)
+
+lib/qualificacao.ts
+  + comentário em qualificarHomeEquity deixando explícito que só há piso de
+    valor do imóvel; o teto de R$ 5.000.000 foi removido (nenhuma regra de
+    back-end precisou ser retirada — não existia).
+
+NÃO alterado (fora do escopo, outro produto):
+  components/funnel/steps/financiamento-imobiliario/Step1ValorImovel.tsx
+    mantém seu próprio MAX = 5_000_000 (regra do Financiamento Imobiliário).
+
+====================================================================
+5. VERIFICAÇÃO
+====================================================================
+npm test         -> 14 arquivos, 166 testes, todos passando
+                    (12 novos testes nesta fase)
+npx tsc --noEmit -> sem erros
+npm run lint     -> sem novos problemas (5 pré-existentes, todos em arquivos
+                    não tocados: app/home-equity/page.tsx, page.tsx de FI e
+                    construção, app/entrar, Step4Localizacao)
+npm run build    -> build de produção concluído
+
+Efeitos colaterais checados:
+  - Step3Situacao (saldo devedor ≤ 50% do imóvel) escala junto com o valor.
+  - Step5ValorDesejado (crédito ≤ LTV do imóvel) escala junto — imóvel de
+    10mi passa a permitir crédito de até 5,5mi.
+  - simulacao.ts já tratava imóvel acima de R$ 10mi com DFI majorado
+    (dfiAcima10M / dfiLimiteImovel) — agora esse caminho é alcançável pela UI
+    e está coberto por teste.
+  - Auto Equity, Financiamento Imobiliário, Construção e Financiamento de
+    Veículo: nenhuma linha alterada; suítes seguem verdes.
+
+====================================================================
+6. PONTOS EM ABERTO PARA A PRÓXIMA SESSÃO
+====================================================================
+- O Financiamento Imobiliário continua com teto de R$ 5.000.000 hardcoded no
+  componente (não vem do CONFIG). Se o produto quiser o mesmo tratamento do
+  Home Equity, é a mesma mudança aplicada aqui.
+- Sem teto de valor, o crédito máximo do HE cresce junto (55% do imóvel).
+  Se houver limite de exposição por operação (ticket máximo de crédito), ele
+  não existe no código — precisa ser definido pelo negócio e implementado em
+  CONFIG.homeEquity.valorCreditoMaximo + qualificarHomeEquity.
+- O slider parte da escala de R$ 5.000.000 por conveniência visual. Se a
+  operação passar a receber majoritariamente imóveis maiores, vale revisar
+  `valorImovelSliderReferencia`.
+- prompt-ideal-claude-code-moneygo.md e docs/ podem citar a faixa antiga —
+  atualizar se forem tratados como especificação viva.

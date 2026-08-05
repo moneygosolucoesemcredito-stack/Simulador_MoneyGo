@@ -9,7 +9,12 @@ export const CONFIG = {
     taxaMaxima: 0.0199,
     taxaPasso: 0.0001,
     valorImovelMinimo: 250_000,
-    valorImovelMaximo: 5_000_000,
+    // Teto de valor do imóvel removido no Home Equity (2026-08): não há valor
+    // máximo — imóveis acima de R$ 5.000.000 são aceitos normalmente. O que
+    // limita a operação é o LTV da tipologia (LTV_POR_TIPO_IMOVEL), não o valor
+    // do bem. `valorImovelSliderReferencia` é só a escala inicial do controle
+    // deslizante do Step 1: o campo de digitação aceita qualquer valor acima.
+    valorImovelSliderReferencia: 5_000_000,
     valorCreditoMinimo: 75_000,
     // LTV varia por tipo de imóvel — ver LTV_POR_TIPO_IMOVEL.
     saldoDevedorMaximoPercentual: 0.5,

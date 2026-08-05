@@ -62,6 +62,8 @@ export function qualificarHomeEquity(params: {
   const { homeEquity: cfg } = CONFIG
   const motivos: string[] = []
 
+  // Só há piso de valor do imóvel: o teto de R$ 5.000.000 foi removido (2026-08).
+  // Imóveis acima disso são aceitos — quem limita a operação é o LTV da tipologia.
   if (params.valor_imovel < cfg.valorImovelMinimo) {
     motivos.push(`Valor do imóvel abaixo do mínimo de ${cfg.valorImovelMinimo.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`)
   }
