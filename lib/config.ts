@@ -1,4 +1,10 @@
-import type { CategoriaVeiculo, TipoImovel, TipoPessoa } from "@/types"
+import { taxaAnualEquivalente, taxaMensalEquivalente } from "./simulacao"
+import type {
+  CategoriaTerrenoConstrucao,
+  CategoriaVeiculo,
+  TipoImovel,
+  TipoPessoa,
+} from "@/types"
 
 export const CONFIG = {
   homeEquity: {
@@ -62,26 +68,18 @@ export const CONFIG = {
     populacaoMunicipalMinima: 50_000,
   },
   creditoConstrucao: {
-    // Duas opções de taxa pós-fixada (a.m.): a partir de 1,17% + TR ou 1,25% + IPCA.
-    taxas: {
-      tr: { taxaMensal: 0.0117, indexador: "TR", aPartirDe: true },
-      ipca: { taxaMensal: 0.0125, indexador: "IPCA", aPartirDe: false },
-    },
-    indexadorDefault: "tr" as const,
     modalidadeTaxa: "pos_fixada" as const,
+    // Taxa, teto de crédito, público e prazo passam a depender da CATEGORIA do
+    // terreno (2026-08) — ver CONSTRUCAO_POR_CATEGORIA.
+    categoriaDefault: "condominio" as CategoriaTerrenoConstrucao,
     valorObraMinimo: 300_000,
+    vgvMinimo: 300_000,
     valorCreditoMinimo: 150_000,
-    // Crédito limitado ao MENOR entre 80% do custo da obra e 50% do VGV
-    // (valor geral de venda do imóvel pronto) — ver limiteCreditoConstrucao.
-    ltvObra: 0.8,
-    ltvVgv: 0.5,
     mip: 0.00035,
     dfi: 0.000065,
     estruturacaoPercentual: 0.05,
     iof: 0,
     numeroDeTranches: 5,
-    prazosDisponiveis: [120, 180, 240],
-    prazoDefault: 240,
     idadeMinima: 18,
     idadeMaxima: 60,
     populacaoMunicipalMinima: 50_000,
@@ -126,7 +124,98 @@ export const CONFIG = {
   },
 } as const
 
-export type IndexadorConstrucao = keyof typeof CONFIG.creditoConstrucao.taxas
+// ──────────────────────────────────────────────────────────────────────────
+// Crédito de Construção — regras por categoria de terreno (2026-08).
+// A categoria define público, teto de crédito, taxa e prazo máximo. Substitui
+// a regra anterior (menor entre 80% da obra e 50% do VGV, com seletor TR/IPCA).
+// ──────────────────────────────────────────────────────────────────────────
+
+export interface RegraCategoriaConstrucao {
+  rotulo: string
+  descricao: string
+  /** Tomadores aceitos. Condomínio é exclusivo de Pessoa Física. */
+  tomadores: readonly TipoPessoa[]
+  /** Base de cálculo do teto de crédito: custo da obra ou VGV. */
+  base: "obra" | "vgv"
+  /** Percentual da base liberado como crédito. */
+  ltv: number
+  indexador: "TR" | "IPCA"
+  /** Periodicidade em que a taxa é publicada — TR ao ano, IPCA ao mês. */
+  periodicidadeTaxa: "anual" | "mensal"
+  /** Taxa publicada, na periodicidade acima (fração). */
+  taxa: number
+  prazoMaximo: number
+  prazosDisponiveis: readonly number[]
+  prazoDefault: number
+}
+
+export const CONSTRUCAO_POR_CATEGORIA: Record<
+  CategoriaTerrenoConstrucao,
+  RegraCategoriaConstrucao
+> = {
+  condominio: {
+    rotulo: "Dentro de condomínio",
+    descricao: "Terreno em condomínio fechado",
+    tomadores: ["PF"],
+    base: "obra",
+    ltv: 0.8, // até 80% do custo total da obra
+    indexador: "TR",
+    periodicidadeTaxa: "anual",
+    taxa: 0.1399, // 13,99% a.a. + TR
+    prazoMaximo: 360, // 30 anos
+    prazosDisponiveis: [120, 180, 240, 300, 360],
+    prazoDefault: 240,
+  },
+  fora_condominio: {
+    rotulo: "Fora de condomínio",
+    descricao: "Terreno em rua aberta, loteamento ou área urbana comum",
+    tomadores: ["PF", "PJ"],
+    base: "vgv",
+    ltv: 0.5, // até 50% do VGV (imóvel pronto)
+    indexador: "IPCA",
+    periodicidadeTaxa: "mensal",
+    taxa: 0.0125, // 1,25% a.m. + IPCA
+    prazoMaximo: 240, // 20 anos
+    prazosDisponiveis: [120, 180, 240],
+    prazoDefault: 240,
+  },
+}
+
+/** Regra vigente da categoria (categoria vazia cai no default do produto). */
+export function regraConstrucao(
+  categoria: CategoriaTerrenoConstrucao | ""
+): RegraCategoriaConstrucao {
+  return CONSTRUCAO_POR_CATEGORIA[categoria || CONFIG.creditoConstrucao.categoriaDefault]
+}
+
+/** Taxa MENSAL da categoria — converte a taxa anual da TR quando necessário. */
+export function taxaMensalConstrucao(categoria: CategoriaTerrenoConstrucao | ""): number {
+  const regra = regraConstrucao(categoria)
+  return regra.periodicidadeTaxa === "anual" ? taxaMensalEquivalente(regra.taxa) : regra.taxa
+}
+
+/** Taxa ANUAL da categoria — converte a taxa mensal do IPCA quando necessário. */
+export function taxaAnualConstrucao(categoria: CategoriaTerrenoConstrucao | ""): number {
+  const regra = regraConstrucao(categoria)
+  return regra.periodicidadeTaxa === "anual" ? regra.taxa : taxaAnualEquivalente(regra.taxa)
+}
+
+/** Prazos ofertáveis na categoria (todos ≤ prazoMaximo). */
+export function prazosDisponiveisConstrucao(
+  categoria: CategoriaTerrenoConstrucao | ""
+): readonly number[] {
+  const regra = regraConstrucao(categoria)
+  return regra.prazosDisponiveis.filter((p) => p <= regra.prazoMaximo)
+}
+
+/** O tomador é aceito nesta categoria? (condomínio só atende PF). */
+export function tomadorPermitidoConstrucao(
+  categoria: CategoriaTerrenoConstrucao | "",
+  tipoPessoa: TipoPessoa | ""
+): boolean {
+  if (!tipoPessoa) return false
+  return regraConstrucao(categoria).tomadores.includes(tipoPessoa)
+}
 
 // Trava de seguro habitacional (padrão de mercado para crédito com garantia de
 // imóvel): a soma "idade do tomador + prazo (em anos)" não pode ultrapassar 80.
@@ -174,10 +263,18 @@ export function anoMinimoVeiculo(
   return anoReferencia - idadeMaximaVeiculo(categoria)
 }
 
-/** Limite de crédito da construção: o menor entre 80% do custo da obra e 50% do VGV. */
-export function limiteCreditoConstrucao(valorObra: number, vgv: number): number {
-  const { ltvObra, ltvVgv } = CONFIG.creditoConstrucao
-  return Math.min(valorObra * ltvObra, vgv * ltvVgv)
+/**
+ * Teto de crédito da construção, por categoria de terreno:
+ *   dentro de condomínio → 80% do CUSTO DA OBRA
+ *   fora de condomínio   → 50% do VGV (valor do imóvel pronto)
+ */
+export function limiteCreditoConstrucao(
+  categoria: CategoriaTerrenoConstrucao | "",
+  valores: { valorObra: number; vgv: number }
+): number {
+  const regra = regraConstrucao(categoria)
+  const base = regra.base === "obra" ? valores.valorObra : valores.vgv
+  return Math.max(0, base * regra.ltv)
 }
 
 // Teto regulatório de LTV: nenhuma operação com garantia de imóvel (Home
@@ -249,7 +346,9 @@ export function ltvParaTipoImovelFI(
 export const RATE_CONFIG = {
   home_equity: { min: 0.0099, max: 0.0199, default: null, fixed: false },
   financiamento_imobiliario: { min: 0.0083, max: 0.0199, default: null, fixed: false },
-  credito_construcao: { min: 0.0117, max: 0.0199, default: null, fixed: false },
+  // Piso = menor taxa mensal ofertada nas categorias de construção (a de
+  // condomínio, 13,99% a.a. + TR ≈ 1,0972% a.m.), arredondado para baixo.
+  credito_construcao: { min: 0.0109, max: 0.0199, default: null, fixed: false },
   auto_equity: { min: 0.0199, max: 0.0199, default: 0.0199, fixed: true },
   financiamento_veiculo: { min: 0.0139, max: 0.0199, default: null, fixed: false },
 } as const

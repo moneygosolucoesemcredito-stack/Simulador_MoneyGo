@@ -7,8 +7,15 @@ import {
   ltvParaTipoImovel,
   ltvParaTipoImovelFI,
   prazoMaximoHomeEquity,
+  regraConstrucao,
+  tomadorPermitidoConstrucao,
 } from "./config"
-import type { CategoriaVeiculo, TipoImovel, TipoPessoa } from "@/types"
+import type {
+  CategoriaTerrenoConstrucao,
+  CategoriaVeiculo,
+  TipoImovel,
+  TipoPessoa,
+} from "@/types"
 
 const cidadesSet = new Set(
   (cidades as { n: string; u: string }[]).map(
@@ -163,21 +170,58 @@ export function qualificarCreditoConstrucao(params: {
   cidade: string
   uf: string
   data_nascimento: string
+  /** Categoria do terreno — define público, teto, taxa e prazo. Default: condomínio. */
+  categoria_terreno?: CategoriaTerrenoConstrucao | ""
+  /** Tomador. Dentro de condomínio só Pessoa Física é aceita. */
+  tipo_pessoa?: TipoPessoa | ""
+  /** Prazo pretendido (meses). Quando informado, valida o teto da categoria. */
+  prazo_meses?: number
 }): ResultadoQualificacao {
   const { creditoConstrucao: cfg } = CONFIG
   const motivos: string[] = []
 
-  if (params.valor_obra < cfg.valorObraMinimo) {
-    motivos.push(`Valor da obra abaixo do mínimo de ${cfg.valorObraMinimo.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`)
+  const categoria = params.categoria_terreno || cfg.categoriaDefault
+  const regra = regraConstrucao(categoria)
+  const tipoPessoa = params.tipo_pessoa || "PF"
+
+  // Público por categoria: condomínio é exclusivo de Pessoa Física.
+  if (!tomadorPermitidoConstrucao(categoria, tipoPessoa)) {
+    motivos.push(
+      `${regra.rotulo}: modalidade disponível apenas para ${regra.tomadores.join(" e ")}`
+    )
+  }
+
+  // Piso da base de cálculo da categoria: custo da obra (condomínio) ou VGV.
+  if (regra.base === "obra") {
+    if (params.valor_obra < cfg.valorObraMinimo) {
+      motivos.push(`Valor da obra abaixo do mínimo de ${cfg.valorObraMinimo.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`)
+    }
+  } else if (params.vgv < cfg.vgvMinimo) {
+    motivos.push(`VGV abaixo do mínimo de ${cfg.vgvMinimo.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`)
   }
 
   if (!isCidadeQualificada(params.cidade, params.uf)) {
     motivos.push("Cidade não atendida (município com menos de 50.000 habitantes)")
   }
 
-  const limite = limiteCreditoConstrucao(params.valor_obra, params.vgv)
+  // Teto de crédito da categoria: 80% da obra (condomínio) ou 50% do VGV.
+  const limite = limiteCreditoConstrucao(categoria, {
+    valorObra: params.valor_obra,
+    vgv: params.vgv,
+  })
   if (params.valor_solicitado > limite) {
-    motivos.push("Valor solicitado superior ao limite: 80% do custo da obra, limitado a 50% do VGV")
+    motivos.push(
+      regra.base === "obra"
+        ? `Valor solicitado superior a ${Math.round(regra.ltv * 100)}% do custo da obra`
+        : `Valor solicitado superior a ${Math.round(regra.ltv * 100)}% do VGV`
+    )
+  }
+
+  // Prazo máximo da categoria: 360 meses em condomínio, 240 fora.
+  if (params.prazo_meses !== undefined && params.prazo_meses > regra.prazoMaximo) {
+    motivos.push(
+      `Prazo superior ao máximo de ${regra.prazoMaximo} meses para ${regra.rotulo.toLowerCase()}`
+    )
   }
 
   const idade = calcularIdade(params.data_nascimento)

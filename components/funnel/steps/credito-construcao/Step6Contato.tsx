@@ -6,7 +6,12 @@ import { ContatoForm, type ContatoFormValues } from "@/components/funnel/Contato
 import { useFunnelStore } from "@/stores/funnel-store"
 import { calcularSimulacao } from "@/lib/simulacao"
 import { qualificarCreditoConstrucao } from "@/lib/qualificacao"
-import { CONFIG } from "@/lib/config"
+import {
+  CONFIG,
+  regraConstrucao,
+  taxaAnualConstrucao,
+  taxaMensalConstrucao,
+} from "@/lib/config"
 import { trackLead } from "@/components/tracking/MetaPixel"
 import { pushDataLayer } from "@/components/tracking/GTM"
 import { toast } from "sonner"
@@ -20,11 +25,15 @@ export function Step6Contato() {
   async function handleSubmit(formData: ContatoFormValues) {
     setLoading(true)
     try {
-      const { taxas, modalidadeTaxa, numeroDeTranches } = CONFIG.creditoConstrucao
-      const opcaoTaxa = taxas[creditoConstrucao.indexador]
+      const { modalidadeTaxa, numeroDeTranches } = CONFIG.creditoConstrucao
+      const categoria = creditoConstrucao.categoria_terreno
+      const regra = regraConstrucao(categoria)
+      // A taxa da categoria pode ser publicada ao ano (TR); o cálculo usa o
+      // mensal equivalente.
+      const taxaMensal = taxaMensalConstrucao(categoria)
       const resultado = calcularSimulacao(
         creditoConstrucao.valor_solicitado,
-        opcaoTaxa.taxaMensal,
+        taxaMensal,
         creditoConstrucao.prazo_meses
       )
 
@@ -36,12 +45,17 @@ export function Step6Contato() {
         cidade: creditoConstrucao.cidade,
         uf: creditoConstrucao.uf,
         data_nascimento: formData.data_nascimento,
+        categoria_terreno: categoria,
+        tipo_pessoa: creditoConstrucao.tipo_pessoa,
+        prazo_meses: creditoConstrucao.prazo_meses,
       })
 
       const payload: LeadPayload = {
         produto: "credito_construcao",
         qualificado,
         simulacao: {
+          categoria_terreno: categoria || undefined,
+          tipo_pessoa: (creditoConstrucao.tipo_pessoa || "PF") as "PF" | "PJ",
           valor_terreno: creditoConstrucao.valor_terreno,
           valor_obra: creditoConstrucao.valor_obra,
           vgv: creditoConstrucao.vgv,
@@ -50,9 +64,10 @@ export function Step6Contato() {
           parcela_price: resultado.parcela_price,
           primeira_parcela_sac: resultado.primeira_parcela_sac,
           ultima_parcela_sac: resultado.ultima_parcela_sac,
-          taxa_mensal: opcaoTaxa.taxaMensal,
+          taxa_mensal: taxaMensal,
+          taxa_anual: taxaAnualConstrucao(categoria),
           modalidade_taxa: modalidadeTaxa,
-          indexador: opcaoTaxa.indexador,
+          indexador: regra.indexador,
           numero_tranches: numeroDeTranches,
           valor_por_tranche: Math.floor(creditoConstrucao.valor_solicitado / numeroDeTranches),
         },

@@ -62,6 +62,23 @@ export function calcularSimulacao(
 }
 
 /**
+ * Taxa mensal equivalente a uma taxa anual, em juros compostos:
+ *   i_mensal = (1 + i_anual)^(1/12) − 1
+ * Usada quando o produto publica a taxa ao ano (ex.: 13,99% a.a. + TR no
+ * Crédito de Construção dentro de condomínio) e o cálculo roda ao mês.
+ */
+export function taxaMensalEquivalente(taxaAnual: number): number {
+  if (!Number.isFinite(taxaAnual) || taxaAnual <= 0) return 0
+  return Math.pow(1 + taxaAnual, 1 / 12) - 1
+}
+
+/** Taxa anual equivalente a uma taxa mensal: i_anual = (1 + i_mensal)^12 − 1. */
+export function taxaAnualEquivalente(taxaMensal: number): number {
+  if (!Number.isFinite(taxaMensal) || taxaMensal <= 0) return 0
+  return Math.pow(1 + taxaMensal, 12) - 1
+}
+
+/**
  * Renda necessária para suportar a parcela dentro da política de
  * comprometimento de renda (default 30%): renda = parcela / comprometimento.
  */

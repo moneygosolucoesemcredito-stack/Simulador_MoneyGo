@@ -12,6 +12,13 @@ export type CategoriaVeiculo = "leve" | "pesado"
 // Tomador da operação — define alíquota de IOF e, no Financiamento
 // Imobiliário, também o LTV máximo por tipologia (ver LTV_POR_TIPO_IMOVEL_FI).
 export type TipoPessoa = "PF" | "PJ"
+// Categoria do terreno no Crédito de Construção — define público, teto de
+// crédito, taxa e prazo máximo (ver CONSTRUCAO_POR_CATEGORIA):
+// `condominio`      = terreno em condomínio fechado (só PF, 80% da obra,
+//                     13,99% a.a. + TR, até 360 meses);
+// `fora_condominio` = terreno em área comum (PF e PJ, 50% do VGV,
+//                     1,25% a.m. + IPCA, até 240 meses).
+export type CategoriaTerrenoConstrucao = "condominio" | "fora_condominio"
 export type MelhorHorario = "manha" | "tarde"
 export type ModalidadeTaxa = "pos_fixada" | "pre_fixada"
 
@@ -114,6 +121,11 @@ export interface SimulacaoFinanciamentoImobiliario {
 }
 
 export interface SimulacaoCreditoConstrucao {
+  /** Categoria do terreno — define teto, taxa, prazo e público da operação. */
+  categoria_terreno?: CategoriaTerrenoConstrucao
+  tipo_pessoa?: TipoPessoa
+  /** Taxa publicada ao ano (TR) — presente quando a categoria cobra a.a. */
+  taxa_anual?: number
   valor_terreno: number
   valor_obra: number
   vgv: number

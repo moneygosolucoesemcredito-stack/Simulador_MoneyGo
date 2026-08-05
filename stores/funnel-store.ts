@@ -2,7 +2,13 @@
 
 import { create } from "zustand"
 import { persist, createJSONStorage } from "zustand/middleware"
-import type { TrackingData, ContatoFormData, CategoriaVeiculo } from "@/types"
+import type {
+  TrackingData,
+  ContatoFormData,
+  CategoriaVeiculo,
+  CategoriaTerrenoConstrucao,
+  TipoPessoa,
+} from "@/types"
 
 export interface HomeEquityState {
   step: number
@@ -92,12 +98,16 @@ export interface FinanciamentoImobiliarioState {
 
 export interface CreditoConstrucaoState {
   step: number
+  /** Terreno em condomínio fechado ou fora dele — define público, teto,
+   *  taxa e prazo máximo (ver CONSTRUCAO_POR_CATEGORIA). */
+  categoria_terreno: CategoriaTerrenoConstrucao | ""
+  /** Tomador. Dentro de condomínio só PF é aceita. */
+  tipo_pessoa: TipoPessoa | ""
   valor_terreno: number
   valor_obra: number
   vgv: number
   valor_solicitado: number
   prazo_meses: number
-  indexador: "tr" | "ipca"
   cep: string
   logradouro: string
   numero: string
@@ -201,12 +211,13 @@ const defaultFinanciamentoImobiliario: FinanciamentoImobiliarioState = {
 
 const defaultCreditoConstrucao: CreditoConstrucaoState = {
   step: 1,
+  categoria_terreno: "",
+  tipo_pessoa: "",
   valor_terreno: 500_000,
   valor_obra: 1_000_000,
   vgv: 3_000_000,
   valor_solicitado: 500_000,
   prazo_meses: 240,
-  indexador: "tr",
   cep: "",
   logradouro: "",
   numero: "",

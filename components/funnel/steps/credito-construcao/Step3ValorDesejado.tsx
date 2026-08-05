@@ -5,33 +5,52 @@ import { Slider } from "@/components/ui/slider"
 import { Button } from "@/components/ui/button"
 import { useFunnelStore } from "@/stores/funnel-store"
 import { formatarMoeda } from "@/lib/simulacao"
-import { CONFIG, limiteCreditoConstrucao } from "@/lib/config"
+import {
+  CONFIG,
+  limiteCreditoConstrucao,
+  prazosDisponiveisConstrucao,
+  regraConstrucao,
+} from "@/lib/config"
 import { pushDataLayer } from "@/components/tracking/GTM"
 import { cn } from "@/lib/utils"
 
 export function Step3ValorDesejado({ onNext }: { onNext: () => void }) {
   const { creditoConstrucao, setCreditoConstrucao } = useFunnelStore()
+  const categoria = creditoConstrucao.categoria_terreno
+  const regra = regraConstrucao(categoria)
+
+  // Teto por categoria: 80% do custo da obra (condomínio) ou 50% do VGV (fora).
   const valorMaximo = Math.floor(
-    limiteCreditoConstrucao(creditoConstrucao.valor_obra, creditoConstrucao.vgv)
+    limiteCreditoConstrucao(categoria, {
+      valorObra: creditoConstrucao.valor_obra,
+      vgv: creditoConstrucao.vgv,
+    })
   )
   const valorMinimo = CONFIG.creditoConstrucao.valorCreditoMinimo
+  const prazos = prazosDisponiveisConstrucao(categoria)
 
   const [valor, setValor] = useState(
     Math.min(creditoConstrucao.valor_solicitado, valorMaximo) || valorMinimo
   )
   const [prazo, setPrazo] = useState(
-    creditoConstrucao.prazo_meses || CONFIG.creditoConstrucao.prazoDefault
+    prazos.includes(creditoConstrucao.prazo_meses) ? creditoConstrucao.prazo_meses : regra.prazoDefault
   )
 
-  const valorTranche = Math.floor(valor / CONFIG.creditoConstrucao.numeroDeTranches)
+  // O teto pode ter caído (troca de categoria): o valor efetivo acompanha sem
+  // mutar estado durante o render.
+  const valorEfetivo = Math.min(Math.max(valor, valorMinimo), valorMaximo)
+  const valorTranche = Math.floor(valorEfetivo / CONFIG.creditoConstrucao.numeroDeTranches)
+  const creditoViavel = valorMaximo >= valorMinimo
 
   function handleNext() {
-    setCreditoConstrucao({ valor_solicitado: valor, prazo_meses: prazo })
+    if (!creditoViavel) return
+    setCreditoConstrucao({ valor_solicitado: valorEfetivo, prazo_meses: prazo })
     pushDataLayer("step_completed", {
       funil: "credito_construcao",
       step: 3,
-      valor_solicitado: valor,
+      valor_solicitado: valorEfetivo,
       prazo_meses: prazo,
+      categoria_terreno: categoria,
     })
     onNext()
   }
@@ -41,23 +60,23 @@ export function Step3ValorDesejado({ onNext }: { onNext: () => void }) {
       <div className="space-y-2">
         <h2 className="text-2xl font-bold tracking-tight">Quanto você precisa de crédito?</h2>
         <p className="text-muted-foreground text-sm">
-          Você pode solicitar até {formatarMoeda(valorMaximo)} — o menor entre 80% do
-          custo da obra e 50% do VGV.
+          Você pode solicitar até {formatarMoeda(valorMaximo)} — {Math.round(regra.ltv * 100)}%{" "}
+          {regra.base === "obra" ? "do custo da obra" : "do VGV"} ({regra.rotulo.toLowerCase()}).
         </p>
       </div>
 
       <div className="space-y-6">
         <div className="rounded-2xl border border-border bg-muted/30 p-6 text-center">
           <span className="text-4xl font-bold tracking-tight text-[var(--gold)]">
-            {formatarMoeda(valor)}
+            {formatarMoeda(valorEfetivo)}
           </span>
         </div>
 
         <Slider
           min={valorMinimo}
-          max={valorMaximo}
+          max={Math.max(valorMaximo, valorMinimo)}
           step={5_000}
-          value={[valor]}
+          value={[valorEfetivo]}
           onValueChange={(vals) => setValor(Array.isArray(vals) ? vals[0] : vals)}
         />
 
@@ -65,6 +84,14 @@ export function Step3ValorDesejado({ onNext }: { onNext: () => void }) {
           <span>{formatarMoeda(valorMinimo)}</span>
           <span>{formatarMoeda(valorMaximo)}</span>
         </div>
+
+        {!creditoViavel && (
+          <p className="text-xs text-destructive">
+            O teto desta categoria ({formatarMoeda(valorMaximo)}) fica abaixo do crédito mínimo de{" "}
+            {formatarMoeda(valorMinimo)}. Revise o{" "}
+            {regra.base === "obra" ? "custo da obra" : "VGV"} no passo anterior.
+          </p>
+        )}
       </div>
 
       <div className="rounded-xl bg-muted/50 p-4 space-y-2 text-sm">
@@ -79,7 +106,7 @@ export function Step3ValorDesejado({ onNext }: { onNext: () => void }) {
       <div className="space-y-3">
         <p className="text-sm font-medium">Prazo de pagamento</p>
         <div className="grid grid-cols-3 gap-2">
-          {CONFIG.creditoConstrucao.prazosDisponiveis.map((p) => (
+          {prazos.map((p) => (
             <button
               key={p}
               onClick={() => setPrazo(p)}
@@ -95,12 +122,14 @@ export function Step3ValorDesejado({ onNext }: { onNext: () => void }) {
           ))}
         </div>
         <p className="text-xs text-muted-foreground text-center">
-          {prazo / 12} anos ({prazo} parcelas)
+          {prazo / 12} anos ({prazo} parcelas) · máximo de {regra.prazoMaximo / 12} anos nesta
+          modalidade
         </p>
       </div>
 
       <Button
         onClick={handleNext}
+        disabled={!creditoViavel}
         className="w-full h-12 text-base font-semibold bg-[var(--gold)] text-[var(--gold-foreground)] hover:bg-[var(--gold-dark)]"
       >
         Ver simulação

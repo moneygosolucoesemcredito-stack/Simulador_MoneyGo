@@ -6,7 +6,7 @@ import { Building2, Car, CarFront, ArrowRight, TrendingDown, Clock, HardHat, Hom
 import { Card, CardContent } from "@/components/ui/card"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { CONFIG } from "@/lib/config"
+import { CONFIG, taxaMensalConstrucao } from "@/lib/config"
 import { formatarPercentual } from "@/lib/simulacao"
 
 const produtos = [
@@ -42,11 +42,11 @@ const produtos = [
     titulo: "Crédito de Construção",
     subtitulo: "Financiamento para construção em terreno próprio",
     descricao:
-      "Construa no seu terreno com crédito liberado em tranches conforme o avanço da obra e até 20 anos para pagar.",
-    taxa: formatarPercentual(CONFIG.creditoConstrucao.taxas.tr.taxaMensal),
-    modalidade: "Pós-fixada + TR ou IPCA",
-    prazo: "até 240 meses",
-    ltv: "Crédito até 80% da obra (máx. 50% do VGV)",
+      "Construa no seu terreno com crédito liberado em tranches conforme o avanço da obra. Condições por categoria do terreno: em condomínio, até 30 anos para pagar.",
+    taxa: formatarPercentual(taxaMensalConstrucao("condominio")),
+    modalidade: "Em condomínio: + TR · Fora: + IPCA",
+    prazo: "até 360 meses (condomínio)",
+    ltv: "80% da obra em condomínio · 50% do VGV fora",
     destaque: false,
   },
   {

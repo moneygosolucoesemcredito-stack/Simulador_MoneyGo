@@ -1,0 +1,194 @@
+LOG DE PROGRESSO — MÓDULO CRÉDITO PARA CONSTRUÇÃO
+Branch: claude/home-equity-property-value-limit-77nb38
+Data: 2026-08-05
+Status: FASE CONCLUÍDA (categorização do terreno + motor de taxas anual/mensal
+        + UI adaptativa + exportação em PDF)
+
+====================================================================
+1. OBJETIVO DESTA FASE
+====================================================================
+FASE 1 — Lógica de produto e segmentação
+  Seletor de categoria do terreno, com regras próprias:
+    DENTRO DE CONDOMÍNIO → só PF · 80% do CUSTO DA OBRA · 13,99% a.a. + TR ·
+                           até 360 meses (30 anos)
+    FORA DE CONDOMÍNIO   → PF e PJ · 50% do VGV · 1,25% a.m. + IPCA ·
+                           até 240 meses (20 anos)
+FASE 2 — Engenharia financeira e UI
+  - Motor distinguindo taxa ANUAL (TR) de MENSAL (IPCA).
+  - Campo de entrada pedindo "Custo da Obra" OU "VGV Estimado" conforme a
+    categoria.
+  - Download em PDF com resumo das condições e tabelas SAC/PRICE.
+
+====================================================================
+2. EXPLORAÇÃO — DE ONDE PARTIMOS
+====================================================================
+lib/config.ts ......................... CONFIG.creditoConstrucao com DOIS
+                                        indexadores selecionáveis pelo cliente
+                                        (tr 1,17% a.m. / ipca 1,25% a.m.) e
+                                        limiteCreditoConstrucao = MENOR entre
+                                        80% da obra e 50% do VGV
+lib/qualificacao.ts ................... qualificarCreditoConstrucao (sem
+                                        categoria, sem tomador, sem prazo)
+lib/simulacao.ts ...................... só taxa mensal; nenhuma conversão a.a.
+components/.../credito-construcao/ .... 6 steps; Step2 pedia obra E VGV juntos;
+                                        Step5 tinha seletor manual TR/IPCA e
+                                        NÃO tinha download de PDF
+lib/pdf-*.ts .......................... existiam apenas para Home Equity e
+                                        Financiamento Imobiliário
+stores/funnel-store.ts ................ CreditoConstrucaoState com `indexador`
+components/landing/ProductCards.tsx ... copy "até 80% da obra (máx. 50% do VGV)"
+
+====================================================================
+3. TESTES (escritos ANTES da implementação)
+====================================================================
+__tests__/construction_credit.test.ts   (25 testes — suíte principal)
+  Nome pedido: 'tests/construction_credit.test.js'. Mantido o stem, mas em
+  __tests__/ e TypeScript — convenção do repositório (vitest, alias "@/",
+  tipos compartilhados), igual ao que foi feito no Financiamento Imobiliário.
+  - PF em condomínio: só PF aceita; 80% da obra (810k reprova); VGV irrelevante;
+    13,99% a.a. → 1,0972% a.m.; 360 meses aceitos, 420 reprovados
+  - PJ fora de condomínio: PF e PJ aceitas; 50% do VGV (1,6M reprova); custo da
+    obra irrelevante; VGV mínimo exigido; 1,25% a.m. ↔ 16,08% a.a.;
+    240 meses no teto, 360 reprovados
+  - comparação direta: R$ 1.200.000 reprova em condomínio e aprova fora;
+    a parcela em condomínio sai menor (taxa e prazo mais favoráveis)
+  - conversões de taxa: inversas entre si, sanidade 12,68% a.a. ≈ 1% a.m.,
+    entradas inválidas → 0 (não NaN), e a simulação usando o mensal
+    equivalente (não a taxa anual crua — diferença material na parcela)
+  - tabelas: 360/240 parcelas, saldo final zerado, Σ amortizações = principal
+
+__tests__/construcao-ui.test.tsx        (16 testes — UI)
+  - Step 1: as duas categorias com suas condições; condomínio desabilita PJ e
+    pré-seleciona PF; fora libera PF/PJ e exige escolha; trocar fora(PJ) →
+    condomínio corrige o tomador para PF
+  - Step 2: condomínio pede "Custo da obra" (sem campo de VGV) e fora pede
+    "VGV estimado" (sem campo de obra); grava no campo certo do store
+  - Step 3: teto 800k × 1,5M, prazo 30a presente só em condomínio, valor
+    gravado nunca acima do teto
+  - Step 5: taxa da categoria com o equivalente; parcela pela taxa mensal
+    equivalente; 360 linhas na tabela; PDF recebe categoria/tomador/tabelas;
+    o seletor manual TR/IPCA sumiu
+
+__tests__/construcao-pdf.test.ts        (10 testes — PDF, jsPDF mockado)
+  - 4 tabelas desenhadas (resumo, comparativo, SAC, PRICE) e 2 páginas novas
+  - resumo por categoria: condomínio mostra "Custo da obra" e teto "80% do
+    custo da obra"; fora mostra "VGV estimado" e "50% do VGV"
+  - taxa publicada na periodicidade certa + equivalente na outra
+  - liberação em 5 tranches + Habite-se; fallback gerando as tabelas sozinho
+
+__tests__/construcao.test.ts .......... reescrito para as regras novas
+
+====================================================================
+4. IMPLEMENTAÇÃO
+====================================================================
+types/index.ts
+  + CategoriaTerrenoConstrucao = "condominio" | "fora_condominio"
+  + SimulacaoCreditoConstrucao ganha categoria_terreno, tipo_pessoa e taxa_anual
+
+lib/simulacao.ts
+  + taxaMensalEquivalente(taxaAnual) = (1 + i_a)^(1/12) − 1
+  + taxaAnualEquivalente(taxaMensal) = (1 + i_m)^12 − 1
+  As duas com guarda para entrada inválida (devolvem 0, nunca NaN).
+
+lib/config.ts
+  - taxas { tr, ipca }, indexadorDefault, ltvObra, ltvVgv, prazosDisponiveis
+    do produto                                              (TODOS REMOVIDOS)
+  + CONSTRUCAO_POR_CATEGORIA — público, base do teto, LTV, indexador,
+    periodicidade da taxa, taxa, prazo máximo e prazos ofertáveis
+  + regraConstrucao / taxaMensalConstrucao / taxaAnualConstrucao /
+    prazosDisponiveisConstrucao / tomadorPermitidoConstrucao
+  ~ limiteCreditoConstrucao(categoria, { valorObra, vgv }) — assinatura nova:
+    80% da obra em condomínio, 50% do VGV fora (nunca negativo)
+  + vgvMinimo (piso da base quando o teto sai do VGV)
+  ~ RATE_CONFIG.credito_construcao.min: 0,0117 → 0,0109 (comporta a taxa
+    mensal equivalente da categoria em condomínio)
+
+lib/qualificacao.ts
+  ~ qualificarCreditoConstrucao aceita categoria_terreno, tipo_pessoa e
+    prazo_meses; valida público (PJ reprova em condomínio), piso da base
+    (obra OU VGV), teto por categoria e prazo máximo da categoria
+
+stores/funnel-store.ts
+  + categoria_terreno e tipo_pessoa no CreditoConstrucaoState
+  - indexador (a taxa passa a ser derivada da categoria)
+
+Step1ValorTerreno.tsx
+  + seletor de categoria com as condições de cada uma no próprio cartão
+  + seletor de tomador: PJ desabilitada em condomínio; categoria exclusiva de
+    PF já deixa PF marcada; trocar de categoria corrige um tomador inválido
+  + grava o prazo default da categoria escolhida
+
+Step2ValorObra.tsx
+  ~ pede UM campo, conforme a categoria: "Custo da obra" ou "VGV estimado"
+  + campo monetário digitável (CurrencyInput) + régua elástica, sem teto
+  + mostra o crédito estimado da categoria enquanto o usuário digita
+
+Step3ValorDesejado.tsx
+  ~ teto e prazos vindos da categoria; valor efetivo nunca acima do teto
+  + aviso quando o teto fica abaixo do crédito mínimo do produto
+
+Step5Resultado.tsx
+  - seletor manual TR/IPCA                                        (REMOVIDO)
+  + taxa da categoria publicada na periodicidade certa + equivalente na outra
+  + <TabelaAmortizacao> com todas as parcelas (SAC/PRICE)
+  + botão "Baixar PDF"
+
+Step6Contato.tsx
+  + categoria, tomador e prazo enviados à qualificação; payload do lead leva
+    categoria_terreno, tipo_pessoa, taxa mensal equivalente e taxa anual
+
+lib/pdf-credito-construcao.ts  (NOVO)
+  + resumo: categoria, tomador, terreno, base do teto (obra OU VGV), teto,
+    crédito, prazo, taxa publicada + equivalente, tranches
+  + comparativo SAC × PRICE
+  + tabelas completas dos dois sistemas, uma página por sistema
+
+components/landing/ProductCards.tsx
+  ~ copy do card: condições por categoria, até 30 anos em condomínio
+
+====================================================================
+5. VALIDAÇÃO DO LTV ANTES DO RESULTADO
+====================================================================
+A trava é aplicada em três camadas, como pedido:
+  1. Step 3 — o slider tem `max` = teto da categoria e o valor efetivo é
+     recortado (min) antes de ir para o store; não há como avançar acima.
+  2. Step 6 — qualificarCreditoConstrucao roda antes do envio do lead e marca
+     qualificado=false quando o crédito excede o teto (o lead vai ao CRM com a
+     tag e o usuário é levado a /nao-qualificado).
+  3. Testes — cenários exatos no limite (800.000 aprova / 810.000 reprova em
+     condomínio; 1.500.000 aprova / 1.600.000 reprova fora).
+
+====================================================================
+6. VERIFICAÇÃO
+====================================================================
+npm test         -> 20 arquivos, 270 testes, todos passando (52 novos)
+npx tsc --noEmit -> sem erros
+npm run lint     -> sem novos problemas (5 pré-existentes, em arquivos não
+                    tocados)
+npm run build    -> build de produção concluído
+
+Validação em navegador (Playwright sobre `npm run dev`), os dois caminhos:
+  - Condomínio/PF, obra de R$ 2.000.000, 30 anos → teto 80%, taxa 13,99% a.a.
+    (1,10% ao mês), tabela com 360 parcelas.
+  - Fora/PJ, VGV de R$ 6.000.000, 20 anos → teto 50% do VGV, taxa 1,25% a.m.
+    (16,08% ao ano), tabela com 240 parcelas.
+
+Sem impacto nos demais produtos: HE, FI, Auto Equity e Financiamento de
+Veículo seguem com as suítes verdes.
+
+====================================================================
+7. PONTOS EM ABERTO PARA A PRÓXIMA SESSÃO
+====================================================================
+- O custo da obra deixa de ser perguntado fora de condomínio (a UI pede só o
+  VGV). O campo continua no store com o valor default e vai no payload do lead.
+  Se a operação precisar do orçamento da obra também nessa categoria, é um
+  campo extra no Step 2.
+- A idade máxima do produto (60 anos) não conversa com o prazo de 30 anos em
+  condomínio: não existe trava "idade + prazo" como no Home Equity. Se o
+  seguro habitacional exigir, é a mesma regra do HE aplicada aqui.
+- Terreno em condomínio: a categoria é declarada pelo cliente, sem validação
+  documental — permanece assim até a análise.
+- O produto ainda não tem página de PDF para o operador nem taxa digitável
+  (RATE_CONFIG.credito_construcao existe, mas nenhuma tela usa).
+- O Financiamento de Veículo continua sem gerador de PDF — mesmo padrão dos
+  três já implementados, se for solicitado.
