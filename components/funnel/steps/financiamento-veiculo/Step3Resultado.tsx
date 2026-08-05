@@ -17,10 +17,9 @@ export function Step3Resultado({ onNext }: { onNext: () => void }) {
   const { financiamentoVeiculo } = useFunnelStore()
   const { taxaMensal } = CONFIG.financiamentoVeiculo
 
-  const valorFinanciado = Math.max(
-    0,
-    financiamentoVeiculo.valor_veiculo - financiamentoVeiculo.valor_entrada
-  )
+  // O cliente informa direto o quanto quer financiar (trava de 80% no Step 2).
+  const valorFinanciado = financiamentoVeiculo.valor_financiado
+  const recursosProprios = Math.max(0, financiamentoVeiculo.valor_veiculo - valorFinanciado)
 
   const resultado = useMemo(
     () =>
@@ -68,18 +67,14 @@ export function Step3Resultado({ onNext }: { onNext: () => void }) {
             <span className="font-medium">{formatarMoeda(financiamentoVeiculo.valor_veiculo)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Entrada</span>
-            <span className="font-medium">
-              {financiamentoVeiculo.valor_entrada > 0
-                ? formatarMoeda(financiamentoVeiculo.valor_entrada)
-                : "Sem entrada"}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Total financiado</span>
+            <span className="text-muted-foreground">Valor a financiar</span>
             <span className="font-semibold text-[var(--gold)]">
               {formatarMoeda(valorFinanciado)}
             </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Recursos próprios</span>
+            <span className="font-medium">{formatarMoeda(recursosProprios)}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Taxa aplicada</span>

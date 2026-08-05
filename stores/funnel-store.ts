@@ -67,6 +67,8 @@ export interface FinanciamentoVeiculoState {
   step: number
   marca_modelo_ano: string
   ano_veiculo: number
+  /** Leve ou pesado — pesado só é aceito com até 5 anos de fabricação. */
+  categoria_veiculo: CategoriaVeiculo
   /** Valor do veículo (FIPE, ajustável pelo cliente). */
   valor_veiculo: number
   /** Placa consultada (quando o usuário escolheu "tenho a placa"). */
@@ -74,8 +76,9 @@ export interface FinanciamentoVeiculoState {
   combustivel: string
   potencia: string
   fipe_codigo: string
-  /** Entrada paga pelo cliente (0 = financia 100%). */
-  valor_entrada: number
+  /** Montante que o cliente quer captar — informado direto pelo usuário
+   *  (2026-08; antes o campo era a entrada). Limitado a 80% do bem. */
+  valor_financiado: number
   prazo_meses: number
 }
 
@@ -184,12 +187,13 @@ const defaultFinanciamentoVeiculo: FinanciamentoVeiculoState = {
   step: 1,
   marca_modelo_ano: "",
   ano_veiculo: new Date().getFullYear() - 2,
+  categoria_veiculo: "leve",
   valor_veiculo: 0,
   placa: "",
   combustivel: "",
   potencia: "",
   fipe_codigo: "",
-  valor_entrada: 0,
+  valor_financiado: 0,
   prazo_meses: 48,
 }
 

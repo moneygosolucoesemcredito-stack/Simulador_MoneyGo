@@ -11,41 +11,45 @@ import { CONFIG } from "@/lib/config"
 import { pushDataLayer } from "@/components/tracking/GTM"
 import { cn } from "@/lib/utils"
 
-/** Menor valor que faz sentido financiar (evita entrada = 100% do bem). */
-const FINANCIADO_MINIMO = 5_000
-
-export function Step2EntradaPrazo({ onNext }: { onNext: () => void }) {
+export function Step2ValorFinanciar({ onNext }: { onNext: () => void }) {
   const { financiamentoVeiculo, setFinanciamentoVeiculo } = useFunnelStore()
-  const { taxaMensal, prazosDisponiveis, prazoDefault } = CONFIG.financiamentoVeiculo
+  const { taxaMensal, prazosDisponiveis, prazoDefault, ltv, valorFinanciadoMinimo } =
+    CONFIG.financiamentoVeiculo
 
   const valorVeiculo = financiamentoVeiculo.valor_veiculo
-  const entradaMaxima = Math.max(0, valorVeiculo - FINANCIADO_MINIMO)
+  // Trava de LTV: o valor a financiar não passa de 80% do valor do veículo.
+  const financiadoMaximo = Math.floor(valorVeiculo * ltv)
 
-  const [entrada, setEntrada] = useState(
-    Math.min(financiamentoVeiculo.valor_entrada, entradaMaxima)
+  const [valor, setValor] = useState(
+    financiamentoVeiculo.valor_financiado > 0
+      ? Math.min(financiamentoVeiculo.valor_financiado, financiadoMaximo)
+      : financiadoMaximo
   )
   const [prazo, setPrazo] = useState(financiamentoVeiculo.prazo_meses || prazoDefault)
 
-  const valorFinanciado = Math.max(0, valorVeiculo - entrada)
-  const entradaValida = entrada >= 0 && entrada <= entradaMaxima
+  const acimaDoTeto = valor > financiadoMaximo
+  const abaixoDoMinimo = valor > 0 && valor < valorFinanciadoMinimo
+  const valorValido = !acimaDoTeto && valor >= valorFinanciadoMinimo
+  // O que sobra é aportado pelo cliente na contratação.
+  const recursosProprios = Math.max(0, valorVeiculo - Math.min(valor, financiadoMaximo))
 
   const resultado = useMemo(
     () =>
       calcularFinanciamentoVeiculo({
-        valorCredito: valorFinanciado,
+        valorCredito: valorValido ? valor : 0,
         taxaMensal,
         prazoMeses: prazo,
       }),
-    [valorFinanciado, taxaMensal, prazo]
+    [valor, valorValido, taxaMensal, prazo]
   )
 
   function handleNext() {
-    if (!entradaValida) return
-    setFinanciamentoVeiculo({ valor_entrada: entrada, prazo_meses: prazo })
+    if (!valorValido) return
+    setFinanciamentoVeiculo({ valor_financiado: valor, prazo_meses: prazo })
     pushDataLayer("step_completed", {
       funil: "financiamento_veiculo",
       step: 2,
-      valor_entrada: entrada,
+      valor_financiado: valor,
       prazo_meses: prazo,
     })
     onNext()
@@ -54,35 +58,52 @@ export function Step2EntradaPrazo({ onNext }: { onNext: () => void }) {
   return (
     <div className="space-y-8">
       <div className="space-y-2">
-        <h2 className="text-2xl font-bold tracking-tight">Entrada e prazo</h2>
+        <h2 className="text-2xl font-bold tracking-tight">Valor a financiar e prazo</h2>
         <p className="text-muted-foreground text-sm">
-          Financie até 100% do valor do veículo ({formatarMoeda(valorVeiculo)}). A entrada é
-          opcional.
+          Informe quanto você quer financiar. O limite é {Math.round(ltv * 100)}% do valor do veículo
+          ({formatarMoeda(valorVeiculo)}), ou seja, até {formatarMoeda(financiadoMaximo)}.
         </p>
       </div>
 
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <Label htmlFor="entrada">Valor da entrada</Label>
-          <span className="text-xs text-muted-foreground">
-            {valorVeiculo > 0 ? Math.round((entrada / valorVeiculo) * 100) : 0}% do veículo
+          <Label htmlFor="valor-financiar">Valor a financiar</Label>
+          <span
+            className={cn(
+              "text-xs",
+              acimaDoTeto ? "text-destructive font-medium" : "text-muted-foreground"
+            )}
+          >
+            {valorVeiculo > 0 ? Math.round((valor / valorVeiculo) * 100) : 0}% do veículo
           </span>
         </div>
-        <CurrencyInput
-          id="entrada"
-          value={entrada}
-          onChange={(v) => setEntrada(Math.min(v, entradaMaxima))}
-        />
+        <CurrencyInput id="valor-financiar" value={valor} onChange={setValor} />
+
+        {acimaDoTeto ? (
+          <p className="text-destructive text-xs">
+            O valor a financiar não pode ultrapassar {Math.round(ltv * 100)}% do valor do veículo (
+            {formatarMoeda(financiadoMaximo)}).
+          </p>
+        ) : abaixoDoMinimo ? (
+          <p className="text-destructive text-xs">
+            Valor abaixo do mínimo financiável de {formatarMoeda(valorFinanciadoMinimo)}.
+          </p>
+        ) : (
+          <p className="text-muted-foreground text-xs">
+            Recursos próprios na contratação: {formatarMoeda(recursosProprios)}.
+          </p>
+        )}
+
         <Slider
-          min={0}
-          max={entradaMaxima}
+          min={valorFinanciadoMinimo}
+          max={Math.max(financiadoMaximo, valorFinanciadoMinimo)}
           step={1_000}
-          value={[Math.min(entrada, entradaMaxima)]}
-          onValueChange={(vals) => setEntrada(Array.isArray(vals) ? vals[0] : vals)}
+          value={[Math.min(Math.max(valor, valorFinanciadoMinimo), financiadoMaximo)]}
+          onValueChange={(vals) => setValor(Array.isArray(vals) ? vals[0] : vals)}
         />
         <div className="flex justify-between text-xs text-muted-foreground">
-          <span>Sem entrada</span>
-          <span>{formatarMoeda(entradaMaxima)}</span>
+          <span>{formatarMoeda(valorFinanciadoMinimo)}</span>
+          <span>{formatarMoeda(financiadoMaximo)}</span>
         </div>
       </div>
 
@@ -108,8 +129,10 @@ export function Step2EntradaPrazo({ onNext }: { onNext: () => void }) {
 
       <div className="rounded-2xl border border-border bg-muted/30 p-5 space-y-2">
         <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">Valor financiado</span>
-          <span className="font-semibold">{formatarMoeda(valorFinanciado)}</span>
+          <span className="text-muted-foreground">Valor a financiar</span>
+          <span className={cn("font-semibold", acimaDoTeto && "text-destructive")}>
+            {formatarMoeda(valor)}
+          </span>
         </div>
         <div className="flex justify-between items-baseline">
           <span className="text-sm text-muted-foreground">Parcela estimada</span>
@@ -125,7 +148,7 @@ export function Step2EntradaPrazo({ onNext }: { onNext: () => void }) {
 
       <Button
         onClick={handleNext}
-        disabled={!entradaValida || valorFinanciado < FINANCIADO_MINIMO}
+        disabled={!valorValido}
         className="w-full h-12 text-base font-semibold bg-[var(--gold)] text-[var(--gold-foreground)] hover:bg-[var(--gold-dark)] disabled:opacity-50"
       >
         Ver simulação completa

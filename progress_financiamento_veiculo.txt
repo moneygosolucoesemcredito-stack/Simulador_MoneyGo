@@ -1,0 +1,167 @@
+LOG DE PROGRESSO — MÓDULO FINANCIAMENTO DE VEÍCULO
+Branch: claude/home-equity-property-value-limit-77nb38
+Data: 2026-08-05
+Status: FASE CONCLUÍDA (campo "Valor a financiar" + trava de LTV 80% +
+        elegibilidade de veículos pesados)
+
+====================================================================
+1. OBJETIVO DESTA FASE
+====================================================================
+FASE 1 — UI e inputs
+  - "VALOR DA ENTRADA" passa a ser "VALOR A FINANCIAR".
+  - Remover a frase "a entrada é opcional" da interface.
+  - O usuário informa direto o montante que quer captar (antes informava o
+    valor aportado e o sistema deduzia o financiado).
+FASE 2 — Regras de negócio
+  - O valor a financiar não pode ultrapassar 80% do valor do veículo.
+  - Veículo PESADO só é aceito com até 5 anos de fabricação; acima disso a
+    resposta é "Bem não elegível para esta modalidade".
+
+====================================================================
+2. EXPLORAÇÃO — ONDE AS REFERÊNCIAS ESTAVAM
+====================================================================
+grep por "entrada"/"opcional"/"100%":
+
+  Step2EntradaPrazo.tsx ......... <Label>Valor da entrada</Label>,
+                                  "A entrada é opcional", "Financie até 100%",
+                                  rótulo "Sem entrada" na régua
+  Step3Resultado.tsx ............ linha "Entrada" / "Sem entrada"
+  Step4Contato.tsx .............. valorFinanciado = veículo − entrada
+  stores/funnel-store.ts ........ FinanciamentoVeiculoState.valor_entrada
+  types/index.ts ................ SimulacaoFinanciamentoVeiculo.valor_entrada
+  lib/config.ts ................. CONFIG.financiamentoVeiculo.ltv = 1 (100%)
+  lib/qualificacao.ts ........... qualificarFinanciamentoVeiculo (LTV + prazo)
+  components/landing/ProductCards.tsx ... "Financia até 100% do valor do bem"
+  lib/kommo.ts .................. envia CF_VALOR_ENTRADA quando > 0
+
+O produto NÃO tinha categoria de veículo (leve/pesado) — só o Auto Equity
+tinha. Sem ela não havia como aplicar a regra dos pesados, então a categoria
+foi trazida para o funil (mesmo padrão do Auto Equity, inclusive a troca de
+tabela FIPE: carros para leve, caminhões para pesado).
+
+====================================================================
+3. TESTES (escritos ANTES da implementação)
+====================================================================
+__tests__/vehicle_financing_logic.test.ts   (19 testes — suíte principal)
+  Nome pedido: 'tests/vehicle_financing_logic.test.js'. Mantido o stem, em
+  __tests__/ e TypeScript (convenção do repositório, como nas fases do FI e
+  da Construção).
+  Cenários exigidos no briefing:
+    - financiamento > 80% do bem  -> FALHA (80.000,01 de um bem de 100.000)
+    - veículo pesado com 4 anos   -> PASSA
+    - veículo pesado com 6 anos   -> FALHA, com a mensagem
+                                     "Bem não elegível para esta modalidade"
+  Complementos:
+    - 80% exatos passam; 90% falha; 79% passa; 100% (permitido na regra
+      antiga) agora falha
+    - pesado com exatamente 5 anos passa (limite inclusivo)
+    - pesado sem ano identificado falha
+    - leve com 12 anos continua elegível (a trava é só do pesado)
+    - pesado de 6 anos acima do LTV acumula os DOIS motivos
+    - prazo máximo de 60 meses preservado
+    - parcela calculada sobre o montante informado
+
+__tests__/financiamento-veiculo-ui.test.tsx  (12 testes — UI)
+  - Step 1: pesado 4 anos avança; pesado 6 anos mostra "Bem não elegível para
+    esta modalidade." e some o botão Continuar; leve 12 anos avança; a
+    categoria é gravada no funil
+  - Step 2: existe o label "Valor a financiar" e NÃO existe "Valor da
+    entrada"; o texto do passo não contém "entrada é opcional", "sem entrada"
+    nem "100% do valor do veículo"; o montante digitado vai para o store;
+    90% do bem bloqueia o avanço; 80% exatos passam e a régua tem max = 80%;
+    recursos próprios exibidos; parcela conforme o valor informado
+  - Step 3: mostra "Valor a financiar" e "Recursos próprios"; não há "Entrada"
+
+__tests__/financiamento-veiculo.test.ts ... atualizado (LTV 100% -> 80%)
+
+====================================================================
+4. IMPLEMENTAÇÃO
+====================================================================
+lib/config.ts
+  ~ financiamentoVeiculo.ltv: 1 -> 0.8
+  + valorFinanciadoMinimo: 5_000 (antes era constante solta no componente)
+  + idadeVeiculoMaximaPesado: 5
+  + idadeMaximaVeiculoFinanciamento(categoria) — 5 para pesado, Infinity para
+    leve (o produto não trava idade de leve)
+  + anoMinimoVeiculoFinanciamento(categoria, anoReferencia)
+
+lib/qualificacao.ts
+  + BEM_NAO_ELEGIVEL_FINANCIAMENTO — mensagem única, usada na UI e nos motivos
+  + qualificarVeiculoFinanciamento({ ano_veiculo, categoria_veiculo }) —
+    elegibilidade do BEM, avaliada já no Step 1
+  ~ qualificarFinanciamentoVeiculo aceita categoria_veiculo e ano_veiculo e
+    aplica as duas travas (LTV 80% + idade do pesado)
+
+stores/funnel-store.ts
+  - valor_entrada                                              (REMOVIDO)
+  + valor_financiado — o montante que o cliente quer captar
+  + categoria_veiculo (default "leve")
+
+types/index.ts
+  ~ SimulacaoFinanciamentoVeiculo: valor_entrada passa a ser DERIVADO
+    (recursos próprios = veículo − financiado) e entram categoria_veiculo e
+    ano_veiculo. O campo foi mantido no payload porque o Kommo mapeia
+    CF_VALOR_ENTRADA.
+
+Step1Veiculo.tsx
+  + seletor de categoria (Leve / Pesado) com o limite de idade no card do
+    pesado; a cascata FIPE usa a tabela da categoria
+  + veículo pesado fora do limite exibe "Bem não elegível para esta
+    modalidade." e não oferece o botão Continuar
+
+Step2EntradaPrazo.tsx -> Step2ValorFinanciar.tsx  (ARQUIVO RENOMEADO)
+  ~ título "Valor a financiar e prazo"; label "Valor a financiar"
+  - "A entrada é opcional", "Financie até 100%", "Sem entrada"   (REMOVIDOS)
+  ~ o input passa a ser o montante a captar; a régua vai de 5.000 a 80% do bem
+  + erro quando o valor passa de 80% (o avanço fica bloqueado) e quando fica
+    abaixo do mínimo financiável
+  + o percentual e o resumo mostram o valor DIGITADO (em vermelho quando
+    estoura o teto), não o valor recortado — o usuário vê o próprio erro
+  + linha "Recursos próprios na contratação" no lugar do texto de entrada
+
+Step3Resultado.tsx
+  ~ "Entrada"/"Total financiado" -> "Valor a financiar" + "Recursos próprios"
+
+Step4Contato.tsx
+  ~ usa valor_financiado; envia categoria_veiculo e ano_veiculo para a
+    qualificação (trava do pesado) e no payload do lead
+
+app/financiamento-veiculo/page.tsx ... importa o novo Step2ValorFinanciar
+components/landing/ProductCards.tsx .. copy do card: "Financia até 80% do
+                                       valor do bem" (derivado do CONFIG)
+
+====================================================================
+5. VERIFICAÇÃO
+====================================================================
+npm test         -> 22 arquivos, 301 testes, todos passando (31 novos)
+npx tsc --noEmit -> sem erros
+npm run lint     -> sem novos problemas (5 pré-existentes, em arquivos não
+                    tocados)
+npm run build    -> build de produção concluído
+
+Validação em navegador (Playwright sobre `npm run dev`), veículo de
+R$ 400.000: o passo mostra "Valor a financiar" com limite de R$ 320.000;
+digitar 350.000 aciona a mensagem de teto e desabilita "Ver simulação
+completa"; nenhuma menção a entrada opcional na tela.
+
+Sem impacto nos demais produtos: HE, FI, Construção e Auto Equity seguem com
+as suítes verdes. O Auto Equity mantém a própria regra de idade (leve 20 anos
+/ pesado 15 anos) — a trava de 5 anos é exclusiva do Financiamento.
+
+====================================================================
+6. PONTOS EM ABERTO PARA A PRÓXIMA SESSÃO
+====================================================================
+- A categoria (leve/pesado) é declarada pelo cliente; a consulta por placa
+  (/api/placa) não devolve o segmento do veículo. Se o provedor passar a
+  expor esse campo, dá para inferir e validar a escolha.
+- Veículo LEVE segue sem trava de idade neste produto. Se a operação quiser
+  um teto (como os 20 anos do Auto Equity), é só preencher
+  idadeMaximaVeiculoFinanciamento("leve").
+- O lead de veículo pesado inelegível é descartado no Step 1 (a jornada para
+  ali), mesmo padrão adotado no Auto Equity. Se o produto quiser capturar
+  esse contato mesmo assim, é uma mudança pequena no Step1Veiculo.
+- O Kommo continua recebendo CF_VALOR_ENTRADA, agora com os recursos próprios
+  (bem − financiado). Se o CRM precisar do campo "valor a financiar"
+  separado, criar o custom field e mapear em lib/kommo.ts.
+- O Financiamento de Veículo continua sem gerador de PDF — é o único produto
+  de crédito sem exportação (HE, FI e Construção já têm).

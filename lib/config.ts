@@ -88,9 +88,14 @@ export const CONFIG = {
     // "A partir de" 1,39% a.m. — pré-fixada (sem indexador).
     taxaMensal: 0.0139,
     modalidadeTaxa: "pre_fixada" as const,
-    // Financia até 100% do valor do veículo.
-    ltv: 1,
+    // Financia até 80% do valor do veículo (2026-08; antes eram 100%).
+    ltv: 0.8,
     prazoMaximo: 60,
+    // Menor valor que faz sentido financiar.
+    valorFinanciadoMinimo: 5_000,
+    // Elegibilidade do bem: veículo PESADO só é aceito com até 5 anos de
+    // fabricação. Veículo leve não tem trava de idade nesta modalidade.
+    idadeVeiculoMaximaPesado: 5,
     prazosDisponiveis: [12, 24, 36, 48, 60],
     prazoDefault: 48,
   },
@@ -253,6 +258,26 @@ export function prazosDisponiveisHomeEquity(idade: number): number[] {
 export function idadeMaximaVeiculo(categoria: CategoriaVeiculo = "leve"): number {
   const { idadeVeiculoMaximaLeve, idadeVeiculoMaximaPesado } = CONFIG.autoEquity
   return categoria === "pesado" ? idadeVeiculoMaximaPesado : idadeVeiculoMaximaLeve
+}
+
+/**
+ * Financiamento de Veículo — idade máxima (anos de fabricação) aceita na
+ * categoria. Veículo pesado só entra com até 5 anos; leve não tem trava de
+ * idade nesta modalidade (Infinity).
+ */
+export function idadeMaximaVeiculoFinanciamento(categoria: CategoriaVeiculo = "leve"): number {
+  return categoria === "pesado"
+    ? CONFIG.financiamentoVeiculo.idadeVeiculoMaximaPesado
+    : Number.POSITIVE_INFINITY
+}
+
+/** Ano de fabricação mais antigo aceito no Financiamento de Veículo (pesado). */
+export function anoMinimoVeiculoFinanciamento(
+  categoria: CategoriaVeiculo = "leve",
+  anoReferencia: number = new Date().getFullYear()
+): number {
+  const idadeMaxima = idadeMaximaVeiculoFinanciamento(categoria)
+  return Number.isFinite(idadeMaxima) ? anoReferencia - idadeMaxima : 0
 }
 
 /** Ano de fabricação mais antigo aceito para a categoria (ex.: leve em 2026 → 2006). */

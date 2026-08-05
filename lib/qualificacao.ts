@@ -3,6 +3,7 @@ import {
   CONFIG,
   HE_IDADE_MAIS_PRAZO_MAXIMO_ANOS,
   idadeMaximaVeiculo,
+  idadeMaximaVeiculoFinanciamento,
   limiteCreditoConstrucao,
   ltvParaTipoImovel,
   ltvParaTipoImovelFI,
@@ -232,10 +233,45 @@ export function qualificarCreditoConstrucao(params: {
   return { qualificado: motivos.length === 0, motivos }
 }
 
+/** Mensagem única de bem recusado no Financiamento de Veículo. */
+export const BEM_NAO_ELEGIVEL_FINANCIAMENTO = "Bem não elegível para esta modalidade"
+
+/**
+ * Elegibilidade do BEM no Financiamento de Veículo, avaliada já no Step 1:
+ * veículo PESADO só é aceito com até 5 anos de fabricação. Veículo leve não
+ * tem trava de idade nesta modalidade.
+ */
+export function qualificarVeiculoFinanciamento(params: {
+  ano_veiculo: number
+  categoria_veiculo?: CategoriaVeiculo | string
+  anoReferencia?: number
+}): ResultadoQualificacao {
+  const motivos: string[] = []
+  const categoria: CategoriaVeiculo = params.categoria_veiculo === "pesado" ? "pesado" : "leve"
+
+  if (categoria === "pesado") {
+    const anoAtual = params.anoReferencia ?? new Date().getFullYear()
+    const idadeMaxima = idadeMaximaVeiculoFinanciamento(categoria)
+    if (!params.ano_veiculo || params.ano_veiculo <= 0) {
+      motivos.push(`${BEM_NAO_ELEGIVEL_FINANCIAMENTO}: ano de fabricação não identificado`)
+    } else if (anoAtual - params.ano_veiculo > idadeMaxima) {
+      motivos.push(
+        `${BEM_NAO_ELEGIVEL_FINANCIAMENTO}: veículo pesado com mais de ${idadeMaxima} anos de fabricação`
+      )
+    }
+  }
+
+  return { qualificado: motivos.length === 0, motivos }
+}
+
 export function qualificarFinanciamentoVeiculo(params: {
   valor_veiculo: number
   valor_solicitado: number
   prazo_meses: number
+  /** Leve ou pesado — pesado tem trava de idade. Ausente assume `leve`. */
+  categoria_veiculo?: CategoriaVeiculo | string
+  /** Ano de fabricação — usado na trava de idade do veículo pesado. */
+  ano_veiculo?: number
 }): ResultadoQualificacao {
   const { financiamentoVeiculo: cfg } = CONFIG
   const motivos: string[] = []
@@ -244,12 +280,23 @@ export function qualificarFinanciamentoVeiculo(params: {
     motivos.push("Valores do veículo e do financiamento devem ser maiores que zero")
   }
 
+  // Trava de LTV: o valor a financiar não pode passar de 80% do bem.
   if (params.valor_solicitado > params.valor_veiculo * cfg.ltv) {
     motivos.push(`Valor solicitado superior a ${Math.round(cfg.ltv * 100)}% do valor do veículo`)
   }
 
   if (params.prazo_meses > cfg.prazoMaximo) {
     motivos.push(`Prazo superior ao máximo de ${cfg.prazoMaximo} meses`)
+  }
+
+  // Elegibilidade do bem (idade do veículo pesado).
+  if (params.ano_veiculo !== undefined) {
+    motivos.push(
+      ...qualificarVeiculoFinanciamento({
+        ano_veiculo: params.ano_veiculo,
+        categoria_veiculo: params.categoria_veiculo,
+      }).motivos
+    )
   }
 
   return { qualificado: motivos.length === 0, motivos }

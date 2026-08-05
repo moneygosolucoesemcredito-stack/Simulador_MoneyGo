@@ -87,10 +87,14 @@ export interface SimulacaoAutoEquity {
 
 export interface SimulacaoFinanciamentoVeiculo {
   marca_modelo_ano: string
+  /** Leve ou pesado — pesado só é aceito com até 5 anos de fabricação. */
+  categoria_veiculo?: CategoriaVeiculo
+  ano_veiculo?: number
   valor_veiculo: number
-  /** Entrada paga pelo cliente (0 = financia 100% do bem) */
+  /** Recursos próprios = veículo − valor financiado (o antigo campo de entrada,
+   *  agora derivado: o cliente informa quanto quer financiar). */
   valor_entrada: number
-  /** Valor financiado = veículo − entrada */
+  /** Valor a financiar, informado pelo cliente — no máximo 80% do bem. */
   valor_solicitado: number
   prazo_meses: number
   parcela_price: number

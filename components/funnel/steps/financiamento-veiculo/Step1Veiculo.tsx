@@ -8,9 +8,20 @@ import { CurrencyInput } from "@/components/funnel/CurrencyInput"
 import { useFunnelStore } from "@/stores/funnel-store"
 import { pushDataLayer } from "@/components/tracking/GTM"
 import { formatarMoeda } from "@/lib/simulacao"
-import { Car, ThumbsUp, Loader2, CheckCircle2, ArrowLeft, Search } from "lucide-react"
+import { AlertCircle, Car, Truck, ThumbsUp, Loader2, CheckCircle2, ArrowLeft, Search } from "lucide-react"
 import { consultarPlaca, normalizarPlaca, placaValida } from "@/lib/placa"
-import { listarMarcas, listarModelos, listarAnos, consultarPreco, type FipeItem } from "@/lib/fipe"
+import {
+  listarMarcas,
+  listarModelos,
+  listarAnos,
+  consultarPreco,
+  tabelaFipeDaCategoria,
+  type FipeItem,
+} from "@/lib/fipe"
+import { anoMinimoVeiculoFinanciamento, idadeMaximaVeiculoFinanciamento } from "@/lib/config"
+import { qualificarVeiculoFinanciamento } from "@/lib/qualificacao"
+import { cn } from "@/lib/utils"
+import type { CategoriaVeiculo } from "@/types"
 
 const anoAtual = new Date().getFullYear()
 
@@ -29,6 +40,38 @@ interface VeiculoEncontrado {
 
 const inputSelectClass =
   "flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-base disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+
+const CATEGORIAS: {
+  valor: CategoriaVeiculo
+  titulo: string
+  exemplos: string
+  icon: typeof Car
+}[] = [
+  { valor: "leve", titulo: "Leve", exemplos: "Carro, SUV, picape ou utilitário leve", icon: Car },
+  { valor: "pesado", titulo: "Pesado", exemplos: "Caminhão, cavalo mecânico ou ônibus", icon: Truck },
+]
+
+/** Bem fora dos critérios do produto: a jornada para aqui. */
+function VeiculoInelegivel({ motivos }: { motivos: string[] }) {
+  return (
+    <div className="flex gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+      <div className="space-y-1">
+        <p className="font-medium">Bem não elegível para esta modalidade.</p>
+        <ul className="list-disc pl-4 text-xs">
+          {motivos.map((m) => (
+            <li key={m}>{m}</li>
+          ))}
+        </ul>
+        <p className="text-xs">
+          No Financiamento de Veículo, veículos pesados são aceitos com até{" "}
+          {idadeMaximaVeiculoFinanciamento("pesado")} anos de fabricação (a partir de{" "}
+          {anoMinimoVeiculoFinanciamento("pesado", anoAtual)}).
+        </p>
+      </div>
+    </div>
+  )
+}
 
 /** Cartão com os dados encontrados do veículo. */
 function CartaoVeiculo({ veiculo }: { veiculo: VeiculoEncontrado }) {
@@ -159,7 +202,15 @@ function PlacaForm({
 }
 
 /** Caminho "Buscar por modelo" — FIPE em cascata (marca → modelo → ano). */
-function ManualForm({ onFound }: { onFound: (v: VeiculoEncontrado) => void }) {
+function ManualForm({
+  categoria,
+  onFound,
+}: {
+  categoria: CategoriaVeiculo
+  onFound: (v: VeiculoEncontrado) => void
+}) {
+  // Leves usam a tabela de carros; pesados, a de caminhões.
+  const tabela = tabelaFipeDaCategoria(categoria)
   const [marcas, setMarcas] = useState<FipeItem[]>([])
   const [modelos, setModelos] = useState<FipeItem[]>([])
   const [anos, setAnos] = useState<FipeItem[]>([])
@@ -170,12 +221,12 @@ function ManualForm({ onFound }: { onFound: (v: VeiculoEncontrado) => void }) {
   const [erro, setErro] = useState<string | null>(null)
 
   useEffect(() => {
-    listarMarcas().then((m) => {
+    listarMarcas(tabela).then((m) => {
       setMarcas(m)
       setCarregando(null)
       if (m.length === 0) setErro("Não foi possível carregar a tabela FIPE agora. Tente novamente.")
     })
-  }, [])
+  }, [tabela])
 
   async function selecionarMarca(codigo: string) {
     setMarca(codigo)
@@ -185,7 +236,7 @@ function ManualForm({ onFound }: { onFound: (v: VeiculoEncontrado) => void }) {
     setAnos([])
     if (!codigo) return
     setCarregando("modelos")
-    setModelos(await listarModelos(codigo))
+    setModelos(await listarModelos(codigo, tabela))
     setCarregando(null)
   }
 
@@ -195,7 +246,7 @@ function ManualForm({ onFound }: { onFound: (v: VeiculoEncontrado) => void }) {
     setAnos([])
     if (!codigo) return
     setCarregando("anos")
-    setAnos(await listarAnos(marca, codigo))
+    setAnos(await listarAnos(marca, codigo, tabela))
     setCarregando(null)
   }
 
@@ -203,7 +254,7 @@ function ManualForm({ onFound }: { onFound: (v: VeiculoEncontrado) => void }) {
     setAno(codigo)
     if (!codigo) return
     setCarregando("preco")
-    const preco = await consultarPreco(marca, modelo, codigo)
+    const preco = await consultarPreco(marca, modelo, codigo, tabela)
     setCarregando(null)
     if (!preco) {
       setErro("Não foi possível obter o valor FIPE. Tente outro ano.")
@@ -284,11 +335,19 @@ function ManualForm({ onFound }: { onFound: (v: VeiculoEncontrado) => void }) {
 }
 
 export function Step1Veiculo({ onNext }: { onNext: () => void }) {
-  const { setFinanciamentoVeiculo } = useFunnelStore()
+  const { financiamentoVeiculo, setFinanciamentoVeiculo } = useFunnelStore()
   const [mode, setMode] = useState<Mode>("choice")
+  const [categoria, setCategoria] = useState<CategoriaVeiculo>(
+    financiamentoVeiculo.categoria_veiculo ?? "leve"
+  )
   const [veiculo, setVeiculo] = useState<VeiculoEncontrado | null>(null)
   // FIPE preenche automaticamente; o cliente pode ajustar (valor negociado).
   const [valorVeiculo, setValorVeiculo] = useState(0)
+
+  function escolherCategoria(nova: CategoriaVeiculo) {
+    setCategoria(nova)
+    setFinanciamentoVeiculo({ categoria_veiculo: nova })
+  }
 
   function encontrado(v: VeiculoEncontrado) {
     setVeiculo(v)
@@ -298,6 +357,7 @@ export function Step1Veiculo({ onNext }: { onNext: () => void }) {
   function confirmar() {
     if (!veiculo || valorVeiculo <= 0) return
     setFinanciamentoVeiculo({
+      categoria_veiculo: categoria,
       marca_modelo_ano: veiculo.marca_modelo_ano,
       ano_veiculo: veiculo.ano_veiculo,
       valor_veiculo: valorVeiculo,
@@ -309,6 +369,7 @@ export function Step1Veiculo({ onNext }: { onNext: () => void }) {
     pushDataLayer("step_completed", {
       funil: "financiamento_veiculo",
       step: 1,
+      categoria_veiculo: categoria,
       origem_veiculo: veiculo.placa ? "placa" : "manual",
     })
     onNext()
@@ -316,27 +377,39 @@ export function Step1Veiculo({ onNext }: { onNext: () => void }) {
 
   if (veiculo) {
     const ajustado = veiculo.valor_fipe > 0 && Math.abs(valorVeiculo - veiculo.valor_fipe) >= 1
+    // Elegibilidade do bem: veículo pesado só entra com até 5 anos.
+    const elegibilidade = qualificarVeiculoFinanciamento({
+      ano_veiculo: veiculo.ano_veiculo,
+      categoria_veiculo: categoria,
+    })
     return (
       <div className="space-y-5">
         <CartaoVeiculo veiculo={veiculo} />
 
-        <div className="space-y-1.5">
-          <Label htmlFor="valor-veiculo">Valor do veículo</Label>
-          <CurrencyInput id="valor-veiculo" value={valorVeiculo} onChange={setValorVeiculo} />
-          <p className="text-xs text-muted-foreground">
-            {ajustado
-              ? `Ajustado a partir da FIPE (${formatarMoeda(veiculo.valor_fipe)}).`
-              : "Preenchido pela tabela FIPE — ajuste se o valor negociado for outro."}
-          </p>
-        </div>
+        {elegibilidade.qualificado ? (
+          <>
+            <div className="space-y-1.5">
+              <Label htmlFor="valor-veiculo">Valor do veículo</Label>
+              <CurrencyInput id="valor-veiculo" value={valorVeiculo} onChange={setValorVeiculo} />
+              <p className="text-xs text-muted-foreground">
+                {ajustado
+                  ? `Ajustado a partir da FIPE (${formatarMoeda(veiculo.valor_fipe)}).`
+                  : "Preenchido pela tabela FIPE — ajuste se o valor negociado for outro."}
+              </p>
+            </div>
 
-        <Button
-          onClick={confirmar}
-          disabled={valorVeiculo <= 0}
-          className="w-full h-12 text-base font-semibold bg-[var(--gold)] text-[var(--gold-foreground)] hover:bg-[var(--gold-dark)] disabled:opacity-50"
-        >
-          Continuar
-        </Button>
+            <Button
+              onClick={confirmar}
+              disabled={valorVeiculo <= 0}
+              className="w-full h-12 text-base font-semibold bg-[var(--gold)] text-[var(--gold-foreground)] hover:bg-[var(--gold-dark)] disabled:opacity-50"
+            >
+              Continuar
+            </Button>
+          </>
+        ) : (
+          <VeiculoInelegivel motivos={elegibilidade.motivos} />
+        )}
+
         <button
           onClick={() => setVeiculo(null)}
           className="w-full text-sm text-muted-foreground hover:text-foreground"
@@ -353,10 +426,39 @@ export function Step1Veiculo({ onNext }: { onNext: () => void }) {
         <div className="space-y-5">
           <div className="space-y-2">
             <h2 className="text-2xl font-bold tracking-tight">Qual veículo você quer financiar?</h2>
-            <p className="text-muted-foreground text-sm">
-              Buscamos o valor de mercado na tabela FIPE. Você tem a placa do veículo?
-            </p>
+            <p className="text-muted-foreground text-sm">Qual é o tipo do veículo?</p>
           </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {CATEGORIAS.map(({ valor, titulo, exemplos, icon: Icone }) => (
+              <button
+                key={valor}
+                type="button"
+                onClick={() => escolherCategoria(valor)}
+                className={cn(
+                  "rounded-xl border-2 p-4 text-left transition-all",
+                  categoria === valor
+                    ? "border-[var(--gold)] bg-[var(--gold)]/10"
+                    : "border-border hover:border-[var(--gold)]/60 hover:bg-[var(--gold)]/5"
+                )}
+              >
+                <span className="flex items-center gap-2 text-sm font-medium">
+                  <Icone className="w-4 h-4 shrink-0" />
+                  {titulo}
+                </span>
+                <span className="mt-1 block text-xs text-muted-foreground">{exemplos}</span>
+                {valor === "pesado" && (
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    Até {idadeMaximaVeiculoFinanciamento("pesado")} anos de fabricação
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          <p className="text-muted-foreground text-sm">
+            Buscamos o valor de mercado na tabela FIPE. Você tem a placa do veículo?
+          </p>
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
@@ -393,12 +495,19 @@ export function Step1Veiculo({ onNext }: { onNext: () => void }) {
                 ? "Vamos identificar o modelo, ano e valor FIPE automaticamente."
                 : "Escolha marca, modelo e ano — o valor FIPE é preenchido automaticamente."}
             </p>
+            <p className="text-xs text-muted-foreground">
+              Veículo {categoria}
+              {categoria === "pesado"
+                ? ` · até ${idadeMaximaVeiculoFinanciamento("pesado")} anos de fabricação`
+                : ""}
+            </p>
           </div>
 
           {mode === "placa" ? (
             <PlacaForm onFound={encontrado} irParaManual={() => setMode("manual")} />
           ) : (
-            <ManualForm onFound={encontrado} />
+            // key: trocar a categoria remonta a cascata FIPE (tabela diferente)
+            <ManualForm key={categoria} categoria={categoria} onFound={encontrado} />
           )}
         </div>
       )}

@@ -18,8 +18,8 @@ describe("Financiamento de Veículo — configuração", () => {
     }
   })
 
-  it("financia até 100% do valor do veículo", () => {
-    expect(cfg.ltv).toBeCloseTo(1, 6)
+  it("financia até 80% do valor do veículo (2026-08)", () => {
+    expect(cfg.ltv).toBeCloseTo(0.8, 6)
   })
 
   it("faixa do operador começa em 1,39% a.m.", () => {
@@ -90,21 +90,23 @@ describe("qualificarFinanciamentoVeiculo", () => {
     expect(motivos).toHaveLength(0)
   })
 
-  it("aceita financiar exatamente 100% do valor do veículo", () => {
+  // A matriz completa de LTV e elegibilidade do bem fica em
+  // __tests__/vehicle_financing_logic.test.ts.
+  it("aceita financiar exatamente 80% do valor do veículo", () => {
     const { qualificado } = qualificarFinanciamentoVeiculo({
       ...base,
-      valor_solicitado: 100_000,
+      valor_solicitado: 80_000,
     })
     expect(qualificado).toBe(true)
   })
 
-  it("rejeita valor acima de 100% do veículo", () => {
+  it("rejeita valor acima de 80% do veículo", () => {
     const { qualificado, motivos } = qualificarFinanciamentoVeiculo({
       ...base,
-      valor_solicitado: 100_000.01,
+      valor_solicitado: 80_000.01,
     })
     expect(qualificado).toBe(false)
-    expect(motivos.some((m) => m.includes("100%"))).toBe(true)
+    expect(motivos.some((m) => m.includes("80%"))).toBe(true)
   })
 
   it("aceita o prazo máximo de 60 meses", () => {

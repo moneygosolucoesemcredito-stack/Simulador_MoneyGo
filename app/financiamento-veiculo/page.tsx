@@ -5,7 +5,7 @@ import { FunnelShell } from "@/components/funnel/FunnelShell"
 import { StepWrapper } from "@/components/funnel/StepWrapper"
 import { useFunnelStore } from "@/stores/funnel-store"
 import { Step1Veiculo } from "@/components/funnel/steps/financiamento-veiculo/Step1Veiculo"
-import { Step2EntradaPrazo } from "@/components/funnel/steps/financiamento-veiculo/Step2EntradaPrazo"
+import { Step2ValorFinanciar } from "@/components/funnel/steps/financiamento-veiculo/Step2ValorFinanciar"
 import { Step3Resultado } from "@/components/funnel/steps/financiamento-veiculo/Step3Resultado"
 import { Step4Contato } from "@/components/funnel/steps/financiamento-veiculo/Step4Contato"
 import { pushDataLayer } from "@/components/tracking/GTM"
@@ -29,7 +29,7 @@ export default function FinanciamentoVeiculoPage() {
       case 1:
         return <Step1Veiculo onNext={() => goTo(2)} />
       case 2:
-        return <Step2EntradaPrazo onNext={() => goTo(3)} />
+        return <Step2ValorFinanciar onNext={() => goTo(3)} />
       case 3:
         return <Step3Resultado onNext={() => goTo(4)} />
       case 4:

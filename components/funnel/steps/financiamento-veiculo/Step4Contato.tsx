@@ -21,10 +21,10 @@ export function Step4Contato() {
     setLoading(true)
     try {
       const { taxaMensal, modalidadeTaxa } = CONFIG.financiamentoVeiculo
-      const valorFinanciado = Math.max(
-        0,
-        financiamentoVeiculo.valor_veiculo - financiamentoVeiculo.valor_entrada
-      )
+      // Valor informado direto pelo cliente (trava de 80% aplicada no Step 2).
+      const valorFinanciado = financiamentoVeiculo.valor_financiado
+      // Entrada deixa de ser um campo: é o que sobra entre o bem e o financiado.
+      const recursosProprios = Math.max(0, financiamentoVeiculo.valor_veiculo - valorFinanciado)
 
       const fv = calcularFinanciamentoVeiculo({
         valorCredito: valorFinanciado,
@@ -36,6 +36,8 @@ export function Step4Contato() {
         valor_veiculo: financiamentoVeiculo.valor_veiculo,
         valor_solicitado: valorFinanciado,
         prazo_meses: financiamentoVeiculo.prazo_meses,
+        categoria_veiculo: financiamentoVeiculo.categoria_veiculo,
+        ano_veiculo: financiamentoVeiculo.ano_veiculo,
       })
 
       const payload: LeadPayload = {
@@ -43,8 +45,10 @@ export function Step4Contato() {
         qualificado,
         simulacao: {
           marca_modelo_ano: financiamentoVeiculo.marca_modelo_ano,
+          categoria_veiculo: financiamentoVeiculo.categoria_veiculo,
+          ano_veiculo: financiamentoVeiculo.ano_veiculo,
           valor_veiculo: financiamentoVeiculo.valor_veiculo,
-          valor_entrada: financiamentoVeiculo.valor_entrada,
+          valor_entrada: recursosProprios,
           valor_solicitado: valorFinanciado,
           prazo_meses: financiamentoVeiculo.prazo_meses,
           // Produto 100% Price: os campos SAC legados carregam a mesma parcela.

@@ -55,11 +55,11 @@ const produtos = [
     titulo: "Financiamento de Veículo",
     subtitulo: "Compra de carro novo ou usado",
     descricao:
-      "Financie o veículo pelo valor real de mercado (tabela FIPE), com ou sem entrada e parcelas fixas do início ao fim.",
+      "Financie o veículo pelo valor real de mercado (tabela FIPE), informando quanto quer financiar, com parcelas fixas do início ao fim.",
     taxa: formatarPercentual(CONFIG.financiamentoVeiculo.taxaMensal),
     modalidade: "Pré-fixada",
     prazo: "até 60 meses",
-    ltv: "Financia até 100% do valor do bem",
+    ltv: `Financia até ${Math.round(CONFIG.financiamentoVeiculo.ltv * 100)}% do valor do bem`,
     destaque: false,
   },
   {
