@@ -49,30 +49,23 @@ export function Hero() {
           contato para fechar as melhores condições para você.
         </motion.p>
 
+        {/* Os atalhos diretos para Home Equity e Auto Equity saíram do topo
+            (2026-08). O acesso a cada produto passa a ser pela seção de
+            produtos, que respeita o fluxo próprio de cada modalidade. */}
         <motion.div
-          className="flex flex-col sm:flex-row gap-3 justify-center"
+          className="flex justify-center"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
           <Link
-            href="/entrar?produto=home-equity"
+            href="#produtos"
             className={cn(
               buttonVariants({ size: "lg" }),
               "h-13 px-8 text-base font-semibold bg-[var(--gold)] text-[var(--gold-foreground)] hover:bg-[var(--gold-dark)] shadow-lg shadow-[var(--gold)]/20"
             )}
           >
-            Simular com Imóvel
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </Link>
-          <Link
-            href="/entrar?produto=auto-equity"
-            className={cn(
-              buttonVariants({ variant: "outline", size: "lg" }),
-              "h-13 px-8 text-base font-semibold border-white/30 text-white bg-white/5 hover:bg-white/10"
-            )}
-          >
-            Simular com Veículo
+            Conheça nossos produtos
             <ArrowRight className="w-4 h-4 ml-2" />
           </Link>
         </motion.div>

@@ -6,6 +6,7 @@ import { GTMScript } from "@/components/tracking/GTM"
 import { MetaPixelScript } from "@/components/tracking/MetaPixel"
 import { UTMCapture } from "@/components/tracking/UTMCapture"
 import { CookieBanner } from "@/components/CookieBanner"
+import { WhatsAppFloat } from "@/components/WhatsAppFloat"
 import { BRAND } from "@/lib/brand"
 
 const montserrat = Montserrat({
@@ -44,6 +45,7 @@ export default function RootLayout({
         <UTMCapture />
         {children}
         <Toaster richColors position="top-center" />
+        <WhatsAppFloat />
         <CookieBanner />
       </body>
     </html>

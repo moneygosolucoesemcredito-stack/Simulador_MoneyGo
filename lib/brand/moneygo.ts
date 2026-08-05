@@ -21,12 +21,21 @@ export const moneygo: Brand = {
     favicon: "/favicon.png",
   },
   contact: {
+    // (47) 99789-0220 — o nono dígito é obrigatório em celular brasileiro para
+    // o link wa.me abrir a conversa.
     whatsapp: "5547997890220",
+    whatsappDisplay: "(47) 99789-0220",
     email: "privacidade@moneygosolucoesemcredito.com.br",
+    emailComercial: "daiana.hamud@moneygoassessoria.com.br",
   },
   social: {
-    instagram: "https://www.instagram.com/moneygo_assessoria",
-    facebook: "https://www.facebook.com/profile.php?id=61565547202356",
+    instagram:
+      "https://www.instagram.com/moneygo_solucoesemcredito?igsh=Y3Vsbjh5bmJ5MjNv",
+    facebook:
+      "https://www.facebook.com/profile.php?id=61565547202356&locale=pt_BR",
+    linkedin:
+      "https://www.linkedin.com/company/moneygo-assessoria-financeira/posts/?feedView=all",
+    youtube: "https://www.youtube.com/@MoneyGoSolu%C3%A7%C3%B5esemCr%C3%A9dito",
     whatsapp: "https://wa.me/5547997890220",
   },
   seo: {

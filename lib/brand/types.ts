@@ -32,6 +32,10 @@ export interface BrandSocial {
   instagram?: string
   /** URL completa da página no Facebook. */
   facebook?: string
+  /** URL completa da página no LinkedIn. */
+  linkedin?: string
+  /** URL completa do canal no YouTube. */
+  youtube?: string
   /** Link completo wa.me, se houver. */
   whatsapp?: string
 }
@@ -39,8 +43,12 @@ export interface BrandSocial {
 export interface BrandContact {
   /** Apenas dígitos com DDI/DDD, ex.: "5547997890220". Vazio = sem CTA de WhatsApp. */
   whatsapp?: string
+  /** Número formatado para exibição, ex.: "(47) 99789-0220". */
+  whatsappDisplay?: string
   /** E-mail de privacidade/DPO. */
   email?: string
+  /** E-mail comercial exibido no rodapé (fallback: `email`). */
+  emailComercial?: string
 }
 
 export interface BrandSupabase {

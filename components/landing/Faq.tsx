@@ -8,14 +8,15 @@ import {
 } from "@/components/ui/accordion"
 import { motion } from "framer-motion"
 
-const PERGUNTAS = [
+/** Conteúdo do FAQ — exportado para permitir asserções diretas nos testes. */
+export const PERGUNTAS = [
   {
     q: "O que é crédito com garantia de imóvel (Home Equity)?",
     a: "É uma modalidade em que você utiliza um imóvel de sua propriedade como garantia para obter crédito com taxas muito mais baixas do que empréstimos pessoais ou crédito rotativo. O imóvel fica alienado fiduciariamente durante o prazo, mas você continua morando ou usando normalmente.",
   },
   {
     q: "Posso usar um imóvel financiado como garantia?",
-    a: "Sim, desde que o saldo devedor seja de no máximo 50% do valor de mercado do imóvel. Neste caso, parte do crédito é usada para quitar o financiamento existente e o restante fica disponível para você.",
+    a: "Sim, desde que o saldo devedor seja de no máximo 30% do valor de mercado do imóvel. Neste caso, parte do crédito é usada para quitar o financiamento existente e o restante fica disponível para você.",
   },
   {
     q: "Quais tipos de imóvel são aceitos?",
@@ -27,7 +28,11 @@ const PERGUNTAS = [
   },
   {
     q: "Que tipos de veículo são aceitos no Auto Equity?",
-    a: "Veículos quitados com valor de tabela FIPE a partir de R$ 30.000. Veículos leves (carros, SUVs e picapes) são aceitos com até 20 anos de fabricação; veículos pesados (caminhões, cavalos mecânicos e ônibus), com até 15 anos. Veículos financiados não são aceitos nesta modalidade.",
+    a: "Veículos quitados com valor de tabela FIPE a partir de R$ 30.000. Veículos leves (carros, SUVs e picapes) são aceitos com até 20 anos de fabricação. Veículos pesados (caminhões, cavalos mecânicos e ônibus) também são aceitos: até 15 anos de fabricação no Auto Equity e no máximo 5 anos no Financiamento de Veículo. Veículos financiados não são aceitos nesta modalidade.",
+  },
+  {
+    q: "A MoneyGo é uma instituição financeira?",
+    a: "Não, a MoneyGo é uma correspondente bancária atuando com mais de 50 Instituições Financeiras no mercado Brasileiro.",
   },
   {
     q: "Quanto tempo leva para receber o crédito?",

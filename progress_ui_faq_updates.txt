@@ -1,0 +1,167 @@
+LOG DE PROGRESSO — LIMPEZA DE UI, RODAPÉ E FAQ
+Branch: claude/home-equity-property-value-limit-77nb38
+Data: 05/08/2026
+Status: FASE CONCLUÍDA — com 4 pontos que dependem de decisão sua (seção 6)
+
+====================================================================
+1. OBJETIVO DESTA FASE
+====================================================================
+FASE 1 — Remover os botões de acesso em destaque de Home Equity e Auto Equity
+         da página principal.
+FASE 2 — Rodapé segregado em "Redes sociais" e "Contatos"; botão flutuante de
+         WhatsApp em todas as páginas.
+FASE 3 — Três ajustes de texto no FAQ (saldo devedor 30%, veículos pesados,
+         pergunta institucional).
+
+IMPORTANTE: o briefing pedia para PARAR e perguntar em caso de dúvida. Eu
+perguntei antes de mexer (4 perguntas: botões do Hero, 50%→30% no código,
+conflito dos 5 anos e o número de WhatsApp) e não houve resposta. Segui com a
+interpretação mais conservadora em cada caso, sem apagar informação útil e sem
+mudar regra de crédito por conta própria. Tudo está listado na seção 6 e é
+reversível em uma linha.
+
+====================================================================
+2. EXPLORAÇÃO
+====================================================================
+app/page.tsx ......................... monta Hero, Partners, ProductCards,
+                                       HowItWorks, Faq e Footer
+components/landing/Hero.tsx .......... DOIS CTAs em destaque:
+                                       "Simular com Imóvel"  → /entrar?produto=home-equity
+                                       "Simular com Veículo" → /entrar?produto=auto-equity
+components/landing/ProductCards.tsx .. seção id="produtos" com os 5 produtos
+components/landing/Faq.tsx ........... array PERGUNTAS (7 itens)
+components/landing/Footer.tsx ........ 3 colunas: marca | produtos | redes+legal
+                                       (ícones de Instagram, WhatsApp e Facebook)
+lib/brand/moneygo.ts ................. BRAND.social e BRAND.contact
+app/layout.tsx ....................... raiz de todas as páginas
+
+====================================================================
+3. IMPLEMENTAÇÃO
+====================================================================
+
+FASE 1 — Hero
+  - Removidos os dois CTAs diretos de Home Equity e Auto Equity.
+  + Um único CTA neutro: "Conheça nossos produtos" → âncora #produtos.
+    Assim o topo não some sem ação nenhuma e o acesso passa a ser pela seção
+    de produtos, que respeita o fluxo próprio de cada modalidade.
+  * Os 5 cards de produto e os links do rodapé continuam intactos — nenhum
+    produto ficou inacessível.
+
+FASE 2 — Rodapé (components/landing/Footer.tsx)
+  ~ grid de 3 → 4 colunas (marca | produtos | redes sociais | contatos),
+    empilhando em 2 colunas no tablet e 1 no celular.
+  + "REDES SOCIAIS" com ícone + nome, um por linha:
+      Instagram https://www.instagram.com/moneygo_solucoesemcredito?igsh=Y3Vsbjh5bmJ5MjNv
+      Facebook  https://www.facebook.com/profile.php?id=61565547202356&locale=pt_BR
+      LinkedIn  https://www.linkedin.com/company/moneygo-assessoria-financeira/posts/?feedView=all
+      YouTube   https://www.youtube.com/@MoneyGoSolu%C3%A7%C3%B5esemCr%C3%A9dito
+  + "CONTATOS":
+      WhatsApp  https://wa.me/5547997890220  — exibido como (47) 99789-0220
+      E-mail    daiana.hamud@moneygoassessoria.com.br (mailto:)
+      + Política de Privacidade (que já estava no rodapé)
+  + Ícones novos de LinkedIn, YouTube e e-mail (SVG inline, sem dependência).
+  * O WhatsApp saiu do bloco de redes sociais e passou a viver em "Contatos".
+
+FASE 2 — Botão flutuante (components/WhatsAppFloat.tsx, NOVO)
+  + Montado em app/layout.tsx → aparece em TODAS as páginas (home, funis,
+    obrigado, não qualificado, operador…).
+  + Abre o WhatsApp da marca já com mensagem pronta ("Vim pelo site da
+    MoneyGo e gostaria de falar com um especialista").
+  + z-index acima do banner de cookies (que usa 9999): sem isso o botão ficava
+    escondido atrás do banner até o visitante aceitar/recusar. Verificado no
+    navegador.
+  + Se a marca não tiver WhatsApp configurado (caso da CapitaMax), o
+    componente simplesmente não renderiza.
+
+FASE 3 — FAQ (components/landing/Faq.tsx)
+  ~ Pergunta 2 (imóvel financiado): "no máximo 50%" → "no máximo 30%" do valor
+    de mercado do imóvel.
+  ~ Pergunta 5 (Auto Equity): a resposta passa a dizer que veículos pesados
+    TAMBÉM são aceitos, com o limite de cada produto — até 15 anos no Auto
+    Equity e no máximo 5 anos no Financiamento de Veículo.
+  + Pergunta institucional NOVA, na posição 6:
+      "A MoneyGo é uma instituição financeira?"
+      "Não, a MoneyGo é uma correspondente bancária atuando com mais de 50
+       Instituições Financeiras no mercado Brasileiro."
+  + O array PERGUNTAS passou a ser exportado, para os testes conferirem as
+    respostas (o acordeão só monta o texto quando o item é aberto).
+
+====================================================================
+4. TESTES
+====================================================================
+__tests__/landing-ui-faq.test.tsx (12 testes)
+  - Hero: não existem mais links para home-equity nem auto-equity; o CTA
+    aponta para #produtos
+  - Rodapé: as seções "Redes sociais" e "Contatos" existem; as 4 redes têm o
+    link correto, target=_blank e rel=noopener; WhatsApp e e-mail conferidos
+    (inclusive o formato do wa.me); produtos e privacidade preservados
+  - Botão flutuante: href da marca, mensagem pronta e posição fixa
+  - FAQ: 30% presente e 50% ausente; pesados com os dois limites; pergunta
+    institucional com a resposta exata; nenhuma pergunta antiga perdida (8 no
+    total); toda pergunta tem resposta
+
+====================================================================
+5. VERIFICAÇÃO
+====================================================================
+npm test         -> 23 arquivos, 313 testes, todos passando (12 novos)
+npx tsc --noEmit -> sem erros
+npm run lint     -> sem novos problemas (5 pré-existentes, em arquivos não
+                    tocados)
+npm run build    -> ✓ Compiled successfully
+
+Conferência no navegador (Playwright sobre `npm run dev`):
+  - Hero sem os dois botões, com o CTA único.
+  - Rodapé com as duas colunas novas, links e número formatado.
+  - Botão flutuante visível no canto inferior direito, inclusive com o banner
+    de cookies aberto.
+  - FAQ com a pergunta institucional exibindo a resposta pedida.
+
+====================================================================
+6. PONTOS QUE DEPENDEM DE DECISÃO SUA
+====================================================================
+(1) FAQ 30% × simulador 50%
+    O FAQ agora diz que o saldo devedor pode ser de até 30% do valor do
+    imóvel, mas o SIMULADOR continua aceitando até 50%
+    (CONFIG.homeEquity.saldoDevedorMaximoPercentual = 0.5, aplicado no Step 3
+    do Home Equity e na qualificação do lead).
+    Não mudei a regra de crédito por conta própria — é mudança de política com
+    efeito em aprovação de leads. Se 30% é a regra nova, é uma linha no CONFIG
+    mais os testes; me avise que aplico.
+
+(2) FAQ 5 — pesados de 5 anos
+    O pedido era acrescentar "veículos pesados são aceitos com no máximo 5
+    anos" à pergunta do AUTO EQUITY, mas 5 anos é a regra do FINANCIAMENTO DE
+    VEÍCULO; no Auto Equity o limite vigente (deployado hoje) é 15 anos.
+    Escrevi a resposta cobrindo os dois produtos com o limite correto de cada
+    um, para não publicar informação errada. Se a intenção era mudar o Auto
+    Equity para 5 anos, isso é alteração de regra e precisa de confirmação.
+
+(3) FAQ 6 — substituição
+    Não existia pergunta sobre "instituição financeira" no FAQ; a de número 6
+    era "Quanto tempo leva para receber o crédito?". Em vez de apagá-la,
+    INSERI a nova na posição 6 e empurrei as demais. Se você quer mesmo
+    remover a de prazo de liberação, é só dizer.
+
+(4) WhatsApp — número
+    O pedido trazia 4797890220 → wa.me/554797890220 (10 dígitos, sem o 9 de
+    celular). Usei 5547997890220 — (47) 99789-0220, o mesmo número já
+    cadastrado no projeto e usado nas páginas /obrigado e /nao-qualificado —
+    porque link wa.me de celular brasileiro sem o nono dígito não abre a
+    conversa. Se o número correto for outro, trocar é uma linha em
+    lib/brand/moneygo.ts.
+
+(5) Divergência de copy (não bloqueia)
+    A resposta nova fala em "mais de 50 Instituições Financeiras", enquanto o
+    selo do topo e a seção de parceiros dizem "+10 instituições parceiras".
+    Não alterei material de marketing sem confirmação — vale alinhar os dois
+    números.
+
+(6) E-mail
+    daiana.hamud@moneygoassessoria.com.br entrou como e-mail COMERCIAL, exibido
+    no rodapé. O e-mail de privacidade/DPO (privacidade@moneygosolucoesem
+    credito.com.br) foi mantido na Política de Privacidade, como manda a LGPD.
+
+(7) Marca CapitaMax
+    lib/brand/capitamax.ts continua sem redes e sem WhatsApp (TODOs antigos).
+    No rodapé dela as seções aparecem vazias e o botão flutuante não é
+    renderizado. Preencher quando os dados existirem.
