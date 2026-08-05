@@ -74,8 +74,12 @@ FASE 2 — Botão flutuante (components/WhatsAppFloat.tsx, NOVO)
     componente simplesmente não renderiza.
 
 FASE 3 — FAQ (components/landing/Faq.tsx)
-  ~ Pergunta 2 (imóvel financiado): "no máximo 50%" → "no máximo 30%" do valor
-    de mercado do imóvel.
+  ~ Pergunta 2 (imóvel financiado): a resposta passa a orientar o cliente sobre
+    o SALDO DEVEDOR que ele deve ter na garantia — em torno de 30% do valor de
+    mercado do imóvel — deixando explícito que isso NÃO é uma regra fixa e que
+    o limite de cada operação sai da análise com a instituição financeira.
+    Decisão confirmada pelo negócio (05/08): muda só a resposta ao cliente; a
+    trava do simulador permanece como está.
   ~ Pergunta 5 (Auto Equity): a resposta passa a dizer que veículos pesados
     TAMBÉM são aceitos, com o limite de cada produto — até 15 anos no Auto
     Equity e no máximo 5 anos no Financiamento de Veículo.
@@ -119,14 +123,14 @@ Conferência no navegador (Playwright sobre `npm run dev`):
 ====================================================================
 6. PONTOS QUE DEPENDEM DE DECISÃO SUA
 ====================================================================
-(1) FAQ 30% × simulador 50%
-    O FAQ agora diz que o saldo devedor pode ser de até 30% do valor do
-    imóvel, mas o SIMULADOR continua aceitando até 50%
-    (CONFIG.homeEquity.saldoDevedorMaximoPercentual = 0.5, aplicado no Step 3
-    do Home Equity e na qualificação do lead).
-    Não mudei a regra de crédito por conta própria — é mudança de política com
-    efeito em aprovação de leads. Se 30% é a regra nova, é uma linha no CONFIG
-    mais os testes; me avise que aplico.
+(1) FAQ 30% × simulador 50% — RESOLVIDO (05/08)
+    Decisão do negócio: o 30% é ORIENTAÇÃO ao cliente sobre o saldo devedor
+    que ele deve ter na garantia, não a regra do sistema. Alterada apenas a
+    resposta do FAQ, com o texto dizendo em voz alta que não é regra fixa e
+    que o limite sai da análise.
+    O simulador segue com a trava de 50%
+    (CONFIG.homeEquity.saldoDevedorMaximoPercentual = 0.5, aplicada no Step 3
+    do Home Equity e na qualificação do lead) — intencionalmente.
 
 (2) FAQ 5 — pesados de 5 anos
     O pedido era acrescentar "veículos pesados são aceitos com no máximo 5

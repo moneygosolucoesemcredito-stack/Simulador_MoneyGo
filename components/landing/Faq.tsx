@@ -16,7 +16,7 @@ export const PERGUNTAS = [
   },
   {
     q: "Posso usar um imóvel financiado como garantia?",
-    a: "Sim, desde que o saldo devedor seja de no máximo 30% do valor de mercado do imóvel. Neste caso, parte do crédito é usada para quitar o financiamento existente e o restante fica disponível para você.",
+    a: "Sim. O ideal é que o saldo devedor do seu financiamento esteja em torno de 30% do valor de mercado do imóvel: quanto menor a dívida em aberto, maior o crédito que sobra para você. Esse percentual é uma orientação para você avaliar seu imóvel antes de simular — não é uma regra fixa, e o limite de cada operação é definido na análise, junto com a instituição financeira. Parte do crédito é usada para quitar o financiamento existente e o restante fica disponível para você.",
   },
   {
     q: "Quais tipos de imóvel são aceitos?",

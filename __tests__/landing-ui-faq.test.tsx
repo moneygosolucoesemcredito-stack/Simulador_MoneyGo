@@ -111,9 +111,15 @@ describe("FAQ — regras textuais atualizadas", () => {
   // as asserções de conteúdo olham a fonte (PERGUNTAS) e as de exibição, a tela.
   const respostas = () => PERGUNTAS.map((p) => p.a).join(" ")
 
-  it("imóvel financiado passa a citar 30% de saldo devedor", () => {
-    expect(respostas()).toContain("no máximo 30% do valor de mercado do imóvel")
-    expect(respostas()).not.toContain("no máximo 50% do valor de mercado")
+  // O 30% é orientação sobre o saldo devedor que o cliente deve ter na
+  // garantia — não é a trava do simulador, e o texto precisa dizer isso.
+  it("imóvel financiado: cita 30% de saldo devedor e deixa claro que não é regra", () => {
+    const texto = respostas()
+    expect(texto).toContain("saldo devedor")
+    expect(texto).toContain("30% do valor de mercado do imóvel")
+    expect(texto).toContain("não é uma regra fixa")
+    expect(texto).toContain("definido na análise")
+    expect(texto).not.toContain("50% do valor de mercado")
   })
 
   it("veículos pesados aparecem com o limite de cada produto", () => {
