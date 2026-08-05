@@ -140,11 +140,10 @@ Conferência no navegador (Playwright sobre `npm run dev`):
     um, para não publicar informação errada. Se a intenção era mudar o Auto
     Equity para 5 anos, isso é alteração de regra e precisa de confirmação.
 
-(3) FAQ 6 — substituição
-    Não existia pergunta sobre "instituição financeira" no FAQ; a de número 6
-    era "Quanto tempo leva para receber o crédito?". Em vez de apagá-la,
-    INSERI a nova na posição 6 e empurrei as demais. Se você quer mesmo
-    remover a de prazo de liberação, é só dizer.
+(3) FAQ 6 — substituição — RESOLVIDO (05/08)
+    Confirmado pelo negócio: a pergunta "Quanto tempo leva para receber o
+    crédito?" foi REMOVIDA. O FAQ fica com 7 perguntas, incluindo a nova sobre
+    correspondente bancário.
 
 (4) WhatsApp — número
     O pedido trazia 4797890220 → wa.me/554797890220 (10 dígitos, sem o 9 de

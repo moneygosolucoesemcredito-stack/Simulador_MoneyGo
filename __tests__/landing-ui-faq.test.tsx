@@ -137,11 +137,18 @@ describe("FAQ — regras textuais atualizadas", () => {
     )
   })
 
-  it("nenhuma pergunta útil foi perdida", () => {
+  it('a pergunta "Quanto tempo leva para receber o crédito?" foi removida', () => {
+    // Retirada a pedido do negócio (05/08) — o prazo de liberação depende da
+    // instituição e virava expectativa fixa na cabeça do cliente.
+    expect(perguntas()).not.toContain("Quanto tempo leva para receber o crédito?")
+    expect(respostas()).not.toContain("dias úteis")
+  })
+
+  it("as demais perguntas seguem no ar", () => {
     const lista = perguntas()
-    expect(lista).toContain("Quanto tempo leva para receber o crédito?")
     expect(lista).toContain("A simulação é gratuita?")
-    expect(lista).toHaveLength(8)
+    expect(lista).toContain("Posso usar um imóvel financiado como garantia?")
+    expect(lista).toHaveLength(7)
   })
 
   it("cada pergunta tem resposta preenchida e é renderizada na tela", () => {

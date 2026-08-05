@@ -35,10 +35,6 @@ export const PERGUNTAS = [
     a: "Não, a MoneyGo é uma correspondente bancária atuando com mais de 50 Instituições Financeiras no mercado Brasileiro.",
   },
   {
-    q: "Quanto tempo leva para receber o crédito?",
-    a: "Após a análise e aprovação (que pode variar de 3 a 15 dias úteis dependendo da instituição financeira), a assinatura é feita digitalmente e o crédito é liberado em conta em até 2 dias úteis.",
-  },
-  {
     q: "A simulação é gratuita?",
     a: "Sim, 100% gratuita e sem compromisso. Nenhuma consulta ao SPC/Serasa é feita nesta etapa.",
   },

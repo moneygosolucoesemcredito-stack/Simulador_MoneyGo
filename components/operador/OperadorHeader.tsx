@@ -26,18 +26,9 @@ export function OperadorHeader({ saudacao, onSair }: OperadorHeaderProps) {
   return (
     <header className="border-b border-border bg-white sticky top-0 z-30">
       <div className="w-full px-4 h-14 flex items-center gap-3">
-        {/* No celular a logo completa (proporção ~6,7:1) comeria a largura da
-            saudação — daí a marca compacta abaixo de `sm`. */}
+        {/* Logo inalterada: a mesma imagem, no mesmo tamanho e no mesmo canto
+            de antes. Só o alinhamento do bloco à direita mudou. */}
         <Link href="/" className="shrink-0">
-          <Image
-            src={BRAND.logos.mark}
-            alt={BRAND.fullName}
-            width={BRAND.logos.markWidth}
-            height={BRAND.logos.markHeight}
-            unoptimized
-            priority
-            className="h-8 w-auto sm:hidden"
-          />
           <Image
             src={BRAND.logos.full}
             alt={BRAND.fullName}
@@ -45,13 +36,19 @@ export function OperadorHeader({ saudacao, onSair }: OperadorHeaderProps) {
             height={BRAND.logos.height}
             unoptimized
             priority
-            className="hidden h-12 w-auto sm:block"
+            className="h-12 w-auto"
           />
         </Link>
 
         <div className="ml-auto flex min-w-0 items-center gap-3">
+          {/* A logo completa ocupa quase toda a largura de um celular; abaixo de
+              `sm` a saudação fica oculta (o e-mail já se comportava assim antes)
+              para não virar reticências nem espremer o "Sair". */}
           {saudacao && (
-            <span className="min-w-0 truncate text-xs text-muted-foreground" title={saudacao}>
+            <span
+              className="hidden min-w-0 truncate text-xs text-muted-foreground sm:block"
+              title={saudacao}
+            >
               {saudacao}
             </span>
           )}

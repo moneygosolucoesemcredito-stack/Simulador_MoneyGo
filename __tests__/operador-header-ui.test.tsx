@@ -44,7 +44,7 @@ describe("Cabeçalho do operador", () => {
     expect(barra.className).not.toContain("mx-auto")
   })
 
-  it("no mobile a saudação trunca e o Sair não encolhe", () => {
+  it("a saudação trunca em telas apertadas e o Sair não encolhe", () => {
     const saudacao = saudacaoColaborador({ email: "moneygosolucoesemcredito@gmail.com" })
     render(<OperadorHeader saudacao={saudacao} onSair={() => {}} />)
 
@@ -52,7 +52,19 @@ describe("Cabeçalho do operador", () => {
     expect(texto.className).toContain("truncate")
     expect(texto.className).toContain("min-w-0")
     expect(texto.getAttribute("title")).toBe(saudacao) // texto completo no hover
+    // Abaixo de `sm` a logo completa toma a largura: a saudação some, como o
+    // e-mail já fazia antes, em vez de virar reticências.
+    expect(texto.className).toContain("hidden")
+    expect(texto.className).toContain("sm:block")
     expect(screen.getByRole("button", { name: /Sair/ }).className).toContain("shrink-0")
+  })
+
+  it("a logo é a completa, no tamanho de antes (h-12), sem variante por breakpoint", () => {
+    const { container } = render(<OperadorHeader saudacao="Olá, Daiana" onSair={() => {}} />)
+    const imagens = container.querySelectorAll("img")
+    expect(imagens).toHaveLength(1)
+    expect(imagens[0].className).toContain("h-12")
+    expect(imagens[0].className).not.toContain("sm:hidden")
   })
 
   it("sem sessão carregada mostra só o Sair, sem texto solto", () => {

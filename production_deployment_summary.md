@@ -105,6 +105,9 @@ e-mail como fallback. A barra do cabeçalho passou a ocupar a largura total — 
 usava o mesmo container estreito do conteúdo, o que colava a identificação na logo
 no meio da tela. O grupo "saudação + Sair" é empurrado por `ml-auto` até a borda
 direita, em qualquer resolução; a saudação trunca com `title` e o "Sair" não encolhe.
+**A logo permanece intocada**: mesma imagem, mesmo tamanho (h-12) e mesmo canto de
+antes. No celular a saudação fica oculta (como o e-mail já ficava), já que a logo
+completa ocupa quase toda a largura.
 
 ---
 
@@ -170,9 +173,8 @@ e `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` (área do operado
    pergunta do Auto Equity, mas 5 anos é regra do Financiamento de Veículo (no Auto
    Equity são 15). A resposta cobre os dois produtos com o limite correto de cada um.
    Se a intenção era mudar o Auto Equity, é alteração de regra e precisa de decisão.
-3. **FAQ institucional** — não existia pergunta sobre "instituição financeira"; a de
-   número 6 era "Quanto tempo leva para receber o crédito?". A nova foi **inserida**
-   sem apagar a antiga.
+3. ~~FAQ institucional~~ — **resolvido (05/08)**: a pergunta "Quanto tempo leva para
+   receber o crédito?" foi removida a pedido do negócio. O FAQ fica com 7 perguntas.
 4. **WhatsApp** — o número informado (`554797890220`) não tem o nono dígito e o link
    wa.me não abriria. Está em uso `5547997890220` — (47) 99789-0220, o mesmo número
    já cadastrado no projeto.

@@ -54,9 +54,13 @@ components/operador/OperadorHeader.tsx (NOVO)
   + a saudação usa `min-w-0 truncate` + `title`: e-mail longo vira reticências
     e o texto completo aparece no hover
   + o botão "Sair" leva `shrink-0` — nunca é espremido pelo texto ao lado
-  + no celular entra a marca compacta (BRAND.logos.mark) no lugar da logo
-    completa: com a logo cheia (proporção ~6,7:1) sobravam ~40px e a saudação
-    virava "Ol…"
+  * A LOGO NÃO FOI ALTERADA (ajuste de 05/08, a pedido): é a mesma imagem,
+    no mesmo tamanho (h-12) e no mesmo canto de antes. Uma tentativa de usar a
+    marca compacta no celular foi revertida.
+  + como a logo completa (proporção ~6,7:1) toma quase toda a largura de um
+    celular, a saudação fica oculta abaixo de `sm` — exatamente como o e-mail
+    já se comportava antes ("hidden sm:block"). Em 390px aparecem logo e
+    "Sair", como na versão original.
 
 app/operador/page.tsx
   ~ estado `email` vira `saudacao`, preenchido por saudacaoColaborador(user)
