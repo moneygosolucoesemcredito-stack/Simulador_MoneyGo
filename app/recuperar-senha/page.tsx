@@ -7,24 +7,39 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { criarSupabaseBrowser } from "@/lib/supabase/client"
-import { MailCheck, ArrowLeft } from "lucide-react"
+import { AlertCircle, MailCheck, ArrowLeft } from "lucide-react"
 import { BRAND } from "@/lib/brand"
+import { mensagemDoErro } from "@/lib/auth/recuperacao"
 
 export default function RecuperarSenhaPage() {
   const [email, setEmail] = useState("")
   const [enviado, setEnviado] = useState(false)
   const [carregando, setCarregando] = useState(false)
+  const [erro, setErro] = useState("")
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    setErro("")
     setCarregando(true)
     try {
       const supabase = criarSupabaseBrowser()
-      await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/redefinir-senha`,
+      // O link do e-mail cai em /auth/confirm, que valida o token no servidor
+      // e só então manda para a tela de nova senha. Esta URL precisa estar na
+      // allowlist do Supabase (Authentication > URL Configuration).
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/confirm`,
       })
-      // Sempre mostra sucesso — não revelamos se o e-mail existe ou não.
+      // Erro de envio (limite de e-mails, SMTP fora do ar) precisa aparecer:
+      // sem isso o parceiro fica esperando um e-mail que nunca saiu. E-mail
+      // inexistente não gera erro — o Supabase responde sucesso de propósito,
+      // e é assim que evitamos revelar quem tem conta.
+      if (error) {
+        setErro(mensagemDoErro(error.code))
+        return
+      }
       setEnviado(true)
+    } catch {
+      setErro("Não foi possível enviar agora. Verifique sua conexão e tente de novo.")
     } finally {
       setCarregando(false)
     }
@@ -90,6 +105,14 @@ export default function RecuperarSenhaPage() {
                     className="h-11"
                   />
                 </div>
+
+                {erro && (
+                  <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    {erro}
+                  </div>
+                )}
+
                 <Button
                   type="submit"
                   disabled={carregando || !email}

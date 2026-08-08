@@ -10,8 +10,16 @@ import { Label } from "@/components/ui/label"
 import { criarSupabaseBrowser } from "@/lib/supabase/client"
 import { AlertCircle, KeyRound, Loader2 } from "lucide-react"
 import { BRAND } from "@/lib/brand"
+import { extrairErroDaUrl, mensagemDoErro, temCredencialNaUrl } from "@/lib/auth/recuperacao"
 
 type Estado = "carregando" | "pronto" | "invalido" | "salvando" | "sucesso"
+
+/**
+ * Tempo máximo esperando o `detectSessionInUrl` trocar o código da URL por uma
+ * sessão. Só o fluxo implícito (`#access_token=…`) chega aqui sem sessão — nos
+ * outros, /auth/confirm já gravou o cookie e o getSession responde na hora.
+ */
+const ESPERA_TROCA_MS = 6000
 
 export default function RedefinirSenhaPage() {
   const router = useRouter()
@@ -20,26 +28,63 @@ export default function RedefinirSenhaPage() {
   const [senha, setSenha] = useState("")
   const [confirmacao, setConfirmacao] = useState("")
   const [erro, setErro] = useState("")
+  const [motivoInvalido, setMotivoInvalido] = useState("")
 
   useEffect(() => {
-    // O cliente troca o código de recuperação da URL por uma sessão
-    // automaticamente ao ser criado (detectSessionInUrl).
     const supabase = criarSupabaseBrowser()
     supabaseRef.current = supabase
 
-    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) setEstado((e) => (e === "carregando" ? "pronto" : e))
+    const { search, hash, pathname } = window.location
+    let cancelado = false
+    let timer: ReturnType<typeof setTimeout> | undefined
+
+    /** Tira token e código da barra de endereço (e do histórico do browser). */
+    function limparUrl() {
+      window.history.replaceState(null, "", pathname)
+    }
+
+    function invalidar(mensagem: string) {
+      setMotivoInvalido(mensagem)
+      setEstado((e) => (e === "carregando" ? "invalido" : e))
+    }
+
+    // Link recusado pelo Supabase: o motivo vem na query (token_hash/PKCE) ou
+    // no fragmento (fluxo implícito). Vale mais que qualquer espera.
+    const erroDaUrl = extrairErroDaUrl(search, hash)
+    if (erroDaUrl) {
+      invalidar(erroDaUrl.mensagem)
+      limparUrl()
+      return
+    }
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_evento, session) => {
+      if (cancelado || !session) return
+      setEstado((e) => (e === "carregando" ? "pronto" : e))
+      limparUrl()
     })
 
-    // Se depois de um instante ainda não há sessão, o link é inválido/expirado.
-    const timer = setTimeout(async () => {
-      const { data } = await supabase.auth.getSession()
-      setEstado((e) => (e === "carregando" ? (data.session ? "pronto" : "invalido") : e))
-    }, 1500)
+    supabase.auth.getSession().then(({ data }) => {
+      if (cancelado) return
+      if (data.session) {
+        setEstado((e) => (e === "carregando" ? "pronto" : e))
+        limparUrl()
+        return
+      }
+      // Sem sessão e sem nada na URL para trocar: a pessoa abriu a página
+      // direto. Não há o que esperar — já pede o link.
+      if (!temCredencialNaUrl(search, hash)) {
+        invalidar(mensagemDoErro("sem_credencial"))
+        return
+      }
+      timer = setTimeout(() => {
+        if (!cancelado) invalidar(mensagemDoErro(null))
+      }, ESPERA_TROCA_MS)
+    })
 
     return () => {
+      cancelado = true
       sub.subscription.unsubscribe()
-      clearTimeout(timer)
+      if (timer) clearTimeout(timer)
     }
   }, [])
 
@@ -54,16 +99,23 @@ export default function RedefinirSenhaPage() {
       setErro("As senhas não conferem.")
       return
     }
+    const supabase = supabaseRef.current
+    if (!supabase) return
+
     setEstado("salvando")
-    const { error } = await supabaseRef.current!.auth.updateUser({ password: senha })
+    const { data, error } = await supabase.auth.updateUser({ password: senha })
     if (error) {
-      setErro("Não foi possível redefinir a senha. Tente novamente ou solicite um novo link.")
+      setErro(mensagemDoErro(error.code))
       setEstado("pronto")
       return
     }
     setEstado("sucesso")
+
+    // O painel /operador é restrito à allowlist `operadores`: mandar um cliente
+    // para lá só renderia um redirect do proxy de volta para a home.
+    const destino = (await ehOperador(supabase, data.user?.id)) ? "/operador" : "/"
     setTimeout(() => {
-      router.push("/operador")
+      router.push(destino)
       router.refresh()
     }, 1500)
   }
@@ -101,12 +153,13 @@ export default function RedefinirSenhaPage() {
                 <AlertCircle className="w-7 h-7 text-destructive" />
               </div>
               <div className="space-y-1">
-                <h1 className="text-xl font-bold tracking-tight">Link inválido ou expirado</h1>
-                <p className="text-sm text-muted-foreground">
-                  Solicite um novo link de recuperação para continuar.
-                </p>
+                <h1 className="text-xl font-bold tracking-tight">Não foi possível abrir o link</h1>
+                <p className="text-sm text-muted-foreground">{motivoInvalido}</p>
               </div>
-              <Link href="/recuperar-senha" className="text-sm font-medium text-[var(--gold-dark)] hover:underline">
+              <Link
+                href="/recuperar-senha"
+                className="text-sm font-medium text-[var(--gold-dark)] hover:underline"
+              >
                 Solicitar novo link
               </Link>
             </div>
@@ -177,4 +230,14 @@ export default function RedefinirSenhaPage() {
       </main>
     </div>
   )
+}
+
+/** Se a conta está na allowlist de parceiros que acessam o painel. */
+async function ehOperador(
+  supabase: ReturnType<typeof criarSupabaseBrowser>,
+  userId: string | undefined
+): Promise<boolean> {
+  if (!userId) return false
+  const { data } = await supabase.from("operadores").select("id").eq("id", userId).maybeSingle()
+  return Boolean(data)
 }

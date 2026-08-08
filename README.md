@@ -21,6 +21,11 @@ npm run dev
 npm test
 ```
 
+## Área do parceiro
+Login em `/operador/login` (contas criadas pela administração no Supabase Auth).
+A recuperação de senha depende de configuração no painel do Supabase — passo a
+passo em [docs/recuperacao-senha.md](docs/recuperacao-senha.md).
+
 ## Variáveis de Ambiente
 | Variável | Descrição |
 |---|---|
