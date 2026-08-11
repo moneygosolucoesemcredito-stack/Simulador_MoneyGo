@@ -8,10 +8,18 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { criarSupabaseBrowser } from "@/lib/supabase/client"
+import {
+  MENSAGEM_LINK,
+  mensagemDoErroDeSenha,
+  motivoDoLink,
+} from "@/lib/supabase/erros-auth"
 import { AlertCircle, KeyRound, Loader2 } from "lucide-react"
 import { BRAND } from "@/lib/brand"
 
 type Estado = "carregando" | "pronto" | "invalido" | "salvando" | "sucesso"
+
+/** Quanto esperamos por uma troca de token que ainda vai acontecer no cliente. */
+const TIMEOUT_TROCA_MS = 10_000
 
 export default function RedefinirSenhaPage() {
   const router = useRouter()
@@ -20,32 +28,88 @@ export default function RedefinirSenhaPage() {
   const [senha, setSenha] = useState("")
   const [confirmacao, setConfirmacao] = useState("")
   const [erro, setErro] = useState("")
+  const [erroLink, setErroLink] = useState(MENSAGEM_LINK.invalido)
 
   useEffect(() => {
-    // O cliente troca o código de recuperação da URL por uma sessão
-    // automaticamente ao ser criado (detectSessionInUrl).
     const supabase = criarSupabaseBrowser()
     supabaseRef.current = supabase
 
-    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) setEstado((e) => (e === "carregando" ? "pronto" : e))
+    let ativo = true
+    let timer: ReturnType<typeof setTimeout> | undefined
+
+    function liberar() {
+      if (!ativo) return
+      limparUrl()
+      setEstado((e) => (e === "carregando" ? "pronto" : e))
+    }
+
+    function invalidar(codigo: string | null) {
+      if (!ativo) return
+      setErroLink(MENSAGEM_LINK[motivoDoLink(codigo)])
+      setEstado((e) => (e === "carregando" ? "invalido" : e))
+    }
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_evento, sessao) => {
+      if (sessao) liberar()
     })
 
-    // Se depois de um instante ainda não há sessão, o link é inválido/expirado.
-    const timer = setTimeout(async () => {
+    void (async () => {
+      const params = new URLSearchParams(window.location.search)
+      const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""))
+
+      // Motivo repassado pelo /auth/confirm, ou erro que o próprio Supabase
+      // devolveu no redirect (token já usado, expirado, access_denied…).
+      const codigoErro =
+        params.get("erro") ??
+        params.get("error_code") ??
+        params.get("error") ??
+        hash.get("error_code") ??
+        hash.get("error")
+
+      if (codigoErro) {
+        limparUrl()
+        invalidar(codigoErro)
+        return
+      }
+
+      // Caminho normal: /auth/confirm já validou o token no servidor e gravou
+      // os cookies, então a sessão de recuperação já existe aqui.
       const { data } = await supabase.auth.getSession()
-      setEstado((e) => (e === "carregando" ? (data.session ? "pronto" : "invalido") : e))
-    }, 1500)
+      if (!ativo) return
+      if (data.session) {
+        liberar()
+        return
+      }
+
+      // Links antigos, já entregues, apontam direto para esta página com
+      // `?code=` (PKCE) ou `#access_token=` (implícito). Aí quem troca é o
+      // `detectSessionInUrl` do cliente — damos tempo a ele em vez de declarar
+      // o link inválido de imediato.
+      const trocaEmAndamento = params.has("code") || hash.has("access_token")
+      if (!trocaEmAndamento) {
+        invalidar("invalido")
+        return
+      }
+
+      timer = setTimeout(async () => {
+        const { data: atual } = await supabase.auth.getSession()
+        if (!ativo) return
+        if (atual.session) liberar()
+        else invalidar("invalido")
+      }, TIMEOUT_TROCA_MS)
+    })()
 
     return () => {
+      ativo = false
       sub.subscription.unsubscribe()
-      clearTimeout(timer)
+      if (timer) clearTimeout(timer)
     }
   }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setErro("")
+
     if (senha.length < 8) {
       setErro("A senha deve ter ao menos 8 caracteres.")
       return
@@ -54,13 +118,22 @@ export default function RedefinirSenhaPage() {
       setErro("As senhas não conferem.")
       return
     }
+
+    const supabase = supabaseRef.current
+    if (!supabase) return
+
     setEstado("salvando")
-    const { error } = await supabaseRef.current!.auth.updateUser({ password: senha })
+
+    // A sessão de recuperação já está ativa neste ponto: `updateUser` grava a
+    // nova credencial na conta autenticada pelo link.
+    const { error } = await supabase.auth.updateUser({ password: senha })
+
     if (error) {
-      setErro("Não foi possível redefinir a senha. Tente novamente ou solicite um novo link.")
+      setErro(mensagemDoErroDeSenha(error.code, error.message))
       setEstado("pronto")
       return
     }
+
     setEstado("sucesso")
     setTimeout(() => {
       router.push("/operador")
@@ -102,11 +175,12 @@ export default function RedefinirSenhaPage() {
               </div>
               <div className="space-y-1">
                 <h1 className="text-xl font-bold tracking-tight">Link inválido ou expirado</h1>
-                <p className="text-sm text-muted-foreground">
-                  Solicite um novo link de recuperação para continuar.
-                </p>
+                <p className="text-sm text-muted-foreground">{erroLink}</p>
               </div>
-              <Link href="/recuperar-senha" className="text-sm font-medium text-[var(--gold-dark)] hover:underline">
+              <Link
+                href="/recuperar-senha"
+                className="text-sm font-medium text-[var(--gold-dark)] hover:underline"
+              >
                 Solicitar novo link
               </Link>
             </div>
@@ -177,4 +251,10 @@ export default function RedefinirSenhaPage() {
       </main>
     </div>
   )
+}
+
+/** Tira código/token/erro da barra de endereço — o link não deve ficar no histórico. */
+function limparUrl() {
+  if (!window.location.search && !window.location.hash) return
+  window.history.replaceState({}, "", window.location.pathname)
 }

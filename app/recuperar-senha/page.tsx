@@ -7,23 +7,46 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { criarSupabaseBrowser } from "@/lib/supabase/client"
-import { MailCheck, ArrowLeft } from "lucide-react"
+import { MailCheck, ArrowLeft, AlertCircle } from "lucide-react"
 import { BRAND } from "@/lib/brand"
 
 export default function RecuperarSenhaPage() {
   const [email, setEmail] = useState("")
   const [enviado, setEnviado] = useState(false)
+  const [erro, setErro] = useState("")
   const [carregando, setCarregando] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    setErro("")
     setCarregando(true)
     try {
       const supabase = criarSupabaseBrowser()
-      await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/redefinir-senha`,
-      })
-      // Sempre mostra sucesso — não revelamos se o e-mail existe ou não.
+
+      // O link do e-mail volta para o Route Handler, não direto para a página:
+      // é lá que o token vira sessão (verifyOtp / exchangeCodeForSession) e os
+      // cookies são gravados. `next` é o destino final, já autenticado.
+      const redirectTo = `${window.location.origin}/auth/confirm?next=${encodeURIComponent(
+        "/redefinir-senha"
+      )}`
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
+
+      // `resetPasswordForEmail` não revela se o e-mail existe: um erro aqui é
+      // sempre problema de configuração ou de rate limit, e precisa aparecer —
+      // engolir o erro é o que fazia a tela mentir "verifique seu e-mail".
+      if (error) {
+        setErro(
+          error.status === 429
+            ? "Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo."
+            : "Não foi possível enviar o link agora. Tente novamente em instantes."
+        )
+        console.error("resetPasswordForEmail:", error)
+        return
+      }
+
+      // Sem erro, mostramos sucesso mesmo que a conta não exista — não
+      // revelamos quais e-mails estão cadastrados.
       setEnviado(true)
     } finally {
       setCarregando(false)
@@ -90,6 +113,14 @@ export default function RecuperarSenhaPage() {
                     className="h-11"
                   />
                 </div>
+
+                {erro && (
+                  <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    {erro}
+                  </div>
+                )}
+
                 <Button
                   type="submit"
                   disabled={carregando || !email}
