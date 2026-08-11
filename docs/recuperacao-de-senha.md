@@ -57,19 +57,14 @@ padrão é `http://localhost:3000`.
 > inclusive a variante com e sem `www`, que o Supabase trata como origens
 > diferentes.
 
-### 2. Authentication → Email Templates → "Reset Password"
+### 2. Authentication → Emails → "Reset Password"
 
-Troque o corpo padrão (`{{ .ConfirmationURL }}`) por um link com `token_hash`:
+Troque o corpo padrão (`{{ .ConfirmationURL }}`) pelo template com `token_hash`
+em [`docs/email-templates/recuperacao-de-senha.html`](./email-templates/recuperacao-de-senha.html),
+cujo link é:
 
-```html
-<h2>Redefinir senha</h2>
-<p>Você pediu para redefinir a senha da sua conta.</p>
-<p>
-  <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/redefinir-senha">
-    Definir nova senha
-  </a>
-</p>
-<p>Se não foi você, ignore este e-mail. O link expira em 1 hora.</p>
+```
+{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/redefinir-senha
 ```
 
 Por que trocar, e não deixar o `{{ .ConfirmationURL }}` padrão:
@@ -94,6 +89,18 @@ transição nem para links que já foram entregues antes da mudança.
 | Funciona no desktop, falha no celular | Template ainda usa `{{ .ConfirmationURL }}` (PKCE); veja o item 2 |
 | Link "expira" sozinho antes do clique | Antivírus/Safe Links do e-mail corporativo abriu o link antes; o `token_hash` reduz, mas não elimina — oriente a pedir um link novo |
 | A tela diz "verifique seu e-mail" mas nada chega | Veja o console: o erro de `resetPasswordForEmail` agora é exibido. Cheque também o rate limit de e-mail do projeto (padrão baixo no plano free) e o SMTP customizado |
+| "Não foi possível enviar o link agora", com ~10s de espera | SMTP estourando o timeout do Supabase. Ver [`docs/brevo-smtp-supabase.md`](./brevo-smtp-supabase.md) |
+
+### Como ler os logs do servidor
+
+Supabase → **Logs** → **Auth Logs**, filtrando por `/recover`. O que procurar:
+
+- `status: 200` com duração de milissegundos → envio saudável
+- `status: 504`, `error_code: request_timeout`, duração de ~10s → o SMTP está
+  travando; é o sintoma que motivou a migração para a Brevo
+- o campo `referer` do log mostra o `redirect_to` que o Supabase realmente
+  aceitou — se vier só a origem, sem `/auth/confirm`, a allowlist do item 1
+  está recusando o valor e caindo na Site URL
 
 ## Notas de segurança
 
