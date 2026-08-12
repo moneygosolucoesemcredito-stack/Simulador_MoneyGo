@@ -83,6 +83,20 @@ left join public.operadores o on o.id = u.id
 order by u.created_at desc;
 ```
 
+### 3. Permissão de leitura na tabela (uma vez por projeto)
+
+Estar na tabela não basta se o papel `authenticated` não puder **ler** a linha.
+O `proxy.ts` consulta como o próprio usuário, com a chave anônima — e sem
+`grant select` a consulta volta vazia, com o mesmo efeito de não estar na
+allowlist. No SQL Editor tudo parece certo, porque lá a consulta roda como
+administrador.
+
+Está resolvido em
+[`supabase/migrations/20260812_operadores_grant_e_rls.sql`](../supabase/migrations/20260812_operadores_grant_e_rls.sql),
+que precisa ser aplicado **em cada projeto Supabase**. Se um parceiro está na
+tabela e mesmo assim é devolvido ao login com "sua conta ainda não tem acesso",
+é esse o passo que falta.
+
 ## Convite já consumido
 
 Se o parceiro clicou no link antigo (quebrado), a conta dele já está confirmada
