@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import {
-  MENSAGEM_LINK,
   mensagemDoErroDeSenha,
+  mensagemDoLink,
   motivoDoLink,
 } from "@/lib/supabase/erros-auth"
 
@@ -78,6 +78,24 @@ describe("/auth/confirm", () => {
     expect(verifyOtp).toHaveBeenCalledWith({ type: "recovery", token_hash: "abc123" })
   })
 
+  it("valida o convite de parceiro e leva para /criar-senha", async () => {
+    const res = await chamar("?token_hash=convite123&type=invite&next=%2Fcriar-senha")
+
+    expect(verifyOtp).toHaveBeenCalledWith({ type: "invite", token_hash: "convite123" })
+    expect(destino(res).pathname).toBe("/criar-senha")
+    expect(destino(res).search).toBe("")
+    expect(res.headers.get("set-cookie")).toContain("sb-teste-auth-token=sessao")
+  })
+
+  it("devolve o convite recusado para /criar-senha, não para a recuperação", async () => {
+    verifyOtp.mockResolvedValue({ error: { code: "otp_expired", message: "expired" } })
+
+    const res = await chamar("?token_hash=velho&type=invite&next=%2Fcriar-senha")
+
+    expect(destino(res).pathname).toBe("/criar-senha")
+    expect(destino(res).searchParams.get("erro")).toBe("expirado")
+  })
+
   it("troca o código do fluxo PKCE por sessão quando o link vem com ?code=", async () => {
     const res = await chamar("?code=pkce-code&next=%2Fredefinir-senha")
 
@@ -124,7 +142,13 @@ describe("mensagens de erro do fluxo de senha", () => {
     expect(motivoDoLink("expirado")).toBe("expirado")
     expect(motivoDoLink("access_denied")).toBe("invalido")
     expect(motivoDoLink(null)).toBe("invalido")
-    expect(MENSAGEM_LINK.expirado).not.toBe(MENSAGEM_LINK.invalido)
+    expect(mensagemDoLink("expirado")).not.toBe(mensagemDoLink("invalido"))
+  })
+
+  it("fala de convite, e não de recuperação, quando o contexto é o convite", () => {
+    expect(mensagemDoLink("expirado", "convite")).toMatch(/convite/i)
+    expect(mensagemDoLink("invalido", "convite")).toMatch(/login/i)
+    expect(mensagemDoLink("expirado", "recuperacao")).not.toMatch(/convite/i)
   })
 
   it("traduz os erros de updateUser que o usuário resolve sozinho", () => {
@@ -132,7 +156,7 @@ describe("mensagens de erro do fluxo de senha", () => {
     expect(mensagemDoErroDeSenha("weak_password", "")).toMatch(/fraca/i)
     expect(mensagemDoErroDeSenha("session_not_found", "")).toMatch(/novo link/i)
     expect(mensagemDoErroDeSenha(undefined, "algo inesperado")).toMatch(
-      /não foi possível redefinir/i
+      /não foi possível salvar a senha/i
     )
   })
 })
