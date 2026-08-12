@@ -15,11 +15,26 @@ function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const destino = searchParams.get("next") || "/operador"
+  // O proxy manda `erro=sem_acesso` quando há sessão válida, mas a conta não
+  // está na allowlist `operadores`.
+  const semAcesso = searchParams.get("erro") === "sem_acesso"
 
   const [email, setEmail] = useState("")
   const [senha, setSenha] = useState("")
   const [erro, setErro] = useState("")
   const [carregando, setCarregando] = useState(false)
+  const [saindo, setSaindo] = useState(false)
+
+  async function handleSair() {
+    setSaindo(true)
+    try {
+      await criarSupabaseBrowser().auth.signOut()
+      router.replace("/operador/login")
+      router.refresh()
+    } finally {
+      setSaindo(false)
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -41,6 +56,26 @@ function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {semAcesso && (
+        <div className="space-y-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-3">
+          <div className="flex items-start gap-2 text-sm text-amber-900">
+            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+            <p>
+              Sua conta ainda não tem acesso ao painel do parceiro. Fale com a
+              administração da MoneyGo ou entre com outra conta.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleSair}
+            disabled={saindo}
+            className="text-sm font-medium text-amber-900 underline underline-offset-2 hover:no-underline disabled:opacity-50"
+          >
+            {saindo ? "Saindo…" : "Sair desta conta"}
+          </button>
+        </div>
+      )}
+
       <div className="space-y-1.5">
         <Label htmlFor="email">E-mail</Label>
         <Input

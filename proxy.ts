@@ -33,36 +33,42 @@ export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname
   const ehLogin = path === "/operador/login"
 
-  // Sem sessão tentando acessar o painel → manda para o login.
-  if (path.startsWith("/operador") && !ehLogin && !user) {
+  function irPara(pathname: string, params?: Record<string, string>) {
     const url = request.nextUrl.clone()
-    url.pathname = "/operador/login"
-    url.searchParams.set("next", path)
-    return NextResponse.redirect(url)
-  }
-
-  // Sessão existe, mas o painel é só para quem está na allowlist `operadores`.
-  // Contas de CLIENTE (criadas pelo link do consultor) não entram aqui.
-  if (path.startsWith("/operador") && !ehLogin && user) {
-    const { data: operador } = await supabase
-      .from("operadores")
-      .select("id")
-      .eq("id", user.id)
-      .maybeSingle()
-    if (!operador) {
-      const url = request.nextUrl.clone()
-      url.pathname = "/"
-      url.search = ""
-      return NextResponse.redirect(url)
-    }
-  }
-
-  // Já logado e indo para o login → manda para o painel.
-  if (ehLogin && user) {
-    const url = request.nextUrl.clone()
-    url.pathname = "/operador"
+    url.pathname = pathname
     url.search = ""
+    for (const [chave, valor] of Object.entries(params ?? {})) {
+      url.searchParams.set(chave, valor)
+    }
     return NextResponse.redirect(url)
+  }
+
+  // Sem sessão: o login é a única página aberta da área.
+  if (!user) {
+    return ehLogin ? response : irPara("/operador/login", { next: path })
+  }
+
+  // Com sessão, a allowlist `operadores` decide o acesso ao painel. Contas de
+  // CLIENTE (criadas pelo link do consultor) também vivem em `auth.users` e
+  // não podem entrar aqui.
+  const { data: operador } = await supabase
+    .from("operadores")
+    .select("id")
+    .eq("id", user.id)
+    .maybeSingle()
+
+  if (ehLogin) {
+    // Só encurta o caminho de quem de fato tem acesso. Mandar todo mundo que
+    // tem sessão para /operador prendia num laço quem não é operador:
+    // login → /operador → home → login, sem nunca ver o formulário nem um
+    // botão de sair.
+    return operador ? irPara("/operador") : response
+  }
+
+  if (!operador) {
+    // Volta para o login com o motivo à vista, em vez de um salto silencioso
+    // para a home — lá o usuário consegue sair e entrar com outra conta.
+    return irPara("/operador/login", { erro: "sem_acesso" })
   }
 
   return response
