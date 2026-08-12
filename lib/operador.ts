@@ -1,10 +1,15 @@
 /**
  * Identidade do colaborador logado (área do operador).
  *
- * Não existe tabela de parceiros no banco: o operador é criado direto no
- * Supabase Auth, então o nome só pode vir do `user_metadata` preenchido no
- * cadastro. Sem nome, o e-mail continua sendo a identificação — é melhor o
- * colaborador ver a própria conta do que uma saudação genérica.
+ * O nome vem, em ordem: da coluna `nome` da tabela `operadores` — preenchida
+ * no mesmo passo em que o parceiro entra na allowlist —, depois do
+ * `user_metadata` do Supabase Auth, que só existe quando alguém o preencheu à
+ * mão. Sem nenhum dos dois, o e-mail continua sendo a identificação: é melhor
+ * o colaborador ver a própria conta do que uma saudação genérica.
+ *
+ * A `operadores` vem primeiro porque é o único lugar onde o nome é registrado
+ * naturalmente: quem convida um parceiro já precisa inseri-lo lá para liberar
+ * o painel. Convites do dashboard do Supabase não carregam metadata nenhum.
  */
 
 /** Formato mínimo do usuário do Supabase de que precisamos aqui. */
@@ -35,9 +40,10 @@ export function nomeColaborador(usuario: UsuarioLogado | null | undefined): stri
 
 /** Primeiro nome — é o que cabe no cabeçalho. */
 export function primeiroNomeColaborador(
-  usuario: UsuarioLogado | null | undefined
+  usuario: UsuarioLogado | null | undefined,
+  nomeCadastrado?: string | null
 ): string | null {
-  const nome = nomeColaborador(usuario)
+  const nome = textoLimpo(nomeCadastrado) ?? nomeColaborador(usuario)
   return nome ? nome.split(" ")[0] : null
 }
 
@@ -45,9 +51,15 @@ export function primeiroNomeColaborador(
  * Saudação do cabeçalho: "Olá, Daiana" quando há nome cadastrado; caindo no
  * e-mail ("Olá, daiana@empresa.com.br") enquanto o nome não existir. Sem
  * usuário identificado devolve string vazia — o cabeçalho não mostra nada.
+ *
+ * `nomeCadastrado` é a coluna `operadores.nome` e tem precedência sobre o
+ * metadata.
  */
-export function saudacaoColaborador(usuario: UsuarioLogado | null | undefined): string {
-  const nome = primeiroNomeColaborador(usuario)
+export function saudacaoColaborador(
+  usuario: UsuarioLogado | null | undefined,
+  nomeCadastrado?: string | null
+): string {
+  const nome = primeiroNomeColaborador(usuario, nomeCadastrado)
   if (nome) return `Olá, ${nome}`
   const email = textoLimpo(usuario?.email)
   return email ? `Olá, ${email}` : ""

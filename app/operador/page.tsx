@@ -46,11 +46,27 @@ export default function OperadorPage() {
 
   useEffect(() => {
     const supabase = criarSupabaseBrowser()
-    supabase.auth.getUser().then(({ data }) => {
-      // Nome vem do user_metadata; sem ele a saudação usa o e-mail.
-      setSaudacao(saudacaoColaborador(data.user))
-      setOperadorId(data.user?.id ?? null)
-    })
+
+    void (async () => {
+      const { data } = await supabase.auth.getUser()
+      const usuario = data.user
+      setOperadorId(usuario?.id ?? null)
+      if (!usuario) return
+
+      // A saudação sai primeiro com o que já temos (metadata ou e-mail), para
+      // o cabeçalho não piscar vazio enquanto a consulta ao banco volta.
+      setSaudacao(saudacaoColaborador(usuario))
+
+      // `operadores.nome` é preenchido quando o parceiro entra na allowlist —
+      // na prática, é o único lugar onde o nome existe.
+      const { data: operador } = await supabase
+        .from("operadores")
+        .select("nome")
+        .eq("id", usuario.id)
+        .maybeSingle()
+
+      setSaudacao(saudacaoColaborador(usuario, operador?.nome))
+    })()
   }, [])
 
   const produto = PRODUTOS.find((p) => p.id === produtoId) ?? null

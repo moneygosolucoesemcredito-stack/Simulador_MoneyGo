@@ -68,3 +68,31 @@ describe("saudação do cabeçalho", () => {
     expect(saudacaoColaborador({ email: "   " })).toBe("")
   })
 })
+
+/**
+ * O nome cadastrado em `operadores.nome` tem precedência sobre o metadata:
+ * é o único lugar onde o nome do parceiro é registrado naturalmente, já que
+ * convites do dashboard do Supabase não trazem metadata nenhum.
+ */
+describe("nome vindo da tabela operadores", () => {
+  const usuario = { email: "parceiro@moneygo.com.br", user_metadata: {} }
+
+  it("usa o nome cadastrado quando o metadata está vazio", () => {
+    expect(saudacaoColaborador(usuario, "Daiana Hamud")).toBe("Olá, Daiana")
+  })
+
+  it("prefere o nome cadastrado ao do metadata", () => {
+    const comMeta = { ...usuario, user_metadata: { nome: "Nome Antigo" } }
+    expect(saudacaoColaborador(comMeta, "Daiana Hamud")).toBe("Olá, Daiana")
+  })
+
+  it("cai no metadata quando a coluna está vazia ou só com espaços", () => {
+    const comMeta = { ...usuario, user_metadata: { nome: "Janaína Souza" } }
+    expect(saudacaoColaborador(comMeta, null)).toBe("Olá, Janaína")
+    expect(saudacaoColaborador(comMeta, "   ")).toBe("Olá, Janaína")
+  })
+
+  it("cai no e-mail quando não há nome em lugar nenhum", () => {
+    expect(saudacaoColaborador(usuario, null)).toBe("Olá, parceiro@moneygo.com.br")
+  })
+})
