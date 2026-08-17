@@ -100,7 +100,9 @@ export const CONFIG = {
     prazoDefault: 48,
   },
   autoEquity: {
-    taxaMensal: 0.0199,
+    // 2,50% a.m. — pré-fixada (sem indexador). Reajustada em 2026-08
+    // (antes 1,99% a.m.).
+    taxaMensal: 0.025,
     modalidadeTaxa: "pre_fixada" as const,
     valorVeiculoMinimo: 30_000,
     valorVeiculoMaximo: 500_000,
@@ -366,7 +368,7 @@ export function ltvParaTipoImovelFI(
 }
 
 // Faixa de taxa (a.m., em fração) controlada pelo OPERADOR — nunca pelo cliente.
-// fixed:true  => campo somente leitura no valor `default` (ex.: Auto Equity 1,99%).
+// fixed:true  => campo somente leitura no valor `default` (ex.: Auto Equity 2,50%).
 // fixed:false => campo digitável, vazio por padrão, validado contra min/max.
 export const RATE_CONFIG = {
   home_equity: { min: 0.0099, max: 0.0199, default: null, fixed: false },
@@ -374,7 +376,7 @@ export const RATE_CONFIG = {
   // Piso = menor taxa mensal ofertada nas categorias de construção (a de
   // condomínio, 13,99% a.a. + TR ≈ 1,0972% a.m.), arredondado para baixo.
   credito_construcao: { min: 0.0109, max: 0.0199, default: null, fixed: false },
-  auto_equity: { min: 0.0199, max: 0.0199, default: 0.0199, fixed: true },
+  auto_equity: { min: 0.025, max: 0.025, default: 0.025, fixed: true },
   financiamento_veiculo: { min: 0.0139, max: 0.0199, default: null, fixed: false },
 } as const
 
