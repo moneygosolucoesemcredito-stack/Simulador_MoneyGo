@@ -6,7 +6,7 @@ import { Step4ValorDesejado } from "@/components/funnel/steps/financiamento-imob
 import { Step5Resultado } from "@/components/funnel/steps/financiamento-imobiliario/Step5Resultado"
 import { useFunnelStore } from "@/stores/funnel-store"
 import { calcularSimulacao, formatarMoeda, rendaNecessaria } from "@/lib/simulacao"
-import { CONFIG } from "@/lib/config"
+import { CONFIG, encargosFinanciamentoImobiliario } from "@/lib/config"
 
 vi.mock("@/lib/pdf-financiamento-imobiliario", () => ({
   gerarPdfFinanciamentoImobiliario: vi.fn().mockResolvedValue(undefined),
@@ -119,7 +119,8 @@ describe("FI Step 5 — renda necessária e tabelas completas", () => {
   const resultado = calcularSimulacao(
     cenario.valor_solicitado,
     CONFIG.financiamentoImobiliario.taxaMensal,
-    cenario.prazo_meses
+    cenario.prazo_meses,
+    encargosFinanciamentoImobiliario(cenario.valor_imovel)
   )
 
   it('substitui "Total pago" por "Renda necessária"', () => {
@@ -134,7 +135,7 @@ describe("FI Step 5 — renda necessária e tabelas completas", () => {
     render(<Step5Resultado onNext={() => {}} />)
 
     const rendaSac = rendaNecessaria(resultado.primeira_parcela_sac, 0.3)
-    const rendaPrice = rendaNecessaria(resultado.parcela_price, 0.3)
+    const rendaPrice = rendaNecessaria(resultado.primeira_parcela_price, 0.3)
     expect(screen.getByText(brl(rendaSac))).toBeTruthy()
     expect(screen.getByText(brl(rendaPrice))).toBeTruthy()
     expect(screen.getByText(/comprometimento de 30%/i)).toBeTruthy()
@@ -159,9 +160,12 @@ describe("FI Step 5 — renda necessária e tabelas completas", () => {
     fireEvent.click(screen.getByRole("tab", { name: "PRICE" }))
     const tabela = screen.getByRole("table")
     expect(within(tabela).getAllByRole("row")).toHaveLength(421)
-    // No PRICE a parcela é fixa: a primeira linha traz o PMT.
-    expect(within(tabela).getAllByText(brl(resultado.parcela_price)).length).toBeGreaterThan(0)
-    expect(screen.getByText(/parcela fixa/i)).toBeTruthy()
+    // No PRICE o PMT é fixo, mas a parcela cai: o MIP acompanha o saldo devedor.
+    expect(resultado.primeira_parcela_price).toBeGreaterThan(resultado.ultima_parcela_price)
+    expect(
+      within(tabela).getAllByText(brl(resultado.primeira_parcela_price)).length
+    ).toBeGreaterThan(0)
+    expect(screen.getByText(/PMT fixo/i)).toBeTruthy()
   })
 
   it("monta apenas o sistema selecionado (uma tabela por vez)", () => {

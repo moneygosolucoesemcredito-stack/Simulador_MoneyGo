@@ -1,10 +1,132 @@
+// ──────────────────────────────────────────────────────────────────────────
+// Encargos da operação — o que entra na parcela além de juros e amortização.
+//
+// Até 2026-08 só o Home Equity modelava seguros e tarifas; Financiamento
+// Imobiliário e Crédito de Construção rodavam PMT puro e devolviam parcela
+// idêntica do primeiro ao último mês. Como o MIP incide sobre o saldo devedor,
+// a parcela real é decrescente — o motor abaixo é o mesmo para os três
+// produtos, e cada um informa os encargos que efetivamente cobra.
+//
+// Omitir o objeto (ou zerar os campos) devolve exatamente o PRICE/SAC puro.
+// ──────────────────────────────────────────────────────────────────────────
+
+export interface EncargosOperacao {
+  /** Valor do bem dado em garantia — base de cálculo do DFI. */
+  valorGarantia?: number
+  /** MIP (seguro de vida): alíquota sobre o saldo devedor, ao mês. */
+  mip?: number
+  /** DFI (seguro do imóvel): alíquota sobre a garantia, ao mês. */
+  dfi?: number
+  /** Alíquota de DFI para garantias acima de `dfiLimiteGarantia`. */
+  dfiAcima?: number
+  /** Valor de garantia a partir do qual vale `dfiAcima`. */
+  dfiLimiteGarantia?: number
+  /** Tarifa de administração fixa, em R$ por mês. */
+  txAdminMensal?: number
+  /** Taxa de registro/cartório embutida no principal (R$). */
+  taxaRegistro?: number
+  /** Taxa de estruturação fixa embutida no principal (R$). */
+  estruturacaoFixa?: number
+  /** Taxa de estruturação como percentual do crédito, embutida no principal. */
+  estruturacaoPercentual?: number
+  /** Alíquota de IOF embutida no principal (gross-up). */
+  iof?: number
+  /** Política de comprometimento de renda usada na renda sugerida. */
+  comprometimentoRenda?: number
+}
+
+const ENCARGOS_PADRAO = {
+  valorGarantia: 0,
+  mip: 0,
+  dfi: 0,
+  dfiAcima: 0,
+  dfiLimiteGarantia: Number.POSITIVE_INFINITY,
+  txAdminMensal: 0,
+  taxaRegistro: 0,
+  estruturacaoFixa: 0,
+  estruturacaoPercentual: 0,
+  iof: 0,
+  comprometimentoRenda: 0.3,
+}
+
+type EncargosResolvidos = typeof ENCARGOS_PADRAO
+
+function resolverEncargos(encargos: EncargosOperacao = {}): EncargosResolvidos {
+  const c = { ...ENCARGOS_PADRAO, ...stripUndefined(encargos) }
+  // Produto sem faixa superior de DFI declarada cobra a mesma alíquota sempre.
+  if (encargos.dfiAcima === undefined) c.dfiAcima = c.dfi
+  return c
+}
+
+/** Encargos que compõem a parcela mês a mês, já resolvidos para a garantia. */
+export interface EncargosMensais {
+  /** Alíquota do MIP sobre o saldo devedor de abertura do período. */
+  mipRate: number
+  /** DFI em reais por mês (garantia × alíquota da faixa). */
+  dfiMensal: number
+  /** Tarifa de administração fixa, em R$ por mês. */
+  adm: number
+}
+
+export const SEM_ENCARGOS_MENSAIS: EncargosMensais = { mipRate: 0, dfiMensal: 0, adm: 0 }
+
+/** Converte a política do produto nos encargos mensais da operação. */
+export function encargosMensaisDe(encargos: EncargosOperacao = {}): EncargosMensais {
+  const c = resolverEncargos(encargos)
+  const aliquotaDfi = c.valorGarantia > c.dfiLimiteGarantia ? c.dfiAcima : c.dfi
+  return {
+    mipRate: c.mip,
+    dfiMensal: c.valorGarantia * aliquotaDfi,
+    adm: c.txAdminMensal,
+  }
+}
+
+/** Custos de contratação embutidos no principal, e o IOF que incide sobre eles. */
+export interface CustosContratacao {
+  /** Registro + estruturação (fixa e percentual). */
+  cacTotal: number
+  /** IOF financiado junto — incide sobre si mesmo (gross-up). */
+  iofValor: number
+  /** Crédito + CAC + IOF: o valor sobre o qual as parcelas são calculadas. */
+  principalFinanciado: number
+}
+
+export function custosContratacao(
+  valorCredito: number,
+  encargos: EncargosOperacao = {}
+): CustosContratacao {
+  const c = resolverEncargos(encargos)
+  if (valorCredito <= 0) return { cacTotal: 0, iofValor: 0, principalFinanciado: 0 }
+  const cacTotal = c.taxaRegistro + c.estruturacaoFixa + valorCredito * c.estruturacaoPercentual
+  const principalFinanciado = (valorCredito + cacTotal) / (1 - c.iof)
+  return {
+    cacTotal,
+    iofValor: principalFinanciado - (valorCredito + cacTotal),
+    principalFinanciado,
+  }
+}
+
 export interface ResultadoSimulacao {
+  /** PMT puro do PRICE sobre o principal financiado — sem seguros e tarifas. */
   parcela_price: number
+  /** Primeira parcela do PRICE já com seguros e tarifas mensais. */
+  primeira_parcela_price: number
+  /** Última parcela do PRICE já com seguros e tarifas mensais. */
+  ultima_parcela_price: number
   primeira_parcela_sac: number
   ultima_parcela_sac: number
   taxa_mensal: number
   valor_total_price: number
   valor_total_sac: number
+  /** Crédito + custos de contratação, com gross-up do IOF. */
+  principal_financiado: number
+  iof_valor: number
+  cac_total: number
+  /** CET anual de cada sistema — juros + seguros + tarifas. */
+  cet_anual_price: number
+  cet_anual_sac: number
+  /** Tabelas parcela a parcela: base dos totais, do CET, da tela e do PDF. */
+  tabelas: TabelasAmortizacao
 }
 
 /**
@@ -38,26 +160,62 @@ export function calcularSAC(
   return { primeira, ultima }
 }
 
+const RESULTADO_VAZIO: ResultadoSimulacao = {
+  parcela_price: 0,
+  primeira_parcela_price: 0,
+  ultima_parcela_price: 0,
+  primeira_parcela_sac: 0,
+  ultima_parcela_sac: 0,
+  taxa_mensal: 0,
+  valor_total_price: 0,
+  valor_total_sac: 0,
+  principal_financiado: 0,
+  iof_valor: 0,
+  cac_total: 0,
+  cet_anual_price: 0,
+  cet_anual_sac: 0,
+  tabelas: { sac: [], price: [] },
+}
+
+/**
+ * Simulação completa de uma operação: monta as tabelas SAC e PRICE parcela a
+ * parcela sobre o principal financiado e extrai delas os números da tela.
+ *
+ * Sem `encargos` o comportamento é o PRICE/SAC puro de sempre — principal =
+ * crédito, sem seguros, parcela do PRICE fixa do primeiro ao último mês.
+ * Com `encargos` (MIP, DFI, tarifa mensal, estruturação, registro, IOF) a
+ * parcela passa a ser decrescente, como já ocorre no Home Equity.
+ */
 export function calcularSimulacao(
   valorCredito: number,
   taxaMensal: number,
-  prazoMeses: number
+  prazoMeses: number,
+  encargos: EncargosOperacao = {}
 ): ResultadoSimulacao {
-  const parcela_price = calcularPrice(valorCredito, taxaMensal, prazoMeses)
-  const { primeira, ultima } = calcularSAC(valorCredito, taxaMensal, prazoMeses)
-  // Total pago no SAC: principal + juros. Como o saldo cai linearmente, a soma
-  // dos juros é i × PV × (n+1)/2 (média aritmética dos saldos × taxa × prazo).
-  const valor_total_sac =
-    prazoMeses > 0 && taxaMensal > 0 && valorCredito > 0
-      ? valorCredito + taxaMensal * valorCredito * ((prazoMeses + 1) / 2)
-      : 0
+  const { cacTotal, iofValor, principalFinanciado } = custosContratacao(valorCredito, encargos)
+  const mensais = encargosMensaisDe(encargos)
+  const tabelas = gerarTabelasAmortizacao(principalFinanciado, taxaMensal, prazoMeses, mensais)
+
+  if (tabelas.price.length === 0) return { ...RESULTADO_VAZIO, taxa_mensal: taxaMensal }
+
+  const price = resumirTabela(tabelas.price, taxaMensal)
+  const sac = resumirTabela(tabelas.sac, taxaMensal)
+
   return {
-    parcela_price,
-    primeira_parcela_sac: primeira,
-    ultima_parcela_sac: ultima,
+    parcela_price: calcularPrice(principalFinanciado, taxaMensal, prazoMeses),
+    primeira_parcela_price: price.primeiraParcela,
+    ultima_parcela_price: price.ultimaParcela,
+    primeira_parcela_sac: sac.primeiraParcela,
+    ultima_parcela_sac: sac.ultimaParcela,
     taxa_mensal: taxaMensal,
-    valor_total_price: parcela_price * prazoMeses,
-    valor_total_sac,
+    valor_total_price: price.totalPago,
+    valor_total_sac: sac.totalPago,
+    principal_financiado: principalFinanciado,
+    iof_valor: iofValor,
+    cac_total: cacTotal,
+    cet_anual_price: price.cetAnual,
+    cet_anual_sac: sac.cetAnual,
+    tabelas,
   }
 }
 
@@ -99,7 +257,9 @@ export interface ParcelaAmortizacao {
   juros: number
   /** Parcela do principal amortizada no período. */
   amortizacao: number
-  /** Valor da parcela (juros + amortização). */
+  /** Seguros e tarifas do período (MIP + DFI + administração). */
+  seguros: number
+  /** Valor da parcela (juros + amortização + seguros). */
   parcela: number
   /** Saldo devedor DEPOIS do pagamento (zero na última parcela). */
   saldoDevedor: number
@@ -128,7 +288,8 @@ function entradaValida(pv: number, taxaMensal: number, prazoMeses: number): bool
 export function gerarTabelaSAC(
   pv: number,
   taxaMensal: number,
-  prazoMeses: number
+  prazoMeses: number,
+  encargos: EncargosMensais = SEM_ENCARGOS_MENSAIS
 ): ParcelaAmortizacao[] {
   if (!entradaValida(pv, taxaMensal, prazoMeses)) return []
 
@@ -138,13 +299,16 @@ export function gerarTabelaSAC(
 
   for (let numero = 1; numero <= prazoMeses; numero++) {
     const juros = saldo * taxaMensal
+    // Seguros do período incidem sobre o saldo de ABERTURA, como os juros.
+    const seguros = saldo * encargos.mipRate + encargos.dfiMensal + encargos.adm
     const amortizacao = numero === prazoMeses ? saldo : amortizacaoConstante
     saldo = numero === prazoMeses ? 0 : saldo - amortizacao
     parcelas[numero - 1] = {
       numero,
       juros,
       amortizacao,
-      parcela: amortizacao + juros,
+      seguros,
+      parcela: amortizacao + juros + seguros,
       saldoDevedor: saldo,
     }
   }
@@ -153,13 +317,17 @@ export function gerarTabelaSAC(
 }
 
 /**
- * Tabela PRICE completa: parcela fixa (PMT), amortização crescente. A última
- * parcela absorve o resíduo de arredondamento para zerar o saldo devedor.
+ * Tabela PRICE completa: PMT fixo, amortização crescente. A última parcela
+ * absorve o resíduo de arredondamento para zerar o saldo devedor.
+ *
+ * Com encargos a parcela deixa de ser constante: o MIP cai junto com o saldo
+ * devedor, então a parcela é decrescente mesmo com o PMT fixo.
  */
 export function gerarTabelaPrice(
   pv: number,
   taxaMensal: number,
-  prazoMeses: number
+  prazoMeses: number,
+  encargos: EncargosMensais = SEM_ENCARGOS_MENSAIS
 ): ParcelaAmortizacao[] {
   if (!entradaValida(pv, taxaMensal, prazoMeses)) return []
 
@@ -169,6 +337,7 @@ export function gerarTabelaPrice(
 
   for (let numero = 1; numero <= prazoMeses; numero++) {
     const juros = saldo * taxaMensal
+    const seguros = saldo * encargos.mipRate + encargos.dfiMensal + encargos.adm
     const ultima = numero === prazoMeses
     const amortizacao = ultima ? saldo : pmt - juros
     saldo = ultima ? 0 : saldo - amortizacao
@@ -176,7 +345,8 @@ export function gerarTabelaPrice(
       numero,
       juros,
       amortizacao,
-      parcela: amortizacao + juros,
+      seguros,
+      parcela: amortizacao + juros + seguros,
       saldoDevedor: saldo,
     }
   }
@@ -184,18 +354,76 @@ export function gerarTabelaPrice(
   return parcelas
 }
 
-/** Gera as duas tabelas de uma vez (mesmo principal, taxa e prazo). */
+/** Gera as duas tabelas de uma vez (mesmo principal, taxa, prazo e encargos). */
 export function gerarTabelasAmortizacao(
   pv: number,
   taxaMensal: number,
-  prazoMeses: number
+  prazoMeses: number,
+  encargos: EncargosMensais = SEM_ENCARGOS_MENSAIS
 ): TabelasAmortizacao {
   return {
-    sac: gerarTabelaSAC(pv, taxaMensal, prazoMeses),
-    price: gerarTabelaPrice(pv, taxaMensal, prazoMeses),
+    sac: gerarTabelaSAC(pv, taxaMensal, prazoMeses, encargos),
+    price: gerarTabelaPrice(pv, taxaMensal, prazoMeses, encargos),
   }
 }
 
+/** Resumo de uma tabela de amortização — o que a tela e o PDF exibem. */
+export interface ResultadoTabela {
+  primeiraParcela: number
+  ultimaParcela: number
+  parcelaMedia: number
+  rendaSugerida: number
+  cetMensal: number
+  cetAnual: number
+  totalPago: number
+}
+
+/** Nome histórico do resumo, quando só o Home Equity o produzia. */
+export type ResultadoTabelaHE = ResultadoTabela
+
+/** Resumo de uma tabela: extremos, média, renda sugerida, CET e total pago. */
+export function resumirTabela(
+  parcelas: ParcelaAmortizacao[],
+  taxaMensal: number,
+  comprometimentoRenda = 0.3
+): ResultadoTabela {
+  const n = parcelas.length
+  if (n === 0) {
+    return {
+      primeiraParcela: 0,
+      ultimaParcela: 0,
+      parcelaMedia: 0,
+      rendaSugerida: 0,
+      cetMensal: 0,
+      cetAnual: 0,
+      totalPago: 0,
+    }
+  }
+
+  let somaSaldo = 0
+  let totalSeguros = 0
+  let totalPago = 0
+  for (const p of parcelas) {
+    // Saldo de abertura do período = saldo após o pagamento + o que amortizou.
+    somaSaldo += p.saldoDevedor + p.amortizacao
+    totalSeguros += p.seguros
+    totalPago += p.parcela
+  }
+
+  // CET conforme planilha do HE: (Σ seguros / Σ saldo devedor) + taxa, capitalizado.
+  const cetMensal = somaSaldo > 0 ? totalSeguros / somaSaldo + taxaMensal : taxaMensal
+  const primeira = parcelas[0].parcela
+
+  return {
+    primeiraParcela: primeira,
+    ultimaParcela: parcelas[n - 1].parcela,
+    parcelaMedia: totalPago / n,
+    rendaSugerida: comprometimentoRenda > 0 ? primeira / comprometimentoRenda : 0,
+    cetMensal,
+    cetAnual: Math.pow(1 + cetMensal, 12) - 1,
+    totalPago,
+  }
+}
 /** Soma das parcelas de uma tabela — total efetivamente pago. */
 export function totalPagoTabela(parcelas: ParcelaAmortizacao[]): number {
   return parcelas.reduce((soma, p) => soma + p.parcela, 0)
@@ -214,10 +442,16 @@ export function formatarPercentualAnual(valor: number): string {
 }
 
 // ──────────────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────
 // Home Equity — modelo financeiro fiel à planilha "Simulacao HE.xlsx".
 // Validado contra a planilha: principal, IOF, parcela com seguro e CET batem
 // centavo a centavo no cenário-base (crédito 2.750.000 / imóvel 5.000.000 /
 // 1,09% a.m. / 240m / PJ → principal 2.949.959,23 · CET 14,5984% a.a.).
+//
+// Desde 2026-08 este produto usa o MESMO motor de `calcularSimulacao`: o que
+// era exclusivo do HE (gross-up de IOF, MIP sobre o saldo, DFI, tarifa mensal
+// e CET) virou `EncargosOperacao`, hoje compartilhado com o Financiamento
+// Imobiliário e o Crédito de Construção.
 // ──────────────────────────────────────────────────────────────────────────
 
 export type TipoPessoa = "PF" | "PJ"
@@ -242,24 +476,16 @@ export interface ParametrosHomeEquity {
   comprometimentoRenda?: number
 }
 
-export interface ResultadoTabelaHE {
-  primeiraParcela: number
-  ultimaParcela: number
-  parcelaMedia: number
-  rendaSugerida: number
-  cetMensal: number
-  cetAnual: number
-  totalPago: number
-}
-
 export interface ResultadoHomeEquity {
   principalFinanciado: number
   iofValor: number
   cacTotal: number
   taxaMensal: number
   taxaAnual: number
-  price: ResultadoTabelaHE
-  sac: ResultadoTabelaHE
+  price: ResultadoTabela
+  sac: ResultadoTabela
+  /** Tabelas parcela a parcela, já com seguros e tarifas. */
+  tabelas: TabelasAmortizacao
 }
 
 const HE_DEFAULTS = {
@@ -277,102 +503,40 @@ const HE_DEFAULTS = {
   comprometimentoRenda: 0.3,
 }
 
-function simularTabelaHE(
-  principal: number,
-  valorImovel: number,
-  taxaMensal: number,
-  prazoMeses: number,
-  tabela: TabelaAmortizacao,
-  c: typeof HE_DEFAULTS
-): ResultadoTabelaHE {
-  const i = taxaMensal
-  const n = prazoMeses
-  const mipRate = c.mip
-  const dfiRate = valorImovel > c.dfiLimiteImovel ? c.dfiAcima10M : c.dfi
-  const dfiMensal = valorImovel * dfiRate
-  const adm = c.txAdminMensal
-
-  const amortSAC = principal / n
-  const pmtPrice = calcularPrice(principal, i, n)
-
-  let saldo = principal
-  let somaSaldo = 0
-  let totalSeguros = 0
-  let totalPago = 0
-  let primeira = 0
-  let ultima = 0
-
-  for (let k = 1; k <= n; k++) {
-    const juros = saldo * i
-    const amort = tabela === "PRICE" ? pmtPrice - juros : amortSAC
-    const parcelaBase = tabela === "PRICE" ? pmtPrice : amort + juros
-    const mip = saldo * mipRate
-    const seguros = mip + dfiMensal + adm
-    const parcela = parcelaBase + seguros
-
-    somaSaldo += saldo
-    totalSeguros += seguros
-    totalPago += parcela
-    if (k === 1) primeira = parcela
-    if (k === n) ultima = parcela
-
-    saldo -= amort
-  }
-
-  // CET conforme planilha: (Σ seguros / Σ saldo devedor) + taxa, capitalizado.
-  const cetMensal = somaSaldo > 0 ? totalSeguros / somaSaldo + i : i
-  const cetAnual = Math.pow(1 + cetMensal, 12) - 1
-
-  return {
-    primeiraParcela: primeira,
-    ultimaParcela: ultima,
-    parcelaMedia: totalPago / n,
-    rendaSugerida: primeira / c.comprometimentoRenda,
-    cetMensal,
-    cetAnual,
-    totalPago,
-  }
-}
-
 export function calcularHomeEquity(p: ParametrosHomeEquity): ResultadoHomeEquity {
   const c = { ...HE_DEFAULTS, ...stripUndefined(p) }
   const { valorCredito, valorImovel, prazoMeses, taxaMensal, tipoPessoa } = p
 
-  if (valorCredito <= 0 || prazoMeses <= 0 || taxaMensal <= 0) {
-    const vazio: ResultadoTabelaHE = {
-      primeiraParcela: 0,
-      ultimaParcela: 0,
-      parcelaMedia: 0,
-      rendaSugerida: 0,
-      cetMensal: 0,
-      cetAnual: 0,
-      totalPago: 0,
-    }
-    return {
-      principalFinanciado: 0,
-      iofValor: 0,
-      cacTotal: 0,
-      taxaMensal,
-      taxaAnual: Math.pow(1 + taxaMensal, 12) - 1,
-      price: vazio,
-      sac: vazio,
-    }
+  const encargos: EncargosOperacao = {
+    valorGarantia: valorImovel,
+    mip: c.mip,
+    dfi: c.dfi,
+    dfiAcima: c.dfiAcima10M,
+    dfiLimiteGarantia: c.dfiLimiteImovel,
+    txAdminMensal: c.txAdminMensal,
+    taxaRegistro: c.taxaRegistro,
+    estruturacaoPercentual: c.estruturacaoPercentual,
+    iof: tipoPessoa === "PF" ? c.iofPF : c.iofPJ,
+    comprometimentoRenda: c.comprometimentoRenda,
   }
 
-  // CAC (custos embutidos) e gross-up do IOF no principal.
-  const cacTotal = c.taxaRegistro + valorCredito * c.estruturacaoPercentual
-  const iofRate = tipoPessoa === "PF" ? c.iofPF : c.iofPJ
-  const principalFinanciado = (valorCredito + cacTotal) / (1 - iofRate)
-  const iofValor = principalFinanciado - (valorCredito + cacTotal)
+  const { cacTotal, iofValor, principalFinanciado } = custosContratacao(valorCredito, encargos)
+  const tabelas = gerarTabelasAmortizacao(
+    principalFinanciado,
+    taxaMensal,
+    prazoMeses,
+    encargosMensaisDe(encargos)
+  )
 
   return {
-    principalFinanciado,
-    iofValor,
-    cacTotal,
+    principalFinanciado: tabelas.price.length > 0 ? principalFinanciado : 0,
+    iofValor: tabelas.price.length > 0 ? iofValor : 0,
+    cacTotal: tabelas.price.length > 0 ? cacTotal : 0,
     taxaMensal,
     taxaAnual: Math.pow(1 + taxaMensal, 12) - 1,
-    price: simularTabelaHE(principalFinanciado, valorImovel, taxaMensal, prazoMeses, "PRICE", c),
-    sac: simularTabelaHE(principalFinanciado, valorImovel, taxaMensal, prazoMeses, "SAC", c),
+    price: resumirTabela(tabelas.price, taxaMensal, c.comprometimentoRenda),
+    sac: resumirTabela(tabelas.sac, taxaMensal, c.comprometimentoRenda),
+    tabelas,
   }
 }
 

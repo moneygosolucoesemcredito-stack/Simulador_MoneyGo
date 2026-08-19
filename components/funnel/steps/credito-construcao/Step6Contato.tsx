@@ -8,6 +8,8 @@ import { calcularSimulacao } from "@/lib/simulacao"
 import { qualificarCreditoConstrucao } from "@/lib/qualificacao"
 import {
   CONFIG,
+  baseSeguroConstrucao,
+  encargosCreditoConstrucao,
   regraConstrucao,
   taxaAnualConstrucao,
   taxaMensalConstrucao,
@@ -31,10 +33,19 @@ export function Step6Contato() {
       // A taxa da categoria pode ser publicada ao ano (TR); o cálculo usa o
       // mensal equivalente.
       const taxaMensal = taxaMensalConstrucao(categoria)
+      // Mesmos encargos da tela de resultado (MIP, DFI e estruturação de 5%),
+      // para que a proposta enviada bata com o que o cliente viu.
       const resultado = calcularSimulacao(
         creditoConstrucao.valor_solicitado,
         taxaMensal,
-        creditoConstrucao.prazo_meses
+        creditoConstrucao.prazo_meses,
+        encargosCreditoConstrucao(
+          baseSeguroConstrucao({
+            valorTerreno: creditoConstrucao.valor_terreno,
+            valorObra: creditoConstrucao.valor_obra,
+            vgv: creditoConstrucao.vgv,
+          })
+        )
       )
 
       const { qualificado } = qualificarCreditoConstrucao({
@@ -61,9 +72,14 @@ export function Step6Contato() {
           vgv: creditoConstrucao.vgv,
           valor_solicitado: creditoConstrucao.valor_solicitado,
           prazo_meses: creditoConstrucao.prazo_meses,
-          parcela_price: resultado.parcela_price,
+          parcela_price: resultado.primeira_parcela_price,
+          primeira_parcela_price: resultado.primeira_parcela_price,
+          ultima_parcela_price: resultado.ultima_parcela_price,
           primeira_parcela_sac: resultado.primeira_parcela_sac,
           ultima_parcela_sac: resultado.ultima_parcela_sac,
+          cet_anual_price: resultado.cet_anual_price,
+          cac_total: resultado.cac_total,
+          principal_financiado: resultado.principal_financiado,
           taxa_mensal: taxaMensal,
           taxa_anual: taxaAnualConstrucao(categoria),
           modalidade_taxa: modalidadeTaxa,

@@ -21,6 +21,7 @@ interface LinhaFormatada {
   numero: number
   juros: string
   amortizacao: string
+  seguros: string
   parcela: string
   saldoDevedor: string
 }
@@ -30,6 +31,7 @@ function formatarLinhas(parcelas: ParcelaAmortizacao[]): LinhaFormatada[] {
     numero: p.numero,
     juros: BRL.format(p.juros),
     amortizacao: BRL.format(p.amortizacao),
+    seguros: BRL.format(p.seguros),
     parcela: BRL.format(p.parcela),
     saldoDevedor: BRL.format(p.saldoDevedor),
   }))
@@ -56,6 +58,12 @@ export function TabelaAmortizacao({ sac, price, sistemaInicial = "SAC" }: Tabela
   const linhasSac = useMemo(() => formatarLinhas(sac), [sac])
   const linhasPrice = useMemo(() => formatarLinhas(price), [price])
   const linhas = sistema === "SAC" ? linhasSac : linhasPrice
+
+  // A coluna de seguros só entra quando a operação de fato os cobra (MIP/DFI).
+  const comSeguros = useMemo(
+    () => price.some((p) => p.seguros > 0) || sac.some((p) => p.seguros > 0),
+    [price, sac]
+  )
 
   if (linhas.length === 0) return null
 
@@ -102,6 +110,11 @@ export function TabelaAmortizacao({ sac, price, sistemaInicial = "SAC" }: Tabela
               <th scope="col" className="p-2 text-right font-medium">
                 Amortização
               </th>
+              {comSeguros && (
+                <th scope="col" className="p-2 text-right font-medium">
+                  Seguros
+                </th>
+              )}
               <th scope="col" className="p-2 text-right font-medium">
                 Parcela
               </th>
@@ -118,6 +131,9 @@ export function TabelaAmortizacao({ sac, price, sistemaInicial = "SAC" }: Tabela
                 </th>
                 <td className="p-2 text-right">{linha.juros}</td>
                 <td className="p-2 text-right">{linha.amortizacao}</td>
+                {comSeguros && (
+                  <td className="p-2 text-right text-muted-foreground">{linha.seguros}</td>
+                )}
                 <td className="p-2 text-right font-semibold">{linha.parcela}</td>
                 <td className="p-2 text-right text-muted-foreground">{linha.saldoDevedor}</td>
               </tr>
@@ -129,7 +145,9 @@ export function TabelaAmortizacao({ sac, price, sistemaInicial = "SAC" }: Tabela
       <p className="text-xs text-muted-foreground">
         {sistema === "SAC"
           ? "SAC: amortização constante — a parcela começa maior e cai a cada mês."
-          : "PRICE: parcela fixa — os juros caem e a amortização cresce ao longo do prazo."}
+          : comSeguros
+            ? "PRICE: juros + amortização somam um PMT fixo; a parcela cai porque o MIP acompanha o saldo devedor."
+            : "PRICE: parcela fixa — os juros caem e a amortização cresce ao longo do prazo."}
       </p>
     </div>
   )

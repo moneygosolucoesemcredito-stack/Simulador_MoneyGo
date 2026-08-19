@@ -1,4 +1,8 @@
-import { taxaAnualEquivalente, taxaMensalEquivalente } from "./simulacao"
+import {
+  taxaAnualEquivalente,
+  taxaMensalEquivalente,
+  type EncargosOperacao,
+} from "./simulacao"
 import type {
   CategoriaTerrenoConstrucao,
   CategoriaVeiculo,
@@ -130,6 +134,61 @@ export const CONFIG = {
     financiamentoVeiculoStageId: Number(process.env.KOMMO_FINANCIAMENTO_VEICULO_STAGE_ID ?? "0"),
   },
 } as const
+
+// ──────────────────────────────────────────────────────────────────────────
+// Encargos por produto — o que entra na parcela além de juros e amortização.
+//
+// Até 2026-08 apenas o Home Equity aplicava MIP, DFI, tarifas e gross-up de
+// IOF; o Financiamento Imobiliário e o Crédito de Construção declaravam esses
+// campos no CONFIG mas rodavam PMT puro, devolvendo parcela idêntica do
+// primeiro ao último mês. As funções abaixo ligam o CONFIG de cada produto ao
+// motor de `calcularSimulacao`, que passa a montar a parcela real.
+// ──────────────────────────────────────────────────────────────────────────
+
+/**
+ * Financiamento Imobiliário: MIP sobre o saldo devedor, DFI sobre o imóvel e
+ * estruturação fixa de R$ 5.000 embutida no principal. IOF isento (`iof: 0`),
+ * então o gross-up é neutro. O produto não cobra tarifa mensal de administração.
+ */
+export function encargosFinanciamentoImobiliario(valorImovel: number): EncargosOperacao {
+  const c = CONFIG.financiamentoImobiliario
+  return {
+    valorGarantia: valorImovel,
+    mip: c.mip,
+    dfi: c.dfi,
+    estruturacaoFixa: c.estruturacaoFixa,
+    iof: c.iof,
+    comprometimentoRenda: c.comprometimentoRenda,
+  }
+}
+
+/**
+ * Base de cálculo do DFI na construção: o imóvel pronto (VGV). Enquanto o VGV
+ * não é informado — a categoria "dentro de condomínio" trabalha sobre o custo
+ * da obra —, o valor segurado é aproximado por terreno + obra.
+ */
+export function baseSeguroConstrucao(valores: {
+  valorTerreno: number
+  valorObra: number
+  vgv: number
+}): number {
+  return valores.vgv > 0 ? valores.vgv : valores.valorTerreno + valores.valorObra
+}
+
+/**
+ * Crédito de Construção: MIP, DFI e estruturação de 5% do crédito embutida no
+ * principal. IOF isento (`iof: 0`). Não cobra tarifa mensal de administração.
+ */
+export function encargosCreditoConstrucao(valorGarantia: number): EncargosOperacao {
+  const c = CONFIG.creditoConstrucao
+  return {
+    valorGarantia,
+    mip: c.mip,
+    dfi: c.dfi,
+    estruturacaoPercentual: c.estruturacaoPercentual,
+    iof: c.iof,
+  }
+}
 
 // ──────────────────────────────────────────────────────────────────────────
 // Crédito de Construção — regras por categoria de terreno (2026-08).

@@ -7,7 +7,7 @@ import { Step3ValorDesejado } from "@/components/funnel/steps/credito-construcao
 import { Step5Resultado } from "@/components/funnel/steps/credito-construcao/Step5Resultado"
 import { useFunnelStore } from "@/stores/funnel-store"
 import { calcularSimulacao, formatarMoeda } from "@/lib/simulacao"
-import { taxaMensalConstrucao } from "@/lib/config"
+import { baseSeguroConstrucao, encargosCreditoConstrucao, taxaMensalConstrucao } from "@/lib/config"
 
 const gerarPdfSpy = vi.fn().mockResolvedValue(undefined)
 vi.mock("@/lib/pdf-credito-construcao", () => ({
@@ -179,11 +179,25 @@ describe("Construção Step 5 — taxa da categoria, tabelas e PDF", () => {
     expect(container.textContent).toContain("16,08% ao ano")
   })
 
-  it("a parcela usa a taxa mensal equivalente da categoria", () => {
+  it("a parcela usa a taxa mensal equivalente da categoria, com MIP, DFI e estruturação", () => {
     setCC(cenarioCondominio)
-    render(<Step5Resultado onNext={() => {}} />)
-    const esperado = calcularSimulacao(800_000, taxaMensalConstrucao("condominio"), 360)
-    expect(screen.getAllByText(brl(esperado.parcela_price)).length).toBeGreaterThan(0)
+    const { container } = render(<Step5Resultado onNext={() => {}} />)
+    const esperado = calcularSimulacao(
+      800_000,
+      taxaMensalConstrucao("condominio"),
+      360,
+      encargosCreditoConstrucao(
+        baseSeguroConstrucao({ valorTerreno: 500_000, valorObra: 1_000_000, vgv: 3_000_000 })
+      )
+    )
+    // A parcela do PRICE não é fixa: o MIP acompanha o saldo devedor.
+    expect(esperado.primeira_parcela_price).toBeGreaterThan(esperado.ultima_parcela_price)
+    expect(screen.getAllByText(brl(esperado.primeira_parcela_price)).length).toBeGreaterThan(0)
+    // A última vem junto do rótulo, na mesma linha de texto.
+    expect(container.textContent).toContain(formatarMoeda(esperado.ultima_parcela_price))
+    // A estruturação de 5% entra no principal financiado.
+    expect(esperado.cac_total).toBeCloseTo(40_000, 2)
+    expect(esperado.principal_financiado).toBeCloseTo(840_000, 2)
   })
 
   it("renderiza a tabela de amortização com todas as 360 parcelas", () => {

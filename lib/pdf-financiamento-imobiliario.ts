@@ -3,7 +3,7 @@ import { autoTable } from "jspdf-autotable"
 import {
   formatarMoeda,
   formatarPercentual,
-  gerarTabelasAmortizacao,
+  formatarPercentualAnual,
   rendaNecessaria,
   type ParcelaAmortizacao,
   type ResultadoSimulacao,
@@ -19,8 +19,8 @@ export interface DadosPdfFinanciamentoImobiliario {
   /** Momento em que a simulação foi gerada (default: agora) */
   dataSimulacao?: Date
   /**
-   * Tabelas de amortização completas. Quando omitidas, são geradas aqui a
-   * partir de crédito, taxa e prazo — a tela já as calcula e repassa.
+   * Tabelas de amortização completas. Quando omitidas, usam-se as que a
+   * própria simulação já carrega — a tela normalmente as repassa.
    */
   tabelas?: TabelasAmortizacao
   /** Política de comprometimento de renda (default 30%). */
@@ -95,13 +95,19 @@ function desenharTabelaCompleta(
   )
   doc.setTextColor(0, 0, 0)
 
+  // A coluna de seguros só aparece quando a operação de fato os cobra.
+  const comSeguros = parcelas.some((p) => p.seguros > 0)
+
   autoTable(doc, {
     startY: 74,
-    head: [["Nº", "Juros", "Amortização", "Parcela", "Saldo devedor"]],
+    head: comSeguros
+      ? [["Nº", "Juros", "Amortização", "Seguros", "Parcela", "Saldo devedor"]]
+      : [["Nº", "Juros", "Amortização", "Parcela", "Saldo devedor"]],
     body: parcelas.map((p) => [
       String(p.numero),
       formatarMoeda(p.juros),
       formatarMoeda(p.amortizacao),
+      ...(comSeguros ? [formatarMoeda(p.seguros)] : []),
       formatarMoeda(p.parcela),
       formatarMoeda(p.saldoDevedor),
     ]),
@@ -111,8 +117,11 @@ function desenharTabelaCompleta(
       0: { halign: "right", cellWidth: 32, textColor: CINZA },
       1: { halign: "right" },
       2: { halign: "right" },
-      3: { halign: "right", fontStyle: "bold" },
-      4: { halign: "right", textColor: CINZA },
+      3: comSeguros
+        ? { halign: "right", textColor: CINZA }
+        : { halign: "right", fontStyle: "bold" },
+      4: comSeguros ? { halign: "right", fontStyle: "bold" } : { halign: "right", textColor: CINZA },
+      ...(comSeguros ? { 5: { halign: "right", textColor: CINZA } } : {}),
     },
     margin: { left: margem, right: margem, top: 40 },
   })
@@ -160,7 +169,9 @@ export async function gerarPdfFinanciamentoImobiliario(
     body: [
       ["Data da simulação", (dados.dataSimulacao ?? new Date()).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })],
       ["Valor do imóvel", formatarMoeda(dados.valorImovel)],
-      ["Valor financiado", formatarMoeda(dados.valorCredito)],
+      ["Crédito solicitado", formatarMoeda(dados.valorCredito)],
+      ["Custos de contratação", formatarMoeda(resultado.cac_total)],
+      ["Valor financiado", formatarMoeda(resultado.principal_financiado)],
       ["Prazo", `${dados.prazoMeses} meses (${dados.prazoMeses / 12} anos)`],
       ["Tomador", dados.tomador === "PF" ? "Pessoa Física" : "Pessoa Jurídica"],
       ["Taxa de juros (mensal)", `${formatarPercentual(resultado.taxa_mensal)} + IPCA`],
@@ -176,16 +187,17 @@ export async function gerarPdfFinanciamentoImobiliario(
   // Renda necessária = maior parcela do sistema / comprometimento (30%).
   const comprometimento = dados.comprometimentoRenda ?? 0.3
   const rendaSac = rendaNecessaria(resultado.primeira_parcela_sac, comprometimento)
-  const rendaPrice = rendaNecessaria(resultado.parcela_price, comprometimento)
+  const rendaPrice = rendaNecessaria(resultado.primeira_parcela_price, comprometimento)
 
   // Comparativo SAC × PRICE
   autoTable(doc, {
     startY: apos + 18,
     head: [["Condição", "SAC", "PRICE"]],
     body: [
-      ["Primeira parcela aprox.", formatarMoeda(resultado.primeira_parcela_sac), formatarMoeda(resultado.parcela_price)],
-      ["Última parcela aprox.", formatarMoeda(resultado.ultima_parcela_sac), formatarMoeda(resultado.parcela_price)],
+      ["Primeira parcela aprox.", formatarMoeda(resultado.primeira_parcela_sac), formatarMoeda(resultado.primeira_parcela_price)],
+      ["Última parcela aprox.", formatarMoeda(resultado.ultima_parcela_sac), formatarMoeda(resultado.ultima_parcela_price)],
       ["Renda necessária", formatarMoeda(rendaSac), formatarMoeda(rendaPrice)],
+      ["Custo efetivo total", formatarPercentualAnual(resultado.cet_anual_sac), formatarPercentualAnual(resultado.cet_anual_price)],
       ["Quantidade de parcelas", `${dados.prazoMeses}`, `${dados.prazoMeses}`],
     ],
     styles: { fontSize: 10, cellPadding: 6 },
@@ -208,9 +220,7 @@ export async function gerarPdfFinanciamentoImobiliario(
   doc.setTextColor(0, 0, 0)
 
   // Tabelas de amortização completas (parcela a parcela), uma por página.
-  const tabelas =
-    dados.tabelas ??
-    gerarTabelasAmortizacao(dados.valorCredito, resultado.taxa_mensal, dados.prazoMeses)
+  const tabelas = dados.tabelas ?? resultado.tabelas
 
   desenharTabelaCompleta(doc, "SAC", tabelas.sac, margem)
   desenharTabelaCompleta(doc, "PRICE", tabelas.price, margem)

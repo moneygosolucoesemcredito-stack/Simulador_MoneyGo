@@ -114,9 +114,19 @@ export interface SimulacaoFinanciamentoImobiliario {
   valor_solicitado: number
   prazo_meses: number
   parcela_price: number
+  /** Primeira parcela do PRICE, já com MIP e DFI */
+  primeira_parcela_price?: number
+  /** Última parcela do PRICE, já com MIP e DFI */
+  ultima_parcela_price?: number
   primeira_parcela_sac: number
   ultima_parcela_sac: number
   taxa_mensal: number
+  /** CET anual do PRICE — juros + seguros + tarifas */
+  cet_anual_price?: number
+  /** Custos de contratação embutidos no principal (estruturação/registro) */
+  cac_total?: number
+  /** Crédito + custos de contratação: base de cálculo dos juros */
+  principal_financiado?: number
   modalidade_taxa: ModalidadeTaxa
   /** Timestamp ISO de quando a simulação foi gerada */
   data_simulacao?: string
@@ -136,9 +146,19 @@ export interface SimulacaoCreditoConstrucao {
   valor_solicitado: number
   prazo_meses: number
   parcela_price: number
+  /** Primeira parcela do PRICE, já com MIP e DFI */
+  primeira_parcela_price?: number
+  /** Última parcela do PRICE, já com MIP e DFI */
+  ultima_parcela_price?: number
   primeira_parcela_sac: number
   ultima_parcela_sac: number
   taxa_mensal: number
+  /** CET anual do PRICE — juros + seguros + tarifas */
+  cet_anual_price?: number
+  /** Custos de contratação embutidos no principal (estruturação) */
+  cac_total?: number
+  /** Crédito + custos de contratação: base de cálculo dos juros */
+  principal_financiado?: number
   modalidade_taxa: ModalidadeTaxa
   indexador: string
   numero_tranches: number

@@ -7,13 +7,13 @@ import {
   calcularSimulacao,
   formatarMoeda,
   formatarPercentual,
-  gerarTabelasAmortizacao,
+  formatarPercentualAnual,
   rendaNecessaria,
 } from "@/lib/simulacao"
 import { TabelaAmortizacao } from "@/components/funnel/TabelaAmortizacao"
-import { CONFIG } from "@/lib/config"
+import { CONFIG, encargosFinanciamentoImobiliario } from "@/lib/config"
 import { pushDataLayer } from "@/components/tracking/GTM"
-import { Info, Zap, Flag, Wallet, Percent, CalendarDays, Download } from "lucide-react"
+import { Info, Zap, Flag, Wallet, Percent, CalendarDays, Download, Layers } from "lucide-react"
 
 type ColunaTabela = { primeira: number; ultima: number; renda: number }
 
@@ -27,29 +27,35 @@ export function Step5Resultado({ onNext }: { onNext: () => void }) {
   const { financiamentoImobiliario } = useFunnelStore()
   const { taxaMensal, comprometimentoRenda } = CONFIG.financiamentoImobiliario
 
+  // A simulação já monta as tabelas SAC e PRICE parcela a parcela, com os
+  // encargos do produto (MIP sobre o saldo devedor, DFI sobre o imóvel e
+  // estruturação embutida no principal). Por isso a parcela do PRICE é
+  // decrescente: o PMT é fixo, mas o MIP cai junto com o saldo.
   const resultado = useMemo(
-    () => calcularSimulacao(financiamentoImobiliario.valor_solicitado, taxaMensal, financiamentoImobiliario.prazo_meses),
-    [financiamentoImobiliario.valor_solicitado, financiamentoImobiliario.prazo_meses, taxaMensal]
-  )
-
-  // Tabelas completas (todas as parcelas). Recalculadas só quando crédito,
-  // prazo ou taxa mudam — a formatação das linhas fica no componente da tabela.
-  const tabelas = useMemo(
     () =>
-      gerarTabelasAmortizacao(
+      calcularSimulacao(
         financiamentoImobiliario.valor_solicitado,
         taxaMensal,
-        financiamentoImobiliario.prazo_meses
+        financiamentoImobiliario.prazo_meses,
+        encargosFinanciamentoImobiliario(financiamentoImobiliario.valor_imovel)
       ),
-    [financiamentoImobiliario.valor_solicitado, financiamentoImobiliario.prazo_meses, taxaMensal]
+    [
+      financiamentoImobiliario.valor_solicitado,
+      financiamentoImobiliario.valor_imovel,
+      financiamentoImobiliario.prazo_meses,
+      taxaMensal,
+    ]
   )
+
+  const tabelas = resultado.tabelas
 
   // Timestamp da simulação — exibido ao usuário e enviado no PDF/proposta.
   const dataSimulacao = useMemo(() => new Date(), [])
   const [baixando, setBaixando] = useState(false)
 
-  // Colunas do comparativo. No PRICE a parcela é fixa (primeira = última).
-  // A renda necessária parte da MAIOR parcela do sistema (no SAC, a primeira),
+  // Colunas do comparativo. Em ambos os sistemas a parcela é decrescente: no
+  // SAC pela amortização constante, no PRICE pelo MIP sobre o saldo devedor.
+  // A renda necessária parte da MAIOR parcela do sistema (a primeira),
   // aplicando a política de comprometimento de renda (30%).
   const sac: ColunaTabela = {
     primeira: resultado.primeira_parcela_sac,
@@ -57,9 +63,9 @@ export function Step5Resultado({ onNext }: { onNext: () => void }) {
     renda: rendaNecessaria(resultado.primeira_parcela_sac, comprometimentoRenda),
   }
   const price: ColunaTabela = {
-    primeira: resultado.parcela_price,
-    ultima: resultado.parcela_price,
-    renda: rendaNecessaria(resultado.parcela_price, comprometimentoRenda),
+    primeira: resultado.primeira_parcela_price,
+    ultima: resultado.ultima_parcela_price,
+    renda: rendaNecessaria(resultado.primeira_parcela_price, comprometimentoRenda),
   }
 
   function handleNext() {
@@ -166,12 +172,53 @@ export function Step5Resultado({ onNext }: { onNext: () => void }) {
             {financiamentoImobiliario.prazo_meses} meses
           </div>
         </div>
+
+        {/* CET — juros + seguros + tarifas, por sistema. */}
+        <div className="grid grid-cols-[1.25fr_1fr_1fr] border-t border-border/70">
+          <div className="flex items-center gap-2 p-3">
+            <Layers className="h-4 w-4 shrink-0 text-[var(--gold-dark)]" />
+            <span className="text-xs leading-tight text-muted-foreground">Custo efetivo total</span>
+          </div>
+          <div className="p-3 text-center border-l border-border/70 text-sm font-semibold tabular-nums">
+            {formatarPercentualAnual(resultado.cet_anual_sac)}
+          </div>
+          <div className="p-3 text-center border-l border-border/70 text-sm font-semibold tabular-nums">
+            {formatarPercentualAnual(resultado.cet_anual_price)}
+          </div>
+        </div>
       </div>
 
       <p className="text-xs text-muted-foreground">
         Renda necessária estimada com comprometimento de{" "}
         {Math.round(comprometimentoRenda * 100)}% da renda mensal sobre a maior parcela do sistema.
       </p>
+
+      <div className="rounded-xl border border-border p-4 space-y-2 text-xs">
+        <p className="text-sm font-semibold">Composição da parcela</p>
+        <div className="flex justify-between text-muted-foreground">
+          <span>Crédito solicitado</span>
+          <span className="font-medium text-foreground tabular-nums">
+            {formatarMoeda(financiamentoImobiliario.valor_solicitado)}
+          </span>
+        </div>
+        <div className="flex justify-between text-muted-foreground">
+          <span>Custos de contratação (estruturação)</span>
+          <span className="font-medium text-foreground tabular-nums">
+            {formatarMoeda(resultado.cac_total)}
+          </span>
+        </div>
+        <div className="flex justify-between text-muted-foreground border-t pt-2">
+          <span>Valor financiado</span>
+          <span className="font-semibold text-foreground tabular-nums">
+            {formatarMoeda(resultado.principal_financiado)}
+          </span>
+        </div>
+        <p className="pt-1 text-muted-foreground">
+          Sobre esse valor incidem os juros. Cada parcela soma ainda o MIP (seguro de vida, sobre o
+          saldo devedor) e o DFI (seguro do imóvel) — como o MIP cai junto com o saldo, a parcela é
+          decrescente nos dois sistemas.
+        </p>
+      </div>
 
       {/* Tabela de amortização completa — todas as parcelas, SAC e PRICE */}
       <TabelaAmortizacao sac={tabelas.sac} price={tabelas.price} />

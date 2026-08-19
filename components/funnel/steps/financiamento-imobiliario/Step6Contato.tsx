@@ -6,7 +6,7 @@ import { ContatoForm, type ContatoFormValues } from "@/components/funnel/Contato
 import { useFunnelStore } from "@/stores/funnel-store"
 import { calcularSimulacao } from "@/lib/simulacao"
 import { qualificarFinanciamentoImobiliario } from "@/lib/qualificacao"
-import { CONFIG } from "@/lib/config"
+import { CONFIG, encargosFinanciamentoImobiliario } from "@/lib/config"
 import { trackLead } from "@/components/tracking/MetaPixel"
 import { pushDataLayer } from "@/components/tracking/GTM"
 import { toast } from "sonner"
@@ -21,10 +21,13 @@ export function Step6Contato() {
     setLoading(true)
     try {
       const { taxaMensal, modalidadeTaxa } = CONFIG.financiamentoImobiliario
+      // Mesmos encargos da tela de resultado (MIP, DFI e estruturação), para
+      // que a proposta enviada bata com o que o cliente viu.
       const resultado = calcularSimulacao(
         financiamentoImobiliario.valor_solicitado,
         taxaMensal,
-        financiamentoImobiliario.prazo_meses
+        financiamentoImobiliario.prazo_meses,
+        encargosFinanciamentoImobiliario(financiamentoImobiliario.valor_imovel)
       )
 
       const { qualificado } = qualificarFinanciamentoImobiliario({
@@ -47,9 +50,14 @@ export function Step6Contato() {
           tipo_pessoa: (financiamentoImobiliario.tipo_pessoa || "PF") as "PF" | "PJ",
           valor_solicitado: financiamentoImobiliario.valor_solicitado,
           prazo_meses: financiamentoImobiliario.prazo_meses,
-          parcela_price: resultado.parcela_price,
+          parcela_price: resultado.primeira_parcela_price,
+          primeira_parcela_price: resultado.primeira_parcela_price,
+          ultima_parcela_price: resultado.ultima_parcela_price,
           primeira_parcela_sac: resultado.primeira_parcela_sac,
           ultima_parcela_sac: resultado.ultima_parcela_sac,
+          cet_anual_price: resultado.cet_anual_price,
+          cac_total: resultado.cac_total,
+          principal_financiado: resultado.principal_financiado,
           taxa_mensal: taxaMensal,
           modalidade_taxa: modalidadeTaxa,
           data_simulacao: new Date().toISOString(),

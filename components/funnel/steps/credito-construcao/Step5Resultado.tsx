@@ -8,11 +8,16 @@ import {
   formatarMoeda,
   formatarPercentual,
   formatarPercentualAnual,
-  gerarTabelasAmortizacao,
   taxaAnualEquivalente,
 } from "@/lib/simulacao"
 import { TabelaAmortizacao } from "@/components/funnel/TabelaAmortizacao"
-import { CONFIG, regraConstrucao, taxaMensalConstrucao } from "@/lib/config"
+import {
+  CONFIG,
+  baseSeguroConstrucao,
+  encargosCreditoConstrucao,
+  regraConstrucao,
+  taxaMensalConstrucao,
+} from "@/lib/config"
 import { pushDataLayer } from "@/components/tracking/GTM"
 import { Info, Download } from "lucide-react"
 
@@ -30,25 +35,29 @@ export function Step5Resultado({ onNext }: { onNext: () => void }) {
     [regra]
   )
 
+  // Valor segurado (base do DFI): o imóvel pronto, aproximado por terreno +
+  // obra enquanto o VGV não é informado.
+  const valorGarantia = baseSeguroConstrucao({
+    valorTerreno: creditoConstrucao.valor_terreno,
+    valorObra: creditoConstrucao.valor_obra,
+    vgv: creditoConstrucao.vgv,
+  })
+
+  // A simulação monta as tabelas com os encargos do produto: MIP sobre o saldo
+  // devedor, DFI sobre o imóvel e estruturação de 5% embutida no principal.
+  // Por isso a parcela do PRICE é decrescente, e não fixa.
   const resultado = useMemo(
     () =>
       calcularSimulacao(
         creditoConstrucao.valor_solicitado,
         taxaMensal,
-        creditoConstrucao.prazo_meses
+        creditoConstrucao.prazo_meses,
+        encargosCreditoConstrucao(valorGarantia)
       ),
-    [creditoConstrucao.valor_solicitado, creditoConstrucao.prazo_meses, taxaMensal]
+    [creditoConstrucao.valor_solicitado, creditoConstrucao.prazo_meses, taxaMensal, valorGarantia]
   )
 
-  const tabelas = useMemo(
-    () =>
-      gerarTabelasAmortizacao(
-        creditoConstrucao.valor_solicitado,
-        taxaMensal,
-        creditoConstrucao.prazo_meses
-      ),
-    [creditoConstrucao.valor_solicitado, creditoConstrucao.prazo_meses, taxaMensal]
-  )
+  const tabelas = resultado.tabelas
 
   const dataSimulacao = useMemo(() => new Date(), [])
   const [baixando, setBaixando] = useState(false)
@@ -134,10 +143,15 @@ export function Step5Resultado({ onNext }: { onNext: () => void }) {
 
         <div className="space-y-4">
           <div>
-            <p className="text-xs text-muted-foreground mb-1">Tabela Price (parcela fixa)</p>
+            <p className="text-xs text-muted-foreground mb-1">
+              Tabela Price (PMT fixo + seguros sobre o saldo)
+            </p>
             <p className="text-3xl font-bold text-[var(--gold)]">
-              {formatarMoeda(resultado.parcela_price)}
+              {formatarMoeda(resultado.primeira_parcela_price)}
               <span className="text-base font-normal text-muted-foreground">/mês</span>
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              1ª parcela · última {formatarMoeda(resultado.ultima_parcela_price)}
             </p>
           </div>
 
@@ -169,6 +183,20 @@ export function Step5Resultado({ onNext }: { onNext: () => void }) {
                   ? formatarPercentual(taxaMensal, "% ao mês")
                   : formatarPercentual(taxaAnual, "% ao ano")}
               </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Custo efetivo total (Price)</span>
+              <span className="font-medium">{formatarPercentualAnual(resultado.cet_anual_price)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">
+                Estruturação ({Math.round(CONFIG.creditoConstrucao.estruturacaoPercentual * 100)}%)
+              </span>
+              <span className="font-medium">{formatarMoeda(resultado.cac_total)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Valor financiado</span>
+              <span className="font-medium">{formatarMoeda(resultado.principal_financiado)}</span>
             </div>
           </div>
         </div>

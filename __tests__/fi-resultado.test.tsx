@@ -4,7 +4,7 @@ import { act, cleanup, render, screen, fireEvent } from "@testing-library/react"
 import { Step5Resultado } from "@/components/funnel/steps/financiamento-imobiliario/Step5Resultado"
 import { useFunnelStore } from "@/stores/funnel-store"
 import { calcularSimulacao, formatarMoeda } from "@/lib/simulacao"
-import { CONFIG } from "@/lib/config"
+import { CONFIG, encargosFinanciamentoImobiliario } from "@/lib/config"
 
 // formatarMoeda usa NBSP ( ) entre "R$" e o número; a Testing Library
 // normaliza o NBSP do DOM para espaço comum, então a string buscada precisa
@@ -54,10 +54,14 @@ describe("Financiamento Imobiliário — Step5 resultado (SAC × PRICE + PDF)", 
     const r = calcularSimulacao(
       cenario.valor_solicitado,
       CONFIG.financiamentoImobiliario.taxaMensal,
-      cenario.prazo_meses
+      cenario.prazo_meses,
+      encargosFinanciamentoImobiliario(cenario.valor_imovel)
     )
-    // A parcela fixa do PRICE aparece na tela (primeira = última).
-    expect(screen.getAllByText(brl(r.parcela_price)).length).toBeGreaterThan(0)
+    // A parcela do PRICE é decrescente (MIP sobre o saldo devedor): a tela traz
+    // a primeira e a última, e elas são diferentes.
+    expect(r.primeira_parcela_price).toBeGreaterThan(r.ultima_parcela_price)
+    expect(screen.getAllByText(brl(r.primeira_parcela_price)).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(brl(r.ultima_parcela_price)).length).toBeGreaterThan(0)
     // A primeira parcela do SAC também (comparativo + linha 1 da tabela).
     expect(screen.getAllByText(brl(r.primeira_parcela_sac)).length).toBeGreaterThan(0)
     // Taxa e prazo (o prazo aparece no card-resumo e na tabela).
