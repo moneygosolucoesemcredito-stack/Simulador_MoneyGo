@@ -16,7 +16,7 @@ import { pushDataLayer } from "@/components/tracking/GTM"
 const TOTAL_STEPS = 6
 
 export default function FinanciamentoImobiliarioPage() {
-  const { financiamentoImobiliario, setFinanciamentoImobiliario, resetFinanciamentoImobiliario } = useFunnelStore()
+  const { financiamentoImobiliario, setFinanciamentoImobiliario } = useFunnelStore()
   const step = financiamentoImobiliario.step
   const router = useRouter()
 

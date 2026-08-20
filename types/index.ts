@@ -5,7 +5,8 @@ export type Produto = "home_equity" | "auto_equity" | "financiamento_imobiliario
 export type TipoImovel = "casa" | "apartamento" | "comercial" | "terreno" | "terreno_condominio"
 export type SituacaoImovel = "quitado" | "financiado"
 export type SituacaoVeiculo = "quitado" | "financiado"
-// Categoria do veículo no Auto Equity — define a idade máxima aceita:
+// Categoria do veículo no Auto Equity e no Financiamento de Veículo — define a
+// idade máxima aceita, com os MESMOS limites nas duas modalidades:
 // `leve` = carros, SUVs, picapes e utilitários leves (até 20 anos);
 // `pesado` = caminhões, ônibus, cavalos mecânicos e utilitários pesados (até 15 anos).
 export type CategoriaVeiculo = "leve" | "pesado"
@@ -17,7 +18,7 @@ export type TipoPessoa = "PF" | "PJ"
 // `condominio`      = terreno em condomínio fechado (só PF, 80% da obra,
 //                     13,99% a.a. + TR, até 360 meses);
 // `fora_condominio` = terreno em área comum (PF e PJ, 50% do VGV,
-//                     1,25% a.m. + IPCA, até 240 meses).
+//                     15% a.a. + IPCA, até 240 meses).
 export type CategoriaTerrenoConstrucao = "condominio" | "fora_condominio"
 export type MelhorHorario = "manha" | "tarde"
 export type ModalidadeTaxa = "pos_fixada" | "pre_fixada"
@@ -38,7 +39,15 @@ export interface SimulacaoHomeEquity {
   situacao: SituacaoImovel
   saldo_devedor?: number
   tipo_pessoa?: "PF" | "PJ"
+  /** O que o cliente recebe líquido. */
   valor_solicitado: number
+  /**
+   * Crédito efetivamente financiado: `valor_solicitado` + `saldo_devedor`
+   * (a quitação do financiamento existente entra por cima do valor pedido).
+   * É sobre ele que incidem parcela, IOF, CET e o teto de LTV da tipologia.
+   * Imóvel quitado → igual a `valor_solicitado`.
+   */
+  credito_total?: number
   prazo_meses: number
   parcela_price: number
   primeira_parcela_sac: number

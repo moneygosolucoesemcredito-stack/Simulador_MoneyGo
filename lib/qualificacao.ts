@@ -2,6 +2,7 @@ import cidades from "./ibge-cidades.json"
 import {
   CONFIG,
   HE_IDADE_MAIS_PRAZO_MAXIMO_ANOS,
+  creditoTotalHomeEquity,
   idadeMaximaVeiculo,
   idadeMaximaVeiculoFinanciamento,
   limiteCreditoConstrucao,
@@ -9,6 +10,7 @@ import {
   ltvParaTipoImovelFI,
   prazoMaximoHomeEquity,
   regraConstrucao,
+  saldoDevedorMaximoHomeEquity,
   tomadorPermitidoConstrucao,
 } from "./config"
 import type {
@@ -84,16 +86,28 @@ export function qualificarHomeEquity(params: {
     motivos.push("Imóvel rural não aceito nesta modalidade")
   }
 
+  // Saldo devedor do financiamento existente: até 40% do valor do imóvel.
+  const saldoDevedor = params.situacao === "financiado" ? params.saldo_devedor ?? 0 : 0
   if (params.situacao === "financiado" && params.saldo_devedor !== undefined) {
-    if (params.saldo_devedor > params.valor_imovel * cfg.saldoDevedorMaximoPercentual) {
-      motivos.push("Saldo devedor superior a 50% do valor do imóvel")
+    if (params.saldo_devedor > saldoDevedorMaximoHomeEquity(params.valor_imovel)) {
+      motivos.push(
+        `Saldo devedor superior a ${Math.round(cfg.saldoDevedorMaximoPercentual * 100)}% do valor do imóvel`
+      )
     }
   }
 
+  // O LTV incide sobre o CRÉDITO TOTAL: o saldo devedor é quitado dentro da
+  // operação e soma ao valor que o cliente recebe. Imóvel quitado → total =
+  // valor solicitado.
   const ltv = ltvParaTipoImovel(params.tipo_imovel)
   const ltvMaximo = params.valor_imovel * ltv
-  if (params.valor_solicitado > ltvMaximo) {
-    motivos.push(`Valor solicitado superior a ${Math.round(ltv * 100)}% do valor do imóvel`)
+  const creditoTotal = creditoTotalHomeEquity(params.valor_solicitado, saldoDevedor)
+  if (creditoTotal > ltvMaximo) {
+    motivos.push(
+      saldoDevedor > 0
+        ? `Crédito total (solicitado + saldo devedor) superior a ${Math.round(ltv * 100)}% do valor do imóvel`
+        : `Valor solicitado superior a ${Math.round(ltv * 100)}% do valor do imóvel`
+    )
   }
 
   // Trava de seguro habitacional: idade + prazo (anos) ≤ 80. Substitui o teto
@@ -236,10 +250,38 @@ export function qualificarCreditoConstrucao(params: {
 /** Mensagem única de bem recusado no Financiamento de Veículo. */
 export const BEM_NAO_ELEGIVEL_FINANCIAMENTO = "Bem não elegível para esta modalidade"
 
+/** Categoria normalizada — qualquer valor fora de `pesado` cai no padrão `leve`. */
+function categoriaDoVeiculo(categoria?: CategoriaVeiculo | string): CategoriaVeiculo {
+  return categoria === "pesado" ? "pesado" : "leve"
+}
+
 /**
- * Elegibilidade do BEM no Financiamento de Veículo, avaliada já no Step 1:
- * veículo PESADO só é aceito com até 5 anos de fabricação. Veículo leve não
- * tem trava de idade nesta modalidade.
+ * Idade do veículo — ÚNICA trava de elegibilidade do bem, compartilhada pelo
+ * Auto Equity e pelo Financiamento de Veículo (2026-08): veículo leve até 20
+ * anos e veículo pesado até 15 anos de fabricação. Não há mais piso nem teto
+ * de valor do bem em nenhuma das duas modalidades.
+ *
+ * `idadeMaxima` vem da tabela do produto (idadeMaximaVeiculo /
+ * idadeMaximaVeiculoFinanciamento) — hoje as duas devolvem os mesmos limites.
+ */
+function avaliarIdadeVeiculo(params: {
+  ano_veiculo?: number
+  idadeMaxima: number
+  anoReferencia?: number
+}): { anoIdentificado: boolean; dentroDoLimite: boolean } {
+  const anoAtual = params.anoReferencia ?? new Date().getFullYear()
+  if (!params.ano_veiculo || params.ano_veiculo <= 0) {
+    return { anoIdentificado: false, dentroDoLimite: false }
+  }
+  return {
+    anoIdentificado: true,
+    dentroDoLimite: anoAtual - params.ano_veiculo <= params.idadeMaxima,
+  }
+}
+
+/**
+ * Elegibilidade do BEM no Financiamento de Veículo, avaliada já no Step 1.
+ * Mesma regra do Auto Equity: leve até 20 anos, pesado até 15 anos.
  */
 export function qualificarVeiculoFinanciamento(params: {
   ano_veiculo: number
@@ -247,18 +289,20 @@ export function qualificarVeiculoFinanciamento(params: {
   anoReferencia?: number
 }): ResultadoQualificacao {
   const motivos: string[] = []
-  const categoria: CategoriaVeiculo = params.categoria_veiculo === "pesado" ? "pesado" : "leve"
+  const categoria = categoriaDoVeiculo(params.categoria_veiculo)
+  const idadeMaxima = idadeMaximaVeiculoFinanciamento(categoria)
+  const { anoIdentificado, dentroDoLimite } = avaliarIdadeVeiculo({
+    ano_veiculo: params.ano_veiculo,
+    idadeMaxima,
+    anoReferencia: params.anoReferencia,
+  })
 
-  if (categoria === "pesado") {
-    const anoAtual = params.anoReferencia ?? new Date().getFullYear()
-    const idadeMaxima = idadeMaximaVeiculoFinanciamento(categoria)
-    if (!params.ano_veiculo || params.ano_veiculo <= 0) {
-      motivos.push(`${BEM_NAO_ELEGIVEL_FINANCIAMENTO}: ano de fabricação não identificado`)
-    } else if (anoAtual - params.ano_veiculo > idadeMaxima) {
-      motivos.push(
-        `${BEM_NAO_ELEGIVEL_FINANCIAMENTO}: veículo pesado com mais de ${idadeMaxima} anos de fabricação`
-      )
-    }
+  if (!anoIdentificado) {
+    motivos.push(`${BEM_NAO_ELEGIVEL_FINANCIAMENTO}: ano de fabricação não identificado`)
+  } else if (!dentroDoLimite) {
+    motivos.push(
+      `${BEM_NAO_ELEGIVEL_FINANCIAMENTO}: veículo ${categoria} com mais de ${idadeMaxima} anos de fabricação`
+    )
   }
 
   return { qualificado: motivos.length === 0, motivos }
@@ -268,9 +312,9 @@ export function qualificarFinanciamentoVeiculo(params: {
   valor_veiculo: number
   valor_solicitado: number
   prazo_meses: number
-  /** Leve ou pesado — pesado tem trava de idade. Ausente assume `leve`. */
+  /** Leve ou pesado — define a idade máxima do bem. Ausente assume `leve`. */
   categoria_veiculo?: CategoriaVeiculo | string
-  /** Ano de fabricação — usado na trava de idade do veículo pesado. */
+  /** Ano de fabricação — usado na trava de idade do veículo. */
   ano_veiculo?: number
 }): ResultadoQualificacao {
   const { financiamentoVeiculo: cfg } = CONFIG
@@ -289,7 +333,7 @@ export function qualificarFinanciamentoVeiculo(params: {
     motivos.push(`Prazo superior ao máximo de ${cfg.prazoMaximo} meses`)
   }
 
-  // Elegibilidade do bem (idade do veículo pesado).
+  // Elegibilidade do bem (idade do veículo, leve ou pesado).
   if (params.ano_veiculo !== undefined) {
     motivos.push(
       ...qualificarVeiculoFinanciamento({
@@ -303,35 +347,34 @@ export function qualificarFinanciamentoVeiculo(params: {
 }
 
 /**
- * Elegibilidade do BEM, avaliada já no primeiro passo do funil (valor FIPE
- * mínimo e idade máxima da categoria). Veículo inelegível encerra a jornada
- * ali: a MoneyGo não trabalha esses leads, nem para contato posterior.
+ * Elegibilidade do BEM, avaliada já no primeiro passo do funil. Desde 2026-08
+ * a ÚNICA trava é a idade máxima de fabricação da categoria (leve 20 anos /
+ * pesado 15 anos): o piso de valor FIPE de R$ 30.000 e o teto de R$ 500.000
+ * foram removidos. Veículo inelegível encerra a jornada ali: a MoneyGo não
+ * trabalha esses leads, nem para contato posterior.
  */
 export function qualificarVeiculoAutoEquity(params: {
-  valor_veiculo: number
   ano_veiculo: number
   /** Categoria do veículo — define a idade máxima (leve 20 anos / pesado 15 anos).
    *  Ausente ou inválida cai no padrão do funil: `leve`. */
   categoria_veiculo?: CategoriaVeiculo | string
+  anoReferencia?: number
 }): ResultadoQualificacao {
-  const { autoEquity: cfg } = CONFIG
   const motivos: string[] = []
-  const anoAtual = new Date().getFullYear()
-  const categoria: CategoriaVeiculo = params.categoria_veiculo === "pesado" ? "pesado" : "leve"
-
-  if (params.valor_veiculo < cfg.valorVeiculoMinimo) {
-    motivos.push(`Valor do veículo abaixo do mínimo de ${cfg.valorVeiculoMinimo.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`)
-  }
-
-  // Idade máxima por categoria: leve 20 anos, pesado 15 anos. Sem o ano de
-  // fabricação não há como aplicar a trava — o veículo também não passa.
+  const categoria = categoriaDoVeiculo(params.categoria_veiculo)
   const idadeMaxima = idadeMaximaVeiculo(categoria)
-  if (!params.ano_veiculo || params.ano_veiculo <= 0) {
+
+  // Sem o ano de fabricação não há como aplicar a trava — o veículo não passa.
+  const { anoIdentificado, dentroDoLimite } = avaliarIdadeVeiculo({
+    ano_veiculo: params.ano_veiculo,
+    idadeMaxima,
+    anoReferencia: params.anoReferencia,
+  })
+
+  if (!anoIdentificado) {
     motivos.push("Ano de fabricação do veículo não identificado")
-  } else if (params.ano_veiculo < anoAtual - idadeMaxima) {
-    motivos.push(
-      `Veículo ${categoria} com mais de ${idadeMaxima} anos não aceito`
-    )
+  } else if (!dentroDoLimite) {
+    motivos.push(`Veículo ${categoria} com mais de ${idadeMaxima} anos não aceito`)
   }
 
   return { qualificado: motivos.length === 0, motivos }
@@ -346,20 +389,16 @@ export function qualificarAutoEquity(params: {
    *  Ausente ou inválida cai no padrão do funil: `leve`. */
   categoria_veiculo?: CategoriaVeiculo | string
 }): ResultadoQualificacao {
-  const { autoEquity: cfg } = CONFIG
   const motivos: string[] = []
 
   if (params.situacao === "financiado") {
     motivos.push("Veículo financiado não aceito — apenas veículos quitados")
   }
 
-  // Valor mínimo e idade máxima: mesma trava aplicada no Step 1 do funil.
+  // Idade máxima do bem: ÚNICA trava do produto. Não há piso nem teto de valor
+  // do veículo, nem limite do crédito sobre a FIPE — o LTV de 80% foi removido
+  // (2026-08). O valor do bem é referência de avaliação, não trava.
   motivos.push(...qualificarVeiculoAutoEquity(params).motivos)
-
-  const ltvMaximo = params.valor_veiculo * cfg.ltv
-  if (params.valor_solicitado > ltvMaximo) {
-    motivos.push(`Valor solicitado superior a ${Math.round(cfg.ltv * 100)}% do valor do veículo`)
-  }
 
   return { qualificado: motivos.length === 0, motivos }
 }

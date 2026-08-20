@@ -9,16 +9,25 @@ import { CONFIG } from "@/lib/config"
 import { pushDataLayer } from "@/components/tracking/GTM"
 import { Info } from "lucide-react"
 
+const STEP = 1_000
+
+/** Escala da régua: a referência do bem ou o valor escolhido, o que for maior. */
+function escalaSlider(valor: number, referencia: number): number {
+  const base = referencia > 0 ? referencia : STEP
+  if (!Number.isFinite(valor) || valor <= base) return base
+  return Math.ceil(valor / STEP) * STEP
+}
+
 export function Step5Resultado({ onNext }: { onNext: () => void }) {
   const { autoEquity, setAutoEquity } = useFunnelStore()
-  const { taxaMensal, iofPF, iofPJ, ltv } = CONFIG.autoEquity
+  const { taxaMensal, iofPF, iofPJ } = CONFIG.autoEquity
   const tipoPessoa = (autoEquity.tipo_pessoa || "PF") as "PF" | "PJ"
 
-  const valorMaximo = Math.floor(autoEquity.valor_veiculo * ltv)
-  const valorMinimo = 5_000
-  const [valor, setValor] = useState(
-    Math.min(Math.max(autoEquity.valor_solicitado || valorMinimo, valorMinimo), valorMaximo)
-  )
+  // Sem NENHUMA trava de valor (2026-08): caíram o piso de R$ 5.000 e o teto de
+  // 80% da FIPE. O valor do veículo é só a referência da régua — o crédito
+  // escolhido no passo anterior pode estar acima dele.
+  const [valor, setValor] = useState(autoEquity.valor_solicitado || 0)
+  const sliderMax = escalaSlider(valor, Math.floor(autoEquity.valor_veiculo))
 
   const resultado = useMemo(
     () =>
@@ -63,17 +72,12 @@ export function Step5Resultado({ onNext }: { onNext: () => void }) {
           </div>
 
           <Slider
-            min={valorMinimo}
-            max={valorMaximo}
-            step={1_000}
-            value={[valor]}
+            min={0}
+            max={sliderMax}
+            step={STEP}
+            value={[Math.min(Math.max(valor, 0), sliderMax)]}
             onValueChange={handleValorChange}
           />
-
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{formatarMoeda(valorMinimo)}</span>
-            <span>{formatarMoeda(valorMaximo)}</span>
-          </div>
         </div>
 
         <div className="h-px bg-border" />

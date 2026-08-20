@@ -7,7 +7,7 @@ import { criarSupabaseBrowser } from "@/lib/supabase/client"
 import { useFunnelStore } from "@/stores/funnel-store"
 import { calcularHomeEquity } from "@/lib/simulacao"
 import { qualificarHomeEquity } from "@/lib/qualificacao"
-import { CONFIG } from "@/lib/config"
+import { CONFIG, creditoTotalHomeEquity } from "@/lib/config"
 import { trackLead } from "@/components/tracking/MetaPixel"
 import { pushDataLayer } from "@/components/tracking/GTM"
 import { toast } from "sonner"
@@ -64,8 +64,13 @@ export function Step7Contato({ aoConcluir = "redirect", onEnviado }: Step7Contat
       const { modalidadeTaxa } = CONFIG.homeEquity
       const taxaMensal = homeEquity.taxa_mensal || CONFIG.homeEquity.taxaMensal
       const tipoPessoa = (homeEquity.tipo_pessoa || "PF") as "PF" | "PJ"
+      // O saldo devedor é quitado dentro da operação: quem gera as parcelas é
+      // o crédito total (solicitado + saldo), não só o valor pedido.
+      const saldoDevedor =
+        homeEquity.situacao === "financiado" ? homeEquity.saldo_devedor || 0 : 0
+      const creditoTotal = creditoTotalHomeEquity(homeEquity.valor_solicitado, saldoDevedor)
       const resultado = calcularHomeEquity({
-        valorCredito: homeEquity.valor_solicitado,
+        valorCredito: creditoTotal,
         valorImovel: homeEquity.valor_imovel,
         prazoMeses: homeEquity.prazo_meses,
         taxaMensal,
@@ -101,6 +106,7 @@ export function Step7Contato({ aoConcluir = "redirect", onEnviado }: Step7Contat
           saldo_devedor: homeEquity.saldo_devedor || undefined,
           tipo_pessoa: tipoPessoa,
           valor_solicitado: homeEquity.valor_solicitado,
+          credito_total: creditoTotal,
           prazo_meses: homeEquity.prazo_meses,
           parcela_price: resultado.price.primeiraParcela,
           primeira_parcela_price: resultado.price.primeiraParcela,

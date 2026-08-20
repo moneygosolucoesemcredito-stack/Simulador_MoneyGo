@@ -40,10 +40,33 @@ describe("Construção Step 1 — seletor de categoria do terreno", () => {
     const texto = container.textContent ?? ""
     expect(texto).toContain("Até 80% do custo da obra")
     expect(texto).toContain("Até 50% do VGV")
-    expect(texto).toContain("13,99% a.a. + TR")
-    expect(texto).toContain("1,25% a.m. + IPCA")
+    expect(texto).toContain("Taxas a partir de 13,99% a.a. + TR")
+    expect(texto).toContain("Taxa a partir de 15,00% a.a. + IPCA")
     expect(texto).toContain("Prazo de até 30 anos")
     expect(texto).toContain("Prazo de até 20 anos")
+    expect(texto).toContain("Contratação PF")
+    expect(texto).toContain("Contratação PF E PJ")
+    // A taxa mensal fechada saiu dos cartões.
+    expect(texto).not.toContain("1,25% a.m.")
+  })
+
+  it("o valor do terreno não tem piso nem teto e o aviso não fala em quitação", () => {
+    const { container } = render(<Step1ValorTerreno onNext={() => {}} />)
+    const texto = container.textContent ?? ""
+
+    expect(texto).not.toContain("(quitado)")
+    expect(texto).toContain("Valor de mercado do terreno que você já possui — garantia inicial")
+    expect(texto).toContain(
+      "O terreno pode possuir saldo devedor máximo de 15% do valor da compra e venda"
+    )
+    expect(texto).not.toContain("precisa estar quitado")
+    expect(texto).toContain("não há valor mínimo nem máximo")
+
+    // Qualquer valor digitado avança, inclusive acima dos R$ 10 milhões antigos.
+    fireEvent.click(screen.getByText("Dentro de condomínio"))
+    fireEvent.input(screen.getByLabelText("Valor do terreno"), { target: { value: "45000000" } })
+    fireEvent.click(screen.getByRole("button", { name: "Continuar" }))
+    expect(useFunnelStore.getState().creditoConstrucao.valor_terreno).toBe(45_000_000)
   })
 
   it("condomínio trava o tomador em PF (PJ desabilitada)", () => {
@@ -94,7 +117,7 @@ describe("Construção Step 2 — campo adaptado à categoria", () => {
     expect(screen.getByText("Qual o custo total da obra?")).toBeTruthy()
     expect(screen.getByLabelText("Custo da obra")).toBeTruthy()
     expect(screen.queryByLabelText("VGV estimado")).toBeNull()
-    expect(container.textContent).toContain("até 80% do custo da obra")
+    expect(container.textContent).toContain("Qual o custo total da obra?")
   })
 
   it("fora de condomínio pede o VGV ESTIMADO", () => {
@@ -104,7 +127,16 @@ describe("Construção Step 2 — campo adaptado à categoria", () => {
     expect(screen.getByText("Qual o VGV estimado?")).toBeTruthy()
     expect(screen.getByLabelText("VGV estimado")).toBeTruthy()
     expect(screen.queryByLabelText("Custo da obra")).toBeNull()
-    expect(container.textContent).toContain("até 50% do VGV")
+    expect(container.textContent).toContain("Qual o VGV estimado?")
+  })
+
+  it("não anuncia mais o teto de crédito estimado do passo", () => {
+    setCC({ categoria_terreno: "condominio", tipo_pessoa: "PF", valor_obra: 1_000_000 })
+    const { container } = render(<Step2ValorObra onNext={() => {}} />)
+    const texto = container.textContent ?? ""
+    expect(texto).not.toContain("hoje, até")
+    expect(texto).not.toContain("crédito de até")
+    expect(texto).not.toContain(formatarMoeda(800_000))
   })
 
   it("grava no campo certo do funil conforme a categoria", () => {
@@ -141,6 +173,32 @@ describe("Construção Step 3 — teto e prazos por categoria", () => {
     expect(container.textContent).toContain("máximo de 20 anos")
   })
 
+  it("descreve as tranches sem citar Habite-se nem valor por tranche", () => {
+    setCC({ categoria_terreno: "condominio", tipo_pessoa: "PF", valor_obra: 1_000_000 })
+    const { container } = render(<Step3ValorDesejado onNext={() => {}} />)
+    const texto = container.textContent ?? ""
+    expect(texto).toContain(
+      "O crédito será liberado em 5 tranches conforme o avanço físico da obra."
+    )
+    expect(texto).not.toContain("Habite-se")
+    expect(texto).not.toContain("Cada tranche")
+  })
+
+  it("o piso de crédito é R$ 100.000 nas duas categorias e nos dois tomadores", () => {
+    for (const cenario of [
+      { categoria_terreno: "condominio", tipo_pessoa: "PF", valor_obra: 1_000_000 },
+      { categoria_terreno: "fora_condominio", tipo_pessoa: "PJ", vgv: 3_000_000 },
+      { categoria_terreno: "fora_condominio", tipo_pessoa: "PF", vgv: 3_000_000 },
+    ]) {
+      setCC(cenario)
+      const { container } = render(<Step3ValorDesejado onNext={() => {}} />)
+      const regua = container.querySelector('input[type="range"]') as HTMLInputElement
+      expect(Number(regua.min)).toBe(100_000)
+      expect(container.textContent).toContain(formatarMoeda(100_000))
+      cleanup()
+    }
+  })
+
   it("o valor gravado nunca ultrapassa o teto da categoria", () => {
     setCC({
       categoria_terreno: "condominio",
@@ -172,11 +230,11 @@ describe("Construção Step 5 — taxa da categoria, tabelas e PDF", () => {
     expect(container.textContent).toContain("1,10% ao mês")
   })
 
-  it("fora de condomínio: mostra 1,25% a.m. + IPCA com o equivalente anual", () => {
+  it("fora de condomínio: mostra 15% a.a. + IPCA com o equivalente mensal", () => {
     setCC({ ...cenarioCondominio, categoria_terreno: "fora_condominio", tipo_pessoa: "PJ", prazo_meses: 240 })
     const { container } = render(<Step5Resultado onNext={() => {}} />)
-    expect(container.textContent).toContain("1,25% a.m. + IPCA")
-    expect(container.textContent).toContain("16,08% ao ano")
+    expect(container.textContent).toContain("15,00% a.a. + IPCA")
+    expect(container.textContent).toContain("1,17% ao mês")
   })
 
   it("a parcela usa a taxa mensal equivalente da categoria", () => {

@@ -9,7 +9,6 @@ import { useFunnelStore } from "@/stores/funnel-store"
 import { formatarMoeda } from "@/lib/simulacao"
 import { CONFIG, regraConstrucao } from "@/lib/config"
 import { pushDataLayer } from "@/components/tracking/GTM"
-import { Info } from "lucide-react"
 
 const STEP = 10_000
 
@@ -36,7 +35,6 @@ export function Step2ValorObra({ onNext }: { onNext: () => void }) {
 
   const abaixoDoMinimo = valor > 0 && valor < minimo
   const sliderMax = escalaSlider(valor, referencia)
-  const creditoEstimado = Math.floor(valor * regra.ltv)
 
   const rotulo = porObra ? "Custo da obra" : "VGV estimado"
   const campoId = porObra ? "construcao-custo-obra" : "construcao-vgv"
@@ -107,15 +105,6 @@ export function Step2ValorObra({ onNext }: { onNext: () => void }) {
         <div className="flex text-xs text-muted-foreground">
           <span>Mínimo {formatarMoeda(minimo)}</span>
         </div>
-      </div>
-
-      <div className="flex gap-2 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
-        <Info className="w-4 h-4 shrink-0 mt-0.5" />
-        <p>
-          {regra.rotulo}: crédito de até {Math.round(regra.ltv * 100)}%{" "}
-          {porObra ? "do custo da obra" : "do VGV"} — hoje, até{" "}
-          <span className="font-medium text-foreground">{formatarMoeda(creditoEstimado)}</span>.
-        </p>
       </div>
 
       <Button

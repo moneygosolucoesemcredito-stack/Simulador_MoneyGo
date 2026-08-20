@@ -28,7 +28,7 @@ export const PERGUNTAS = [
   },
   {
     q: "Que tipos de veículo são aceitos no Auto Equity?",
-    a: "Veículos quitados com valor de tabela FIPE a partir de R$ 30.000. Veículos leves (carros, SUVs e picapes) são aceitos com até 20 anos de fabricação. Veículos pesados (caminhões, cavalos mecânicos e ônibus) também são aceitos: até 15 anos de fabricação no Auto Equity e no máximo 5 anos no Financiamento de Veículo. Veículos financiados não são aceitos nesta modalidade.",
+    a: "Veículos quitados, sem valor mínimo nem máximo de tabela FIPE. A única exigência sobre o bem é a idade: veículos leves (carros, SUVs e picapes) são aceitos com até 20 anos de fabricação e veículos pesados (caminhões, cavalos mecânicos e ônibus), com até 15 anos. Os mesmos limites de idade valem no Auto Equity e no Financiamento de Veículo. Veículos financiados não são aceitos nesta modalidade.",
   },
   {
     q: "A MoneyGo é uma instituição financeira?",

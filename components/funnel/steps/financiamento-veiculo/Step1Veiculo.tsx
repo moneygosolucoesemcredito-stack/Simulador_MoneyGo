@@ -52,7 +52,13 @@ const CATEGORIAS: {
 ]
 
 /** Bem fora dos critérios do produto: a jornada para aqui. */
-function VeiculoInelegivel({ motivos }: { motivos: string[] }) {
+function VeiculoInelegivel({
+  categoria,
+  motivos,
+}: {
+  categoria: CategoriaVeiculo
+  motivos: string[]
+}) {
   return (
     <div className="flex gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
       <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -64,9 +70,10 @@ function VeiculoInelegivel({ motivos }: { motivos: string[] }) {
           ))}
         </ul>
         <p className="text-xs">
-          No Financiamento de Veículo, veículos pesados são aceitos com até{" "}
-          {idadeMaximaVeiculoFinanciamento("pesado")} anos de fabricação (a partir de{" "}
-          {anoMinimoVeiculoFinanciamento("pesado", anoAtual)}).
+          No Financiamento de Veículo, veículos {categoria}s são aceitos com até{" "}
+          {idadeMaximaVeiculoFinanciamento(categoria)} anos de fabricação (a partir de{" "}
+          {anoMinimoVeiculoFinanciamento(categoria, anoAtual)}). Não há valor mínimo nem máximo
+          para o bem.
         </p>
       </div>
     </div>
@@ -377,7 +384,8 @@ export function Step1Veiculo({ onNext }: { onNext: () => void }) {
 
   if (veiculo) {
     const ajustado = veiculo.valor_fipe > 0 && Math.abs(valorVeiculo - veiculo.valor_fipe) >= 1
-    // Elegibilidade do bem: veículo pesado só entra com até 5 anos.
+    // Elegibilidade do bem: idade máxima da categoria (leve 20 / pesado 15),
+    // a mesma regra do Auto Equity.
     const elegibilidade = qualificarVeiculoFinanciamento({
       ano_veiculo: veiculo.ano_veiculo,
       categoria_veiculo: categoria,
@@ -407,7 +415,7 @@ export function Step1Veiculo({ onNext }: { onNext: () => void }) {
             </Button>
           </>
         ) : (
-          <VeiculoInelegivel motivos={elegibilidade.motivos} />
+          <VeiculoInelegivel categoria={categoria} motivos={elegibilidade.motivos} />
         )}
 
         <button
@@ -447,11 +455,9 @@ export function Step1Veiculo({ onNext }: { onNext: () => void }) {
                   {titulo}
                 </span>
                 <span className="mt-1 block text-xs text-muted-foreground">{exemplos}</span>
-                {valor === "pesado" && (
-                  <span className="mt-1 block text-xs text-muted-foreground">
-                    Até {idadeMaximaVeiculoFinanciamento("pesado")} anos de fabricação
-                  </span>
-                )}
+                <span className="mt-1 block text-xs text-muted-foreground">
+                  Até {idadeMaximaVeiculoFinanciamento(valor)} anos de fabricação
+                </span>
               </button>
             ))}
           </div>
@@ -496,10 +502,8 @@ export function Step1Veiculo({ onNext }: { onNext: () => void }) {
                 : "Escolha marca, modelo e ano — o valor FIPE é preenchido automaticamente."}
             </p>
             <p className="text-xs text-muted-foreground">
-              Veículo {categoria}
-              {categoria === "pesado"
-                ? ` · até ${idadeMaximaVeiculoFinanciamento("pesado")} anos de fabricação`
-                : ""}
+              Veículo {categoria} · até {idadeMaximaVeiculoFinanciamento(categoria)} anos de
+              fabricação
             </p>
           </div>
 

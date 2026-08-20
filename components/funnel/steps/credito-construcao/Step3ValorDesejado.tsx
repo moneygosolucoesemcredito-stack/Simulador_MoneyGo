@@ -39,7 +39,6 @@ export function Step3ValorDesejado({ onNext }: { onNext: () => void }) {
   // O teto pode ter caído (troca de categoria): o valor efetivo acompanha sem
   // mutar estado durante o render.
   const valorEfetivo = Math.min(Math.max(valor, valorMinimo), valorMaximo)
-  const valorTranche = Math.floor(valorEfetivo / CONFIG.creditoConstrucao.numeroDeTranches)
   const creditoViavel = valorMaximo >= valorMinimo
 
   function handleNext() {
@@ -98,8 +97,7 @@ export function Step3ValorDesejado({ onNext }: { onNext: () => void }) {
         <p className="font-medium">Liberação em tranches</p>
         <p className="text-muted-foreground">
           O crédito será liberado em {CONFIG.creditoConstrucao.numeroDeTranches} tranches conforme
-          o avanço físico da obra, mais o Habite-se.
-          Cada tranche: ~{formatarMoeda(valorTranche)}
+          o avanço físico da obra.
         </p>
       </div>
 

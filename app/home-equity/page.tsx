@@ -20,6 +20,15 @@ import { pushDataLayer } from "@/components/tracking/GTM"
 
 const TOTAL_STEPS = 7
 
+/**
+ * Taxa válida vinda de `?t=` (link de parceiro), ou null quando o parâmetro
+ * está ausente, malformado ou fora da faixa permitida do produto.
+ */
+function taxaDoLinkParceiro(t: string | null): number | null {
+  const taxa = t ? parseTaxaPercent(t) : null
+  return taxa != null && taxaDentroFaixa(taxa, "home_equity") ? taxa : null
+}
+
 function HomeEquityFunnel() {
   const { homeEquity, setHomeEquity } = useFunnelStore()
   const step = homeEquity.step
@@ -29,7 +38,14 @@ function HomeEquityFunnel() {
 
   // Link de operador (?t=) exige o cliente identificado: "checando" enquanto
   // consultamos a sessão, "necessario" mostra o cadastro, "liberado" segue.
-  const [gate, setGate] = useState<"checando" | "necessario" | "liberado">("liberado")
+  // O estado inicial é DERIVADO da URL, não ajustado depois por um setState
+  // dentro do efeito: além de evitar o render em cascata, isso impede que o
+  // Step 1 apareça por um instante antes de o cadastro entrar na frente.
+  // A subárvore inteira é renderizada no cliente (fica dentro do <Suspense>
+  // que envolve o uso de useSearchParams), então aqui já lemos a URL real.
+  const [gate, setGate] = useState<"checando" | "necessario" | "liberado">(() =>
+    taxaDoLinkParceiro(searchParams.get("t")) != null ? "checando" : "liberado"
+  )
 
   // Hidrata o funil a partir da URL. A taxa é SEMPRE do operador:
   //  ?t=...     -> cliente com taxa travada (link enviado pelo operador)
@@ -41,14 +57,14 @@ function HomeEquityFunnel() {
     const pessoa = searchParams.get("pessoa")
     const patch: Partial<HomeEquityState> = {}
 
-    const taxaUrl = t ? parseTaxaPercent(t) : null
-    if (taxaUrl != null && taxaDentroFaixa(taxaUrl, "home_equity")) {
+    const taxaUrl = taxaDoLinkParceiro(t)
+    if (taxaUrl != null) {
       patch.modo = "cliente"
       patch.taxa_mensal = taxaUrl
       patch.taxa_indicativa = false
       // Cliente veio por link de parceiro: precisa se cadastrar/entrar antes
       // do funil, para o lead ficar registrado mesmo se abandonar no meio.
-      setGate("checando")
+      // O gate já nasceu em "checando"; aqui só resolvemos o desfecho.
       criarSupabaseBrowser()
         .auth.getSession()
         .then(({ data }) => setGate(data.session ? "liberado" : "necessario"))

@@ -274,21 +274,31 @@ describe("qualificarAutoEquity", () => {
     expect(qualificado).toBe(true)
   })
 
-  it("rejeita crédito acima de 80% do veículo", () => {
-    const { qualificado } = qualificarAutoEquity({
+  it("aceita crédito acima do valor do veículo — o LTV de 80% foi removido", () => {
+    const { qualificado, motivos } = qualificarAutoEquity({
       valor_veiculo: 80_000,
       ano_veiculo: anoAtual - 5,
-      valor_solicitado: 70_000, // > 80% = R$ 64k
+      valor_solicitado: 70_000, // acima dos 80% que reprovavam antes
     })
-    expect(qualificado).toBe(false)
+    expect(qualificado).toBe(true)
+    expect(motivos).toEqual([])
+
+    // Nem mesmo pedir mais que o próprio bem reprova: valor não é trava.
+    const acimaDoBem = qualificarAutoEquity({
+      valor_veiculo: 80_000,
+      ano_veiculo: anoAtual - 5,
+      valor_solicitado: 200_000,
+    })
+    expect(acimaDoBem.qualificado).toBe(true)
   })
 
-  it("rejeita veículo abaixo do mínimo", () => {
-    const { qualificado } = qualificarAutoEquity({
+  it("aceita veículo de baixo valor — não há mais piso de FIPE", () => {
+    const { qualificado, motivos } = qualificarAutoEquity({
       valor_veiculo: 20_000,
       ano_veiculo: anoAtual - 5,
       valor_solicitado: 8_000,
     })
-    expect(qualificado).toBe(false)
+    expect(qualificado).toBe(true)
+    expect(motivos).toEqual([])
   })
 })

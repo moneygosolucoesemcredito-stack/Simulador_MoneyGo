@@ -12,6 +12,7 @@ import {
   type ResultadoTabelaHE,
 } from "@/lib/simulacao"
 import { parseTaxaPercent, taxaDentroFaixa, taxaParaPercentStr, descricaoFaixa } from "@/lib/taxa"
+import { creditoTotalHomeEquity } from "@/lib/config"
 import { pushDataLayer } from "@/components/tracking/GTM"
 import {
   Info,
@@ -67,16 +68,22 @@ export function Step6Resultado({ onNext, terminal = false }: Step6ResultadoProps
       : null
   const foraDaFaixa = !modoCliente && taxaRaw.trim() !== "" && !digitadaValida
 
+  // Imóvel financiado: o saldo devedor é quitado dentro da operação e soma ao
+  // valor que o cliente recebe. É o CRÉDITO TOTAL que é financiado — dele saem
+  // parcela, IOF, CET e renda sugerida.
+  const saldoDevedor = homeEquity.situacao === "financiado" ? homeEquity.saldo_devedor || 0 : 0
+  const creditoTotal = creditoTotalHomeEquity(homeEquity.valor_solicitado, saldoDevedor)
+
   const resultado = useMemo(() => {
     if (!taxa) return null
     return calcularHomeEquity({
-      valorCredito: homeEquity.valor_solicitado,
+      valorCredito: creditoTotal,
       valorImovel: homeEquity.valor_imovel,
       prazoMeses: homeEquity.prazo_meses,
       taxaMensal: taxa,
       tipoPessoa: (homeEquity.tipo_pessoa || "PF") as "PF" | "PJ",
     })
-  }, [taxa, homeEquity.valor_solicitado, homeEquity.valor_imovel, homeEquity.prazo_meses, homeEquity.tipo_pessoa])
+  }, [taxa, creditoTotal, homeEquity.valor_imovel, homeEquity.prazo_meses, homeEquity.tipo_pessoa])
 
   function handleTaxaInput(valor: string) {
     setTaxaRaw(valor)
@@ -101,7 +108,9 @@ export function Step6Resultado({ onNext, terminal = false }: Step6ResultadoProps
     try {
       const { gerarPdfHomeEquity } = await import("@/lib/pdf-home-equity")
       await gerarPdfHomeEquity(resultado, {
-        valorCredito: homeEquity.valor_solicitado,
+        valorCredito: creditoTotal,
+        valorSolicitado: homeEquity.valor_solicitado,
+        saldoDevedor,
         valorImovel: homeEquity.valor_imovel,
         prazoMeses: homeEquity.prazo_meses,
         tomador: (homeEquity.tipo_pessoa || "PF") as "PF" | "PJ",
@@ -140,7 +149,7 @@ export function Step6Resultado({ onNext, terminal = false }: Step6ResultadoProps
       {/* Resumo da operação */}
       <div className="grid grid-cols-3 gap-2">
         {[
-          { l: "Crédito", v: formatarMoeda(homeEquity.valor_solicitado) },
+          { l: saldoDevedor > 0 ? "Crédito total" : "Crédito", v: formatarMoeda(creditoTotal) },
           { l: "Prazo", v: `${homeEquity.prazo_meses} meses` },
           { l: "Tomador", v: homeEquity.tipo_pessoa || "—" },
         ].map((c) => (
@@ -150,6 +159,27 @@ export function Step6Resultado({ onNext, terminal = false }: Step6ResultadoProps
           </div>
         ))}
       </div>
+
+      {/* Imóvel financiado: de onde vem o crédito total que gera as parcelas. */}
+      {saldoDevedor > 0 && (
+        <div className="rounded-xl border border-border p-4 space-y-2 text-sm">
+          <p className="font-medium">Composição do crédito</p>
+          <div className="flex justify-between text-muted-foreground">
+            <span>Você recebe</span>
+            <span className="font-medium text-foreground">
+              {formatarMoeda(homeEquity.valor_solicitado)}
+            </span>
+          </div>
+          <div className="flex justify-between text-muted-foreground">
+            <span>Quitação do financiamento</span>
+            <span className="font-medium text-foreground">{formatarMoeda(saldoDevedor)}</span>
+          </div>
+          <div className="flex justify-between border-t pt-2 text-muted-foreground">
+            <span>Crédito total (base das parcelas)</span>
+            <span className="font-semibold text-[var(--gold)]">{formatarMoeda(creditoTotal)}</span>
+          </div>
+        </div>
+      )}
 
       <p className="text-xs text-muted-foreground text-center">
         Data da simulação:{" "}

@@ -22,8 +22,12 @@ export const CONFIG = {
     // deslizante do Step 1: o campo de digitação aceita qualquer valor acima.
     valorImovelSliderReferencia: 5_000_000,
     valorCreditoMinimo: 75_000,
-    // LTV varia por tipo de imóvel — ver LTV_POR_TIPO_IMOVEL.
-    saldoDevedorMaximoPercentual: 0.5,
+    // LTV varia por tipo de imóvel — ver LTV_POR_TIPO_IMOVEL. O teto incide
+    // sobre o CRÉDITO TOTAL (solicitado + saldo devedor quitado), não só sobre
+    // o valor pedido — ver creditoTotalHomeEquity().
+    // Saldo devedor do financiamento existente: até 40% do valor do imóvel
+    // (2026-08; antes 50%).
+    saldoDevedorMaximoPercentual: 0.4,
     // Seguros e encargos (espelham a planilha "Simulacao HE.xlsx")
     mip: 0.00035, // sobre o saldo devedor, ao mês
     dfi: 0.000065, // sobre o valor do imóvel, ao mês (imóvel até R$ 10mi)
@@ -74,7 +78,10 @@ export const CONFIG = {
     categoriaDefault: "condominio" as CategoriaTerrenoConstrucao,
     valorObraMinimo: 300_000,
     vgvMinimo: 300_000,
-    valorCreditoMinimo: 150_000,
+    // Piso do crédito solicitado (2026-08): R$ 100.000 — vale sem ressalvas
+    // nas duas categorias de terreno (condomínio e fora) e nos dois tomadores
+    // (PF e PJ). Não há teto de valor do TERRENO em nenhuma delas.
+    valorCreditoMinimo: 100_000,
     mip: 0.00035,
     dfi: 0.000065,
     estruturacaoPercentual: 0.05,
@@ -91,11 +98,13 @@ export const CONFIG = {
     // Financia até 80% do valor do veículo (2026-08; antes eram 100%).
     ltv: 0.8,
     prazoMaximo: 60,
-    // Menor valor que faz sentido financiar.
-    valorFinanciadoMinimo: 5_000,
-    // Elegibilidade do bem: veículo PESADO só é aceito com até 5 anos de
-    // fabricação. Veículo leve não tem trava de idade nesta modalidade.
-    idadeVeiculoMaximaPesado: 5,
+    // Sem piso nem teto de valor: o `valorFinanciadoMinimo` de R$ 5.000 foi
+    // removido (2026-08). Qualquer montante dentro do LTV é simulável.
+    // Elegibilidade do bem: MESMA regra de idade do Auto Equity — veículo leve
+    // até 20 anos e veículo pesado até 15 anos de fabricação. As duas
+    // modalidades compartilham a validação (ver idadeMaximaVeiculoFinanciamento).
+    idadeVeiculoMaximaLeve: 20,
+    idadeVeiculoMaximaPesado: 15,
     prazosDisponiveis: [12, 24, 36, 48, 60],
     prazoDefault: 48,
   },
@@ -104,10 +113,11 @@ export const CONFIG = {
     // (antes 1,99% a.m.).
     taxaMensal: 0.025,
     modalidadeTaxa: "pre_fixada" as const,
-    valorVeiculoMinimo: 30_000,
-    valorVeiculoMaximo: 500_000,
-    // 80% da FIPE — percentual não deve aparecer na interface (só o valor máximo)
-    ltv: 0.8,
+    // NENHUMA trava de valor no Auto Equity (2026-08). Foram removidos, nesta
+    // ordem: o piso de R$ 30.000 e o teto de R$ 500.000 do valor do veículo, o
+    // piso de R$ 5.000 do crédito e, por fim, o LTV de 80% da FIPE — o valor do
+    // bem passa a ser referência de avaliação, não limite do crédito. A ÚNICA
+    // trava do produto é a idade máxima de fabricação, abaixo.
     // Idade máxima de fabricação por categoria (2026-08): veículo leve (carro,
     // SUV, picape, utilitário leve) até 20 anos; veículo pesado (caminhão,
     // ônibus, cavalo mecânico) até 15 anos. Ver idadeMaximaVeiculo().
@@ -180,8 +190,11 @@ export const CONSTRUCAO_POR_CATEGORIA: Record<
     base: "vgv",
     ltv: 0.5, // até 50% do VGV (imóvel pronto)
     indexador: "IPCA",
-    periodicidadeTaxa: "mensal",
-    taxa: 0.0125, // 1,25% a.m. + IPCA
+    // Taxa publicada ao ANO desde 2026-08: "a partir de 15% a.a. + IPCA"
+    // (antes era divulgada como 1,25% a.m. + IPCA). O cálculo continua rodando
+    // no mensal equivalente — ver taxaMensalConstrucao().
+    periodicidadeTaxa: "anual",
+    taxa: 0.15, // 15% a.a. + IPCA
     prazoMaximo: 240, // 20 anos
     prazosDisponiveis: [120, 180, 240],
     prazoDefault: 240,
@@ -252,6 +265,48 @@ export function prazosDisponiveisHomeEquity(idade: number): number[] {
   return CONFIG.homeEquity.prazosDisponiveis.filter((p) => p <= max)
 }
 
+// ──────────────────────────────────────────────────────────────────────────
+// Home Equity — composição do crédito quando o imóvel está financiado.
+//
+// O valor que o cliente pede no funil é o que ele RECEBE líquido. O saldo
+// devedor do financiamento existente é quitado pela instituição dentro da
+// mesma operação e entra POR CIMA do valor pedido:
+//
+//     crédito total = valor solicitado + saldo devedor
+//
+// É o crédito total que é financiado — dele saem parcela, IOF, CET, renda
+// sugerida, PDF e proposta — e é ele que responde ao teto de LTV da tipologia.
+// Imóvel quitado (saldo zero) cai no caso trivial: total = valor solicitado.
+// ──────────────────────────────────────────────────────────────────────────
+
+/** Crédito efetivamente financiado: o que o cliente recebe + a quitação. */
+export function creditoTotalHomeEquity(valorSolicitado: number, saldoDevedor = 0): number {
+  const solicitado = Number.isFinite(valorSolicitado) ? Math.max(0, valorSolicitado) : 0
+  const saldo = Number.isFinite(saldoDevedor) ? Math.max(0, saldoDevedor) : 0
+  return solicitado + saldo
+}
+
+/**
+ * Quanto o cliente ainda pode PEDIR, já descontada a quitação: o teto de LTV
+ * vale sobre o crédito total, então o saldo devedor consome parte do limite.
+ * Ex.: imóvel de R$ 1.000.000 (casa, 55% → R$ 550.000) com saldo de
+ * R$ 200.000 → o cliente pode solicitar no máximo R$ 350.000.
+ */
+export function creditoMaximoSolicitadoHomeEquity(
+  valorImovel: number,
+  tipoImovel: TipoImovel | "",
+  saldoDevedor = 0
+): number {
+  const teto = valorImovel * ltvParaTipoImovel(tipoImovel)
+  const saldo = Number.isFinite(saldoDevedor) ? Math.max(0, saldoDevedor) : 0
+  return Math.max(0, teto - saldo)
+}
+
+/** Teto de saldo devedor aceito na garantia: 40% do valor do imóvel. */
+export function saldoDevedorMaximoHomeEquity(valorImovel: number): number {
+  return Math.max(0, valorImovel * CONFIG.homeEquity.saldoDevedorMaximoPercentual)
+}
+
 /**
  * Idade máxima (anos de fabricação) aceita no Auto Equity para a categoria:
  * 20 anos para veículo leve e 15 anos para veículo pesado. Sem categoria
@@ -264,22 +319,21 @@ export function idadeMaximaVeiculo(categoria: CategoriaVeiculo = "leve"): number
 
 /**
  * Financiamento de Veículo — idade máxima (anos de fabricação) aceita na
- * categoria. Veículo pesado só entra com até 5 anos; leve não tem trava de
- * idade nesta modalidade (Infinity).
+ * categoria. Desde 2026-08 a regra é IDÊNTICA à do Auto Equity e vale para as
+ * duas categorias: veículo leve até 20 anos, veículo pesado até 15 anos.
+ * (Antes só o pesado tinha trava, de 5 anos, e o leve não tinha nenhuma.)
  */
 export function idadeMaximaVeiculoFinanciamento(categoria: CategoriaVeiculo = "leve"): number {
-  return categoria === "pesado"
-    ? CONFIG.financiamentoVeiculo.idadeVeiculoMaximaPesado
-    : Number.POSITIVE_INFINITY
+  const { idadeVeiculoMaximaLeve, idadeVeiculoMaximaPesado } = CONFIG.financiamentoVeiculo
+  return categoria === "pesado" ? idadeVeiculoMaximaPesado : idadeVeiculoMaximaLeve
 }
 
-/** Ano de fabricação mais antigo aceito no Financiamento de Veículo (pesado). */
+/** Ano de fabricação mais antigo aceito no Financiamento de Veículo. */
 export function anoMinimoVeiculoFinanciamento(
   categoria: CategoriaVeiculo = "leve",
   anoReferencia: number = new Date().getFullYear()
 ): number {
-  const idadeMaxima = idadeMaximaVeiculoFinanciamento(categoria)
-  return Number.isFinite(idadeMaxima) ? anoReferencia - idadeMaxima : 0
+  return anoReferencia - idadeMaximaVeiculoFinanciamento(categoria)
 }
 
 /** Ano de fabricação mais antigo aceito para a categoria (ex.: leve em 2026 → 2006). */
