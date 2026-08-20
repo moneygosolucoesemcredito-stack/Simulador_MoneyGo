@@ -22,7 +22,7 @@ import {
  * Crédito de Construção (2026-08) — a categoria do terreno define tudo:
  *
  *   DENTRO DE CONDOMÍNIO   PF apenas · 80% do custo da obra · 13,99% a.a. + TR · 360 meses
- *   FORA DE CONDOMÍNIO     PF e PJ   · 50% do VGV           · 1,25% a.m. + IPCA · 240 meses
+ *   FORA DE CONDOMÍNIO     PF e PJ   · 50% do VGV           · 15% a.a. + IPCA · 240 meses
  */
 
 const CENARIO = {
@@ -122,10 +122,13 @@ describe("PJ fora de condomínio", () => {
     expect(r.motivos.some((m) => m.includes("VGV abaixo do mínimo"))).toBe(true)
   })
 
-  it("taxa de 1,25% ao mês, equivalente a ~16,08% ao ano", () => {
-    expect(taxaMensalConstrucao("fora_condominio")).toBeCloseTo(0.0125, 6)
-    expect(taxaAnualConstrucao("fora_condominio")).toBeCloseTo(0.160755, 5)
-    expect(taxaMensalEquivalente(taxaAnualConstrucao("fora_condominio"))).toBeCloseTo(0.0125, 8)
+  it("taxa de 15% ao ano, equivalente a ~1,1715% ao mês", () => {
+    expect(taxaAnualConstrucao("fora_condominio")).toBeCloseTo(0.15, 6)
+    expect(taxaMensalConstrucao("fora_condominio")).toBeCloseTo(0.011715, 6)
+    expect(taxaMensalEquivalente(taxaAnualConstrucao("fora_condominio"))).toBeCloseTo(
+      taxaMensalConstrucao("fora_condominio"),
+      8
+    )
   })
 
   it("prazo de até 240 meses (20 anos)", () => {

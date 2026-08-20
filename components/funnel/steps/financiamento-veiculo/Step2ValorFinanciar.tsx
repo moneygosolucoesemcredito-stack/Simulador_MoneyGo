@@ -13,8 +13,7 @@ import { cn } from "@/lib/utils"
 
 export function Step2ValorFinanciar({ onNext }: { onNext: () => void }) {
   const { financiamentoVeiculo, setFinanciamentoVeiculo } = useFunnelStore()
-  const { taxaMensal, prazosDisponiveis, prazoDefault, ltv, valorFinanciadoMinimo } =
-    CONFIG.financiamentoVeiculo
+  const { taxaMensal, prazosDisponiveis, prazoDefault, ltv } = CONFIG.financiamentoVeiculo
 
   const valorVeiculo = financiamentoVeiculo.valor_veiculo
   // Trava de LTV: o valor a financiar não passa de 80% do valor do veículo.
@@ -27,9 +26,10 @@ export function Step2ValorFinanciar({ onNext }: { onNext: () => void }) {
   )
   const [prazo, setPrazo] = useState(financiamentoVeiculo.prazo_meses || prazoDefault)
 
+  // Sem piso de valor financiado (2026-08): o antigo mínimo de R$ 5.000 foi
+  // removido. O que limita a operação é o LTV de 80% sobre o valor do bem.
   const acimaDoTeto = valor > financiadoMaximo
-  const abaixoDoMinimo = valor > 0 && valor < valorFinanciadoMinimo
-  const valorValido = !acimaDoTeto && valor >= valorFinanciadoMinimo
+  const valorValido = !acimaDoTeto && valor > 0
   // O que sobra é aportado pelo cliente na contratação.
   const recursosProprios = Math.max(0, valorVeiculo - Math.min(valor, financiadoMaximo))
 
@@ -84,10 +84,6 @@ export function Step2ValorFinanciar({ onNext }: { onNext: () => void }) {
             O valor a financiar não pode ultrapassar {Math.round(ltv * 100)}% do valor do veículo (
             {formatarMoeda(financiadoMaximo)}).
           </p>
-        ) : abaixoDoMinimo ? (
-          <p className="text-destructive text-xs">
-            Valor abaixo do mínimo financiável de {formatarMoeda(valorFinanciadoMinimo)}.
-          </p>
         ) : (
           <p className="text-muted-foreground text-xs">
             Recursos próprios na contratação: {formatarMoeda(recursosProprios)}.
@@ -95,14 +91,14 @@ export function Step2ValorFinanciar({ onNext }: { onNext: () => void }) {
         )}
 
         <Slider
-          min={valorFinanciadoMinimo}
-          max={Math.max(financiadoMaximo, valorFinanciadoMinimo)}
+          min={0}
+          max={Math.max(financiadoMaximo, 0)}
           step={1_000}
-          value={[Math.min(Math.max(valor, valorFinanciadoMinimo), financiadoMaximo)]}
+          value={[Math.min(Math.max(valor, 0), financiadoMaximo)]}
           onValueChange={(vals) => setValor(Array.isArray(vals) ? vals[0] : vals)}
         />
         <div className="flex justify-between text-xs text-muted-foreground">
-          <span>{formatarMoeda(valorFinanciadoMinimo)}</span>
+          <span>{formatarMoeda(0)}</span>
           <span>{formatarMoeda(financiadoMaximo)}</span>
         </div>
       </div>

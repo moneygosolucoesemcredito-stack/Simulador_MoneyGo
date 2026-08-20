@@ -122,11 +122,20 @@ describe("FAQ — regras textuais atualizadas", () => {
     expect(texto).not.toContain("50% do valor de mercado")
   })
 
-  it("veículos pesados aparecem com o limite de cada produto", () => {
+  it("os limites de idade do veículo são os mesmos nos dois produtos", () => {
     const texto = respostas()
-    expect(texto).toContain("Veículos pesados")
-    expect(texto).toContain("até 15 anos de fabricação no Auto Equity")
-    expect(texto).toContain("no máximo 5 anos no Financiamento de Veículo")
+    expect(texto).toContain("veículos pesados")
+    expect(texto).toContain("até 20 anos de fabricação")
+    expect(texto).toContain("até 15 anos")
+    expect(texto).toContain("Auto Equity e no Financiamento de Veículo")
+    // O limite antigo do Financiamento de Veículo saiu do texto.
+    expect(texto).not.toContain("no máximo 5 anos")
+  })
+
+  it("o FAQ não anuncia mais piso de valor FIPE no Auto Equity", () => {
+    const texto = respostas()
+    expect(texto).not.toContain("R$ 30.000")
+    expect(texto).toContain("sem valor mínimo nem máximo de tabela FIPE")
   })
 
   it("existe a pergunta sobre instituição financeira, com a resposta pedida", () => {

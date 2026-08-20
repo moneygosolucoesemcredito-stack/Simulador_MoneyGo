@@ -70,20 +70,34 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe("FV Step 1 — elegibilidade do bem", () => {
-  it("veículo pesado com 4 anos é aceito", async () => {
-    await consultarVeiculo({ idadeAnos: 4, categoria: "pesado" })
+  it("veículo pesado com 14 anos é aceito", async () => {
+    await consultarVeiculo({ idadeAnos: 14, categoria: "pesado" })
     expect(screen.getByRole("button", { name: "Continuar" })).toBeTruthy()
     expect(screen.queryByText(/não elegível/i)).toBeNull()
   })
 
-  it("veículo pesado com 6 anos mostra 'Bem não elegível para esta modalidade'", async () => {
-    await consultarVeiculo({ idadeAnos: 6, categoria: "pesado" })
+  it("veículo pesado com 16 anos mostra 'Bem não elegível para esta modalidade'", async () => {
+    await consultarVeiculo({ idadeAnos: 16, categoria: "pesado" })
     expect(screen.getByText("Bem não elegível para esta modalidade.")).toBeTruthy()
     expect(screen.queryByRole("button", { name: "Continuar" })).toBeNull()
   })
 
-  it("veículo leve com 12 anos continua aceito", async () => {
-    await consultarVeiculo({ idadeAnos: 12, categoria: "leve" })
+  it("veículo leve com 20 anos é aceito e com 21 é barrado", async () => {
+    await consultarVeiculo({ idadeAnos: 20, categoria: "leve" })
+    expect(screen.getByRole("button", { name: "Continuar" })).toBeTruthy()
+
+    cleanup()
+    await consultarVeiculo({ idadeAnos: 21, categoria: "leve" })
+    expect(screen.getByText("Bem não elegível para esta modalidade.")).toBeTruthy()
+    expect(screen.queryByRole("button", { name: "Continuar" })).toBeNull()
+  })
+
+  it("FIPE muito baixa ou muito alta não barra o bem", async () => {
+    await consultarVeiculo({ idadeAnos: 2, categoria: "leve", valorFipe: 4_000 })
+    expect(screen.getByRole("button", { name: "Continuar" })).toBeTruthy()
+
+    cleanup()
+    await consultarVeiculo({ idadeAnos: 2, categoria: "leve", valorFipe: 5_000_000 })
     expect(screen.getByRole("button", { name: "Continuar" })).toBeTruthy()
   })
 
@@ -132,6 +146,17 @@ describe("FV Step 2 — valor a financiar", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Ver simulação/ }))
     expect(useFunnelStore.getState().financiamentoVeiculo.valor_financiado).toBe(0)
+  })
+
+  it("não existe mais piso de valor financiável", () => {
+    const { container } = render(<Step2ValorFinanciar onNext={() => {}} />)
+    const regua = container.querySelector('input[type="range"]') as HTMLInputElement
+    expect(Number(regua.min)).toBe(0)
+
+    fireEvent.input(screen.getByLabelText("Valor a financiar"), { target: { value: "1000" } })
+    expect(container.textContent).not.toContain("mínimo financiável")
+    fireEvent.click(screen.getByRole("button", { name: /Ver simulação/ }))
+    expect(useFunnelStore.getState().financiamentoVeiculo.valor_financiado).toBe(1_000)
   })
 
   it("aceita exatamente 80% e a régua não passa disso", () => {

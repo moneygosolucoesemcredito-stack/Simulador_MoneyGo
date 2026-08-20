@@ -14,10 +14,12 @@ type TipoPessoa = "PF" | "PJ"
 export function Step4ValorDesejado({ onNext }: { onNext: () => void }) {
   const { autoEquity, setAutoEquity } = useFunnelStore()
   const valorMaximo = Math.floor(autoEquity.valor_veiculo * CONFIG.autoEquity.ltv)
-  const valorMinimo = 5_000
+  // Sem piso de crédito (2026-08): o antigo mínimo de R$ 5.000 foi removido.
+  // O único limite é o LTV sobre a FIPE, que define o topo da régua.
+  const valorMinimo = 0
 
   const [valor, setValor] = useState(
-    Math.min(autoEquity.valor_solicitado || valorMinimo, valorMaximo)
+    Math.min(autoEquity.valor_solicitado || valorMaximo, valorMaximo)
   )
   const [prazo, setPrazo] = useState(autoEquity.prazo_meses || CONFIG.autoEquity.prazoDefault)
   const [tipoPessoa, setTipoPessoa] = useState<TipoPessoa | "">(

@@ -18,7 +18,7 @@ import {
   tabelaFipeDaCategoria,
   type FipeItem,
 } from "@/lib/fipe"
-import { CONFIG, anoMinimoVeiculo, idadeMaximaVeiculo } from "@/lib/config"
+import { anoMinimoVeiculo, idadeMaximaVeiculo } from "@/lib/config"
 import { qualificarVeiculoAutoEquity } from "@/lib/qualificacao"
 import type { CategoriaVeiculo } from "@/types"
 
@@ -75,8 +75,8 @@ function VeiculoInelegivel({
         </ul>
         <p className="text-xs">
           Aceitamos veículos {rotuloCategoria[categoria]} com até {idadeMaximaVeiculo(categoria)}{" "}
-          anos (fabricados a partir de {anoMinimoVeiculo(categoria, anoAtual)}) e valor de tabela
-          FIPE a partir de {formatarMoeda(CONFIG.autoEquity.valorVeiculoMinimo)}.
+          anos (fabricados a partir de {anoMinimoVeiculo(categoria, anoAtual)}). Não há valor
+          mínimo nem máximo de tabela FIPE.
         </p>
       </div>
     </div>
@@ -176,7 +176,6 @@ function PlacaForm({
 
   if (veiculo) {
     const elegibilidade = qualificarVeiculoAutoEquity({
-      valor_veiculo: veiculo.valor_veiculo,
       ano_veiculo: veiculo.ano_veiculo,
       categoria_veiculo: categoria,
     })
@@ -338,7 +337,6 @@ function ManualForm({
 
   const elegibilidade = veiculo
     ? qualificarVeiculoAutoEquity({
-        valor_veiculo: veiculo.valor_veiculo,
         ano_veiculo: veiculo.ano_veiculo,
         categoria_veiculo: categoria,
       })

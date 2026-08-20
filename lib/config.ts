@@ -74,7 +74,10 @@ export const CONFIG = {
     categoriaDefault: "condominio" as CategoriaTerrenoConstrucao,
     valorObraMinimo: 300_000,
     vgvMinimo: 300_000,
-    valorCreditoMinimo: 150_000,
+    // Piso do crédito solicitado (2026-08): R$ 100.000 — vale sem ressalvas
+    // nas duas categorias de terreno (condomínio e fora) e nos dois tomadores
+    // (PF e PJ). Não há teto de valor do TERRENO em nenhuma delas.
+    valorCreditoMinimo: 100_000,
     mip: 0.00035,
     dfi: 0.000065,
     estruturacaoPercentual: 0.05,
@@ -91,11 +94,13 @@ export const CONFIG = {
     // Financia até 80% do valor do veículo (2026-08; antes eram 100%).
     ltv: 0.8,
     prazoMaximo: 60,
-    // Menor valor que faz sentido financiar.
-    valorFinanciadoMinimo: 5_000,
-    // Elegibilidade do bem: veículo PESADO só é aceito com até 5 anos de
-    // fabricação. Veículo leve não tem trava de idade nesta modalidade.
-    idadeVeiculoMaximaPesado: 5,
+    // Sem piso nem teto de valor: o `valorFinanciadoMinimo` de R$ 5.000 foi
+    // removido (2026-08). Qualquer montante dentro do LTV é simulável.
+    // Elegibilidade do bem: MESMA regra de idade do Auto Equity — veículo leve
+    // até 20 anos e veículo pesado até 15 anos de fabricação. As duas
+    // modalidades compartilham a validação (ver idadeMaximaVeiculoFinanciamento).
+    idadeVeiculoMaximaLeve: 20,
+    idadeVeiculoMaximaPesado: 15,
     prazosDisponiveis: [12, 24, 36, 48, 60],
     prazoDefault: 48,
   },
@@ -104,8 +109,9 @@ export const CONFIG = {
     // (antes 1,99% a.m.).
     taxaMensal: 0.025,
     modalidadeTaxa: "pre_fixada" as const,
-    valorVeiculoMinimo: 30_000,
-    valorVeiculoMaximo: 500_000,
+    // Piso (R$ 30.000) e teto (R$ 500.000) de valor do veículo removidos
+    // (2026-08): não há mais limite de valor do bem nem do crédito. A única
+    // trava de elegibilidade que resta é a idade máxima de fabricação.
     // 80% da FIPE — percentual não deve aparecer na interface (só o valor máximo)
     ltv: 0.8,
     // Idade máxima de fabricação por categoria (2026-08): veículo leve (carro,
@@ -180,8 +186,11 @@ export const CONSTRUCAO_POR_CATEGORIA: Record<
     base: "vgv",
     ltv: 0.5, // até 50% do VGV (imóvel pronto)
     indexador: "IPCA",
-    periodicidadeTaxa: "mensal",
-    taxa: 0.0125, // 1,25% a.m. + IPCA
+    // Taxa publicada ao ANO desde 2026-08: "a partir de 15% a.a. + IPCA"
+    // (antes era divulgada como 1,25% a.m. + IPCA). O cálculo continua rodando
+    // no mensal equivalente — ver taxaMensalConstrucao().
+    periodicidadeTaxa: "anual",
+    taxa: 0.15, // 15% a.a. + IPCA
     prazoMaximo: 240, // 20 anos
     prazosDisponiveis: [120, 180, 240],
     prazoDefault: 240,
@@ -264,22 +273,21 @@ export function idadeMaximaVeiculo(categoria: CategoriaVeiculo = "leve"): number
 
 /**
  * Financiamento de Veículo — idade máxima (anos de fabricação) aceita na
- * categoria. Veículo pesado só entra com até 5 anos; leve não tem trava de
- * idade nesta modalidade (Infinity).
+ * categoria. Desde 2026-08 a regra é IDÊNTICA à do Auto Equity e vale para as
+ * duas categorias: veículo leve até 20 anos, veículo pesado até 15 anos.
+ * (Antes só o pesado tinha trava, de 5 anos, e o leve não tinha nenhuma.)
  */
 export function idadeMaximaVeiculoFinanciamento(categoria: CategoriaVeiculo = "leve"): number {
-  return categoria === "pesado"
-    ? CONFIG.financiamentoVeiculo.idadeVeiculoMaximaPesado
-    : Number.POSITIVE_INFINITY
+  const { idadeVeiculoMaximaLeve, idadeVeiculoMaximaPesado } = CONFIG.financiamentoVeiculo
+  return categoria === "pesado" ? idadeVeiculoMaximaPesado : idadeVeiculoMaximaLeve
 }
 
-/** Ano de fabricação mais antigo aceito no Financiamento de Veículo (pesado). */
+/** Ano de fabricação mais antigo aceito no Financiamento de Veículo. */
 export function anoMinimoVeiculoFinanciamento(
   categoria: CategoriaVeiculo = "leve",
   anoReferencia: number = new Date().getFullYear()
 ): number {
-  const idadeMaxima = idadeMaximaVeiculoFinanciamento(categoria)
-  return Number.isFinite(idadeMaxima) ? anoReferencia - idadeMaxima : 0
+  return anoReferencia - idadeMaximaVeiculoFinanciamento(categoria)
 }
 
 /** Ano de fabricação mais antigo aceito para a categoria (ex.: leve em 2026 → 2006). */

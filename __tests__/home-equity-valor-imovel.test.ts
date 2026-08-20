@@ -108,7 +108,8 @@ describe("Sem impacto nos demais produtos", () => {
     expect(r.qualificado).toBe(true)
   })
 
-  it("Auto Equity mantém o teto de valor do veículo", () => {
-    expect(CONFIG.autoEquity.valorVeiculoMaximo).toBe(500_000)
+  it("Auto Equity também perdeu o teto de valor do veículo (2026-08)", () => {
+    expect("valorVeiculoMaximo" in CONFIG.autoEquity).toBe(false)
+    expect("valorVeiculoMinimo" in CONFIG.autoEquity).toBe(false)
   })
 })

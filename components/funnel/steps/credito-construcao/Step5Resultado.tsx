@@ -22,8 +22,8 @@ export function Step5Resultado({ onNext }: { onNext: () => void }) {
   const categoria = creditoConstrucao.categoria_terreno
   const regra = regraConstrucao(categoria)
 
-  // A taxa vem da categoria: 13,99% a.a. + TR (condomínio) ou 1,25% a.m. +
-  // IPCA (fora). O cálculo roda sempre no mensal equivalente.
+  // A taxa vem da categoria: 13,99% a.a. + TR (condomínio) ou 15% a.a. + IPCA
+  // (fora). O cálculo roda sempre no mensal equivalente.
   const taxaMensal = useMemo(() => taxaMensalConstrucao(categoria), [categoria])
   const taxaAnual = useMemo(
     () => (regra.periodicidadeTaxa === "anual" ? regra.taxa : taxaAnualEquivalente(regra.taxa)),

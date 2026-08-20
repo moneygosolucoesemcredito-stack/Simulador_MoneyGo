@@ -3,6 +3,8 @@
 import { useState } from "react"
 import { Slider } from "@/components/ui/slider"
 import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import { CurrencyInput } from "@/components/funnel/CurrencyInput"
 import { useFunnelStore } from "@/stores/funnel-store"
 import { formatarMoeda, formatarPercentual, formatarPercentualAnual } from "@/lib/simulacao"
 import {
@@ -15,9 +17,20 @@ import { cn } from "@/lib/utils"
 import { Info, Fence, Map } from "lucide-react"
 import type { CategoriaTerrenoConstrucao, TipoPessoa } from "@/types"
 
-const MIN = 100_000
-const MAX = 10_000_000
+// O valor do terreno não tem piso nem teto (2026-08): o antigo intervalo de
+// R$ 100.000 a R$ 10.000.000 foi removido, inclusive na opção pós-fixada com
+// indexador TR (PF), que travava o terreno em R$ 10 milhões. `SLIDER_REFERENCIA`
+// é só a escala inicial da régua — o campo digitável aceita qualquer valor.
+const SLIDER_REFERENCIA = 10_000_000
 const STEP = 10_000
+/** Valor apenas de partida do campo, quando o funil ainda não tem nenhum. */
+const VALOR_INICIAL = 500_000
+
+/** Limite superior da régua: a referência ou o valor digitado, o que for maior. */
+function escalaSlider(valor: number): number {
+  if (!Number.isFinite(valor) || valor <= SLIDER_REFERENCIA) return SLIDER_REFERENCIA
+  return Math.ceil(valor / STEP) * STEP
+}
 
 const CATEGORIAS: {
   valor: CategoriaTerrenoConstrucao
@@ -27,18 +40,26 @@ const CATEGORIAS: {
   { valor: "fora_condominio", icon: Map },
 ]
 
+// A taxa de cada categoria é divulgada como piso ("a partir de"), nunca como
+// valor fechado.
+const PREFIXO_TAXA: Record<CategoriaTerrenoConstrucao, string> = {
+  condominio: "Taxas a partir de",
+  fora_condominio: "Taxa a partir de",
+}
+
 /** Resumo das condições da categoria, exibido dentro de cada cartão. */
 function condicoesDaCategoria(categoria: CategoriaTerrenoConstrucao): string[] {
   const regra = CONSTRUCAO_POR_CATEGORIA[categoria]
-  const taxa =
+  const taxaPublicada =
     regra.periodicidadeTaxa === "anual"
       ? `${formatarPercentualAnual(regra.taxa)} + ${regra.indexador}`
       : `${formatarPercentual(regra.taxa)} + ${regra.indexador}`
+  const prefixoTaxa = PREFIXO_TAXA[categoria]
   return [
     `Até ${Math.round(regra.ltv * 100)}% ${regra.base === "obra" ? "do custo da obra" : "do VGV"}`,
-    taxa,
+    `${prefixoTaxa} ${taxaPublicada}`,
     `Prazo de até ${regra.prazoMaximo / 12} anos`,
-    regra.tomadores.join(" e "),
+    `Contratação ${regra.tomadores.join(" E ")}`,
   ]
 }
 
@@ -48,13 +69,15 @@ export function Step1ValorTerreno({ onNext }: { onNext: () => void }) {
     creditoConstrucao.categoria_terreno
   )
   const [tipoPessoa, setTipoPessoa] = useState<TipoPessoa | "">(creditoConstrucao.tipo_pessoa)
-  const [valor, setValor] = useState(creditoConstrucao.valor_terreno || MIN)
+  const [valor, setValor] = useState(creditoConstrucao.valor_terreno || VALOR_INICIAL)
 
   const regra = categoria ? regraConstrucao(categoria) : null
   // Trocar para condomínio com PJ selecionada invalida o tomador: o campo
   // volta a ficar em aberto em vez de seguir com uma escolha não permitida.
   const tipoPessoaValido = !!categoria && tomadorPermitidoConstrucao(categoria, tipoPessoa)
-  const podeAvancar = !!categoria && tipoPessoaValido && valor >= MIN
+  // Não há validação de valor do terreno — basta um valor informado.
+  const podeAvancar = !!categoria && tipoPessoaValido && valor > 0
+  const sliderMax = escalaSlider(valor)
 
   function escolherCategoria(nova: CategoriaTerrenoConstrucao) {
     setCategoria(nova)
@@ -164,9 +187,9 @@ export function Step1ValorTerreno({ onNext }: { onNext: () => void }) {
 
       <div className="space-y-6">
         <div className="space-y-1">
-          <p className="text-sm font-medium">Valor do terreno</p>
+          <Label htmlFor="construcao-valor-terreno">Valor do terreno</Label>
           <p className="text-muted-foreground text-xs">
-            Valor de mercado do terreno que você já possui (quitado) — garantia inicial do crédito.
+            Valor de mercado do terreno que você já possui — garantia inicial do crédito.
           </p>
         </div>
 
@@ -176,23 +199,34 @@ export function Step1ValorTerreno({ onNext }: { onNext: () => void }) {
           </span>
         </div>
 
+        <div className="space-y-2">
+          <CurrencyInput
+            id="construcao-valor-terreno"
+            value={valor}
+            onChange={setValor}
+            placeholder="R$ 0,00"
+            min={0}
+          />
+          <p className="text-muted-foreground text-xs">
+            Digite o valor de avaliação do terreno — não há valor mínimo nem máximo.
+          </p>
+        </div>
+
         <Slider
-          min={MIN}
-          max={MAX}
+          min={0}
+          max={sliderMax}
           step={STEP}
-          value={[valor]}
+          value={[Math.min(Math.max(valor, 0), sliderMax)]}
           onValueChange={(vals) => setValor(Array.isArray(vals) ? vals[0] : vals)}
         />
-
-        <div className="flex justify-between text-xs text-muted-foreground">
-          <span>{formatarMoeda(MIN)}</span>
-          <span>{formatarMoeda(MAX)}</span>
-        </div>
       </div>
 
       <div className="flex gap-2 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
         <Info className="w-4 h-4 shrink-0 mt-0.5" />
-        <p>O terreno precisa estar quitado e registrado em seu nome para ser utilizado como garantia.</p>
+        <p>
+          O terreno pode possuir saldo devedor máximo de 15% do valor da compra e venda, sendo que
+          este saldo será quitado pela Instituição Financeira e liberado o troco para construção.
+        </p>
       </div>
 
       <Button

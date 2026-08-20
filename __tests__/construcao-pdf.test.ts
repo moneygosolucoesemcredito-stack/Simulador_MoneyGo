@@ -129,10 +129,10 @@ describe("PDF do Crédito de Construção — fora de condomínio", () => {
     expect(valorDoResumo("Custo da obra")).toBeUndefined()
   })
 
-  it("publica a taxa ao mês (IPCA) e informa o equivalente anual", async () => {
+  it("publica a taxa ao ano (IPCA) e informa o equivalente mensal", async () => {
     await gerar("fora_condominio")
-    expect(valorDoResumo("Taxa de juros")).toBe("1,25% a.m. + IPCA")
-    expect(valorDoResumo("Taxa equivalente")).toContain("equivalente ao ano")
+    expect(valorDoResumo("Taxa de juros")).toBe("15,00% a.a. + IPCA")
+    expect(valorDoResumo("Taxa equivalente")).toContain("equivalente ao mês")
   })
 
   it("as tabelas trazem as 240 parcelas do prazo máximo da categoria", async () => {

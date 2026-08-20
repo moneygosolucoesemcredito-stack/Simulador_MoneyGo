@@ -283,12 +283,13 @@ describe("qualificarAutoEquity", () => {
     expect(qualificado).toBe(false)
   })
 
-  it("rejeita veículo abaixo do mínimo", () => {
-    const { qualificado } = qualificarAutoEquity({
+  it("aceita veículo de baixo valor — não há mais piso de FIPE", () => {
+    const { qualificado, motivos } = qualificarAutoEquity({
       valor_veiculo: 20_000,
       ano_veiculo: anoAtual - 5,
       valor_solicitado: 8_000,
     })
-    expect(qualificado).toBe(false)
+    expect(qualificado).toBe(true)
+    expect(motivos).toEqual([])
   })
 })

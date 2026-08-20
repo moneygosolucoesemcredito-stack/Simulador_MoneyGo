@@ -20,11 +20,15 @@ describe("Crédito de Construção — taxas por categoria", () => {
     expect(regra.indexador).toBe("TR")
   })
 
-  it("fora de condomínio: 1,25% a.m. + IPCA", () => {
+  it("fora de condomínio: 15% a.a. + IPCA (antes era 1,25% a.m.)", () => {
     const regra = CONSTRUCAO_POR_CATEGORIA.fora_condominio
-    expect(regra.taxa).toBeCloseTo(0.0125, 6)
-    expect(regra.periodicidadeTaxa).toBe("mensal")
+    expect(regra.taxa).toBeCloseTo(0.15, 6)
+    expect(regra.periodicidadeTaxa).toBe("anual")
     expect(regra.indexador).toBe("IPCA")
+  })
+
+  it("o crédito mínimo é R$ 100.000 em qualquer categoria e tomador", () => {
+    expect(cfg.valorCreditoMinimo).toBe(100_000)
   })
 
   it("modalidade é pós-fixada e a categoria default é condomínio", () => {
@@ -123,6 +127,26 @@ describe("qualificarCreditoConstrucao", () => {
       valor_solicitado: 150_000,
     })
     expect(qualificado).toBe(false)
+  })
+
+  it("nenhum valor de terreno reprova a simulação, em PF ou PJ", () => {
+    const cenarios = [
+      { ...base, valor_terreno: 1 },
+      { ...base, valor_terreno: 50_000_000 },
+      {
+        ...base,
+        categoria_terreno: "fora_condominio" as const,
+        tipo_pessoa: "PJ" as const,
+        valor_terreno: 80_000_000,
+        valor_solicitado: 1_500_000,
+        prazo_meses: 240,
+      },
+    ]
+    for (const cenario of cenarios) {
+      const { qualificado, motivos } = qualificarCreditoConstrucao(cenario)
+      expect(motivos.some((m) => m.toLowerCase().includes("terreno"))).toBe(false)
+      expect(qualificado).toBe(true)
+    }
   })
 
   it("rejeita cidade não atendida", () => {

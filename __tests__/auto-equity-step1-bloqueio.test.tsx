@@ -91,9 +91,15 @@ describe("Auto Equity Step 1 — veículo inelegível não avança", () => {
     expect(screen.queryByRole("button", { name: "Continuar" })).toBeNull()
   })
 
-  it("bloqueia veículo abaixo do valor FIPE mínimo", async () => {
+  it("aceita veículo de FIPE baixa — não existe mais piso de valor", async () => {
     await consultarVeiculo({ idadeAnos: 3, valorFipe: 20_000 })
-    expect(screen.getByText(/não é aceito como garantia/)).toBeTruthy()
-    expect(screen.queryByRole("button", { name: "Continuar" })).toBeNull()
+    expect(screen.getByRole("button", { name: "Continuar" })).toBeTruthy()
+    expect(screen.queryByText(/não é aceito como garantia/)).toBeNull()
+  })
+
+  it("aceita veículo de FIPE alta — não existe mais teto de valor", async () => {
+    await consultarVeiculo({ idadeAnos: 3, valorFipe: 3_000_000 })
+    expect(screen.getByRole("button", { name: "Continuar" })).toBeTruthy()
+    expect(screen.queryByText(/não é aceito como garantia/)).toBeNull()
   })
 })
