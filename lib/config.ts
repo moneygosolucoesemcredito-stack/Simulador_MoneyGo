@@ -113,11 +113,11 @@ export const CONFIG = {
     // (antes 1,99% a.m.).
     taxaMensal: 0.025,
     modalidadeTaxa: "pre_fixada" as const,
-    // Piso (R$ 30.000) e teto (R$ 500.000) de valor do veículo removidos
-    // (2026-08): não há mais limite de valor do bem nem do crédito. A única
-    // trava de elegibilidade que resta é a idade máxima de fabricação.
-    // 80% da FIPE — percentual não deve aparecer na interface (só o valor máximo)
-    ltv: 0.8,
+    // NENHUMA trava de valor no Auto Equity (2026-08). Foram removidos, nesta
+    // ordem: o piso de R$ 30.000 e o teto de R$ 500.000 do valor do veículo, o
+    // piso de R$ 5.000 do crédito e, por fim, o LTV de 80% da FIPE — o valor do
+    // bem passa a ser referência de avaliação, não limite do crédito. A ÚNICA
+    // trava do produto é a idade máxima de fabricação, abaixo.
     // Idade máxima de fabricação por categoria (2026-08): veículo leve (carro,
     // SUV, picape, utilitário leve) até 20 anos; veículo pesado (caminhão,
     // ônibus, cavalo mecânico) até 15 anos. Ver idadeMaximaVeiculo().

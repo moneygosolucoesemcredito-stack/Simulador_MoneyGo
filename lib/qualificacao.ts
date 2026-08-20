@@ -389,21 +389,16 @@ export function qualificarAutoEquity(params: {
    *  Ausente ou inválida cai no padrão do funil: `leve`. */
   categoria_veiculo?: CategoriaVeiculo | string
 }): ResultadoQualificacao {
-  const { autoEquity: cfg } = CONFIG
   const motivos: string[] = []
 
   if (params.situacao === "financiado") {
     motivos.push("Veículo financiado não aceito — apenas veículos quitados")
   }
 
-  // Idade máxima do bem: mesma trava aplicada no Step 1 do funil. Não há mais
-  // piso nem teto de valor do veículo.
+  // Idade máxima do bem: ÚNICA trava do produto. Não há piso nem teto de valor
+  // do veículo, nem limite do crédito sobre a FIPE — o LTV de 80% foi removido
+  // (2026-08). O valor do bem é referência de avaliação, não trava.
   motivos.push(...qualificarVeiculoAutoEquity(params).motivos)
-
-  const ltvMaximo = params.valor_veiculo * cfg.ltv
-  if (params.valor_solicitado > ltvMaximo) {
-    motivos.push(`Valor solicitado superior a ${Math.round(cfg.ltv * 100)}% do valor do veículo`)
-  }
 
   return { qualificado: motivos.length === 0, motivos }
 }

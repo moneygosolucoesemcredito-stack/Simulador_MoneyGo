@@ -123,15 +123,16 @@ describe("Auto Equity — categoria padrão e limites configurados", () => {
     ).toBe(false)
   })
 
-  it("não há mais piso nem teto de valor do veículo", () => {
+  it("não há mais piso, teto, nem LTV sobre o valor do veículo", () => {
     expect("valorVeiculoMinimo" in CONFIG.autoEquity).toBe(false)
     expect("valorVeiculoMaximo" in CONFIG.autoEquity).toBe(false)
+    expect("ltv" in CONFIG.autoEquity).toBe(false)
 
     // FIPE muito baixa e muito alta passam, desde que a idade esteja em dia.
     for (const valor_veiculo of [5_000, 20_000, 3_000_000]) {
       const r = qualificarAutoEquity({
         valor_veiculo,
-        valor_solicitado: Math.floor(valor_veiculo * 0.8),
+        valor_solicitado: valor_veiculo, // 100% do bem: sem LTV, é permitido
         situacao: "quitado",
         ano_veiculo: anoAtual - 3,
         categoria_veiculo: "leve",
@@ -146,7 +147,7 @@ describe("Auto Equity — categoria padrão e limites configurados", () => {
     expect(motivos.some((m) => m.includes("Ano de fabricação"))).toBe(true)
   })
 
-  it("mantém as demais travas independentes da categoria", () => {
+  it("veículo financiado segue recusado — não é trava de valor", () => {
     const financiado = qualificarAutoEquity({
       ...veiculoBase,
       situacao: "financiado",
@@ -155,13 +156,30 @@ describe("Auto Equity — categoria padrão e limites configurados", () => {
     })
     expect(financiado.qualificado).toBe(false)
     expect(financiado.motivos.some((m) => m.includes("financiado"))).toBe(true)
+  })
 
-    const acimaDoLtv = qualificarAutoEquity({
+  it("a IDADE é a única trava: nenhum valor de crédito reprova", () => {
+    expect("ltv" in CONFIG.autoEquity).toBe(false)
+
+    // Do simbólico ao muito acima do valor do bem — tudo passa.
+    for (const valor_solicitado of [1, 70_000, 500_000, 10_000_000]) {
+      const r = qualificarAutoEquity({
+        ...veiculoBase,
+        valor_solicitado,
+        ano_veiculo: anoAtual - 5,
+        categoria_veiculo: "pesado",
+      })
+      expect(r.qualificado, `reprovou crédito de ${valor_solicitado}`).toBe(true)
+    }
+
+    // E a idade continua reprovando, em qualquer valor.
+    const velho = qualificarAutoEquity({
       ...veiculoBase,
-      valor_solicitado: 70_000, // > 80% de R$ 80.000
-      ano_veiculo: anoAtual - 5,
-      categoria_veiculo: "pesado",
+      valor_solicitado: 10_000,
+      ano_veiculo: anoAtual - 21,
+      categoria_veiculo: "leve",
     })
-    expect(acimaDoLtv.qualificado).toBe(false)
+    expect(velho.qualificado).toBe(false)
+    expect(velho.motivos.some((m) => m.includes("20 anos"))).toBe(true)
   })
 })
