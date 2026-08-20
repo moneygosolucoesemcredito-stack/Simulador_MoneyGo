@@ -5,7 +5,6 @@ import Link from "next/link"
 import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Building2, Car, CarFront, Home, HardHat, UserCog, UserRound, ArrowRight } from "lucide-react"
-import { cn } from "@/lib/utils"
 import { BRAND } from "@/lib/brand"
 
 const PRODUTOS = [
