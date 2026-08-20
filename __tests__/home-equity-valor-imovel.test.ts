@@ -53,8 +53,8 @@ describe("Home Equity — valor do imóvel sem teto", () => {
       valor_imovel: 12_000_000,
       tipo_imovel: "apartamento",
       situacao: "financiado",
-      saldo_devedor: 5_000_000, // < 50% do imóvel
-      valor_solicitado: 6_000_000, // 50% ≤ LTV de 55%
+      saldo_devedor: 3_000_000, // 25% do imóvel, dentro do teto de 40%
+      valor_solicitado: 3_600_000, // + saldo = 6,6M = exatamente o LTV de 55%
       cidade: "Curitiba",
       uf: "PR",
       data_nascimento: dataNascimento30Anos,

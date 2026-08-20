@@ -111,6 +111,9 @@ function buildCustomFields(
     if ("situacao" in simulacao) addField("CF_SITUACAO_IMOVEL", (simulacao as { situacao: string }).situacao)
     if ("saldo_devedor" in simulacao && (simulacao as { saldo_devedor?: number }).saldo_devedor) {
       addField("CF_SALDO_DEVEDOR", (simulacao as { saldo_devedor: number }).saldo_devedor)
+      // Crédito total = solicitado + quitação. Só faz sentido informar quando
+      // há saldo devedor; sem ele o total é o próprio CF_VALOR_SOLICITADO.
+      addField("CF_CREDITO_TOTAL", (simulacao as { credito_total?: number }).credito_total)
     }
   }
 

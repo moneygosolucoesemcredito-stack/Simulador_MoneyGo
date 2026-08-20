@@ -22,8 +22,12 @@ export const CONFIG = {
     // deslizante do Step 1: o campo de digitação aceita qualquer valor acima.
     valorImovelSliderReferencia: 5_000_000,
     valorCreditoMinimo: 75_000,
-    // LTV varia por tipo de imóvel — ver LTV_POR_TIPO_IMOVEL.
-    saldoDevedorMaximoPercentual: 0.5,
+    // LTV varia por tipo de imóvel — ver LTV_POR_TIPO_IMOVEL. O teto incide
+    // sobre o CRÉDITO TOTAL (solicitado + saldo devedor quitado), não só sobre
+    // o valor pedido — ver creditoTotalHomeEquity().
+    // Saldo devedor do financiamento existente: até 40% do valor do imóvel
+    // (2026-08; antes 50%).
+    saldoDevedorMaximoPercentual: 0.4,
     // Seguros e encargos (espelham a planilha "Simulacao HE.xlsx")
     mip: 0.00035, // sobre o saldo devedor, ao mês
     dfi: 0.000065, // sobre o valor do imóvel, ao mês (imóvel até R$ 10mi)
@@ -259,6 +263,48 @@ export function prazoMaximoHomeEquity(idade: number): number {
 export function prazosDisponiveisHomeEquity(idade: number): number[] {
   const max = prazoMaximoHomeEquity(idade)
   return CONFIG.homeEquity.prazosDisponiveis.filter((p) => p <= max)
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Home Equity — composição do crédito quando o imóvel está financiado.
+//
+// O valor que o cliente pede no funil é o que ele RECEBE líquido. O saldo
+// devedor do financiamento existente é quitado pela instituição dentro da
+// mesma operação e entra POR CIMA do valor pedido:
+//
+//     crédito total = valor solicitado + saldo devedor
+//
+// É o crédito total que é financiado — dele saem parcela, IOF, CET, renda
+// sugerida, PDF e proposta — e é ele que responde ao teto de LTV da tipologia.
+// Imóvel quitado (saldo zero) cai no caso trivial: total = valor solicitado.
+// ──────────────────────────────────────────────────────────────────────────
+
+/** Crédito efetivamente financiado: o que o cliente recebe + a quitação. */
+export function creditoTotalHomeEquity(valorSolicitado: number, saldoDevedor = 0): number {
+  const solicitado = Number.isFinite(valorSolicitado) ? Math.max(0, valorSolicitado) : 0
+  const saldo = Number.isFinite(saldoDevedor) ? Math.max(0, saldoDevedor) : 0
+  return solicitado + saldo
+}
+
+/**
+ * Quanto o cliente ainda pode PEDIR, já descontada a quitação: o teto de LTV
+ * vale sobre o crédito total, então o saldo devedor consome parte do limite.
+ * Ex.: imóvel de R$ 1.000.000 (casa, 55% → R$ 550.000) com saldo de
+ * R$ 200.000 → o cliente pode solicitar no máximo R$ 350.000.
+ */
+export function creditoMaximoSolicitadoHomeEquity(
+  valorImovel: number,
+  tipoImovel: TipoImovel | "",
+  saldoDevedor = 0
+): number {
+  const teto = valorImovel * ltvParaTipoImovel(tipoImovel)
+  const saldo = Number.isFinite(saldoDevedor) ? Math.max(0, saldoDevedor) : 0
+  return Math.max(0, teto - saldo)
+}
+
+/** Teto de saldo devedor aceito na garantia: 40% do valor do imóvel. */
+export function saldoDevedorMaximoHomeEquity(valorImovel: number): number {
+  return Math.max(0, valorImovel * CONFIG.homeEquity.saldoDevedorMaximoPercentual)
 }
 
 /**

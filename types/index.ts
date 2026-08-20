@@ -39,7 +39,15 @@ export interface SimulacaoHomeEquity {
   situacao: SituacaoImovel
   saldo_devedor?: number
   tipo_pessoa?: "PF" | "PJ"
+  /** O que o cliente recebe líquido. */
   valor_solicitado: number
+  /**
+   * Crédito efetivamente financiado: `valor_solicitado` + `saldo_devedor`
+   * (a quitação do financiamento existente entra por cima do valor pedido).
+   * É sobre ele que incidem parcela, IOF, CET e o teto de LTV da tipologia.
+   * Imóvel quitado → igual a `valor_solicitado`.
+   */
+  credito_total?: number
   prazo_meses: number
   parcela_price: number
   primeira_parcela_sac: number

@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label"
 import { useFunnelStore } from "@/stores/funnel-store"
 import { pushDataLayer } from "@/components/tracking/GTM"
 import { formatarMoeda } from "@/lib/simulacao"
+import { CONFIG, saldoDevedorMaximoHomeEquity } from "@/lib/config"
 import { CurrencyInput } from "@/components/funnel/CurrencyInput"
 import { cn } from "@/lib/utils"
 
@@ -18,7 +19,9 @@ export function Step3Situacao({ onNext }: { onNext: () => void }) {
   )
   const [saldoDevedor, setSaldoDevedor] = useState(homeEquity.saldo_devedor || 0)
 
-  const saldoMaximo = homeEquity.valor_imovel * 0.5
+  // Teto do saldo devedor aceito na garantia: 40% do valor do imóvel (2026-08).
+  const saldoMaximo = saldoDevedorMaximoHomeEquity(homeEquity.valor_imovel)
+  const percentualMaximo = Math.round(CONFIG.homeEquity.saldoDevedorMaximoPercentual * 100)
 
   function handleNext() {
     if (!situacao) return
@@ -68,11 +71,13 @@ export function Step3Situacao({ onNext }: { onNext: () => void }) {
           />
           {saldoInvalido && (
             <p className="text-destructive text-xs">
-              Saldo devedor não pode ultrapassar 50% do valor do imóvel ({formatarMoeda(saldoMaximo)}).
+              Saldo devedor não pode ultrapassar {percentualMaximo}% do valor do imóvel (
+              {formatarMoeda(saldoMaximo)}).
             </p>
           )}
           <p className="text-muted-foreground text-xs">
-            Máximo permitido: {formatarMoeda(saldoMaximo)} (50% do valor do imóvel)
+            Máximo permitido: {formatarMoeda(saldoMaximo)} ({percentualMaximo}% do valor do imóvel).
+            O saldo é quitado dentro da operação e soma ao crédito que você pedir no próximo passo.
           </p>
         </div>
       )}

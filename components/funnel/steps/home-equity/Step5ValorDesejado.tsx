@@ -10,6 +10,8 @@ import { formatarMoeda } from "@/lib/simulacao"
 import {
   CONFIG,
   HE_IDADE_MAIS_PRAZO_MAXIMO_ANOS,
+  creditoMaximoSolicitadoHomeEquity,
+  creditoTotalHomeEquity,
   ltvParaTipoImovel,
   prazoMaximoHomeEquity,
   prazosDisponiveisHomeEquity,
@@ -42,12 +44,27 @@ export function Step5ValorDesejado({ onNext }: { onNext: () => void }) {
   // ele permanece visível (pré-selecionado) em toda transição de estado.
   const precisaEscolherPessoa = !homeEquity.pessoa_travada_link
   const ltv = ltvParaTipoImovel(homeEquity.tipo_imovel as TipoImovel | "")
-  const valorMaximo = Math.floor(homeEquity.valor_imovel * ltv)
+  // Imóvel financiado: o saldo devedor é quitado dentro da operação e consome
+  // parte do teto de LTV, então o que sobra para o cliente PEDIR é
+  // (imóvel × LTV) − saldo devedor. Imóvel quitado → saldo 0, teto cheio.
+  const saldoDevedor = homeEquity.situacao === "financiado" ? homeEquity.saldo_devedor || 0 : 0
+  const tetoLtv = Math.floor(homeEquity.valor_imovel * ltv)
+  const valorMaximo = Math.floor(
+    creditoMaximoSolicitadoHomeEquity(
+      homeEquity.valor_imovel,
+      homeEquity.tipo_imovel as TipoImovel | "",
+      saldoDevedor
+    )
+  )
   const valorMinimo = CONFIG.homeEquity.valorCreditoMinimo
 
   const [valor, setValor] = useState(
     Math.min(homeEquity.valor_solicitado, valorMaximo) || valorMinimo
   )
+  // O teto pode ter caído (saldo devedor informado depois): o valor efetivo
+  // acompanha sem mutar estado durante o render.
+  const valorEfetivo = Math.min(valor, valorMaximo)
+  const creditoTotal = creditoTotalHomeEquity(valorEfetivo, saldoDevedor)
   const [prazo, setPrazo] = useState(homeEquity.prazo_meses || CONFIG.homeEquity.prazoDefault)
   const [tipoPessoa, setTipoPessoa] = useState<TipoPessoa | "">(
     (homeEquity.tipo_pessoa as TipoPessoa) || ""
@@ -75,17 +92,21 @@ export function Step5ValorDesejado({ onNext }: { onNext: () => void }) {
       ? prazo
       : prazosOfertados[prazosOfertados.length - 1] ?? prazo
 
+  // O saldo devedor pode consumir o teto inteiro e não sobrar crédito viável.
+  const creditoViavel = valorMaximo >= valorMinimo
+
   const podeAvancar =
     (precisaEscolherPessoa ? !!tipoPessoa : true) &&
     idadeValida &&
+    creditoViavel &&
     prazosOfertados.length > 0
 
   function handleNext() {
     // Trava de LTV: nunca avança acima do teto da tipologia (≤ 55%).
     // Trava de idade: nunca avança com prazo acima do máximo para a idade.
-    if (!podeAvancar || valor > valorMaximo) return
+    if (!podeAvancar || valorEfetivo > valorMaximo) return
     setHomeEquity({
-      valor_solicitado: valor,
+      valor_solicitado: valorEfetivo,
       prazo_meses: prazoEfetivo,
       data_nascimento: dataNascimento,
       ...(precisaEscolherPessoa ? { tipo_pessoa: tipoPessoa as TipoPessoa } : {}),
@@ -93,7 +114,9 @@ export function Step5ValorDesejado({ onNext }: { onNext: () => void }) {
     pushDataLayer("step_completed", {
       funil: "home_equity",
       step: 5,
-      valor_solicitado: valor,
+      valor_solicitado: valorEfetivo,
+      saldo_devedor: saldoDevedor,
+      credito_total: creditoTotal,
       prazo_meses: prazoEfetivo,
       idade,
       tipo_pessoa: precisaEscolherPessoa ? tipoPessoa : homeEquity.tipo_pessoa,
@@ -106,30 +129,64 @@ export function Step5ValorDesejado({ onNext }: { onNext: () => void }) {
       <div className="space-y-2">
         <h2 className="text-2xl font-bold tracking-tight">Quanto você precisa?</h2>
         <p className="text-muted-foreground text-sm">
-          Você pode solicitar até {formatarMoeda(valorMaximo)} ({Math.round(ltv * 100)}% do valor do imóvel).
+          {saldoDevedor > 0
+            ? `Informe quanto quer receber. O saldo devedor de ${formatarMoeda(saldoDevedor)} é quitado pela operação e soma ao seu crédito.`
+            : `Você pode solicitar até ${formatarMoeda(valorMaximo)} (${Math.round(ltv * 100)}% do valor do imóvel).`}
         </p>
       </div>
 
       <div className="space-y-6">
         <div className="rounded-2xl border border-border bg-muted/30 p-6 text-center">
           <span className="text-4xl font-bold tracking-tight text-[var(--gold)]">
-            {formatarMoeda(valor)}
+            {formatarMoeda(valorEfetivo)}
           </span>
         </div>
 
         <Slider
           min={valorMinimo}
-          max={valorMaximo}
+          max={Math.max(valorMaximo, valorMinimo)}
           step={5_000}
-          value={[valor]}
+          value={[Math.max(valorEfetivo, valorMinimo)]}
           onValueChange={(vals) => setValor(Array.isArray(vals) ? vals[0] : vals)}
-          
         />
 
         <div className="flex justify-between text-xs text-muted-foreground">
           <span>{formatarMoeda(valorMinimo)}</span>
           <span>{formatarMoeda(valorMaximo)}</span>
         </div>
+
+        {!creditoViavel && (
+          <p className="text-xs text-destructive">
+            O saldo devedor de {formatarMoeda(saldoDevedor)} consome o limite de{" "}
+            {Math.round(ltv * 100)}% do imóvel ({formatarMoeda(tetoLtv)}) e não deixa margem para o
+            crédito mínimo de {formatarMoeda(valorMinimo)}.
+          </p>
+        )}
+
+        {/* Imóvel financiado: o crédito da operação é o pedido + a quitação. */}
+        {saldoDevedor > 0 && creditoViavel && (
+          <div className="rounded-xl bg-muted/50 p-4 space-y-2 text-sm">
+            <p className="font-medium">Composição do crédito</p>
+            <div className="flex justify-between text-muted-foreground">
+              <span>Você recebe</span>
+              <span className="font-medium text-foreground">{formatarMoeda(valorEfetivo)}</span>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+              <span>Quitação do financiamento</span>
+              <span className="font-medium text-foreground">{formatarMoeda(saldoDevedor)}</span>
+            </div>
+            <div className="flex justify-between border-t pt-2 text-muted-foreground">
+              <span>Crédito total</span>
+              <span className="font-semibold text-[var(--gold)]">
+                {formatarMoeda(creditoTotal)}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              As parcelas são calculadas sobre o crédito total. O limite de{" "}
+              {Math.round(ltv * 100)}% do imóvel ({formatarMoeda(tetoLtv)}) vale sobre ele.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Data de nascimento — obrigatória: define a trava idade × prazo (≤ 80). */}

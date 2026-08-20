@@ -2,6 +2,7 @@ import cidades from "./ibge-cidades.json"
 import {
   CONFIG,
   HE_IDADE_MAIS_PRAZO_MAXIMO_ANOS,
+  creditoTotalHomeEquity,
   idadeMaximaVeiculo,
   idadeMaximaVeiculoFinanciamento,
   limiteCreditoConstrucao,
@@ -9,6 +10,7 @@ import {
   ltvParaTipoImovelFI,
   prazoMaximoHomeEquity,
   regraConstrucao,
+  saldoDevedorMaximoHomeEquity,
   tomadorPermitidoConstrucao,
 } from "./config"
 import type {
@@ -84,16 +86,28 @@ export function qualificarHomeEquity(params: {
     motivos.push("Imóvel rural não aceito nesta modalidade")
   }
 
+  // Saldo devedor do financiamento existente: até 40% do valor do imóvel.
+  const saldoDevedor = params.situacao === "financiado" ? params.saldo_devedor ?? 0 : 0
   if (params.situacao === "financiado" && params.saldo_devedor !== undefined) {
-    if (params.saldo_devedor > params.valor_imovel * cfg.saldoDevedorMaximoPercentual) {
-      motivos.push("Saldo devedor superior a 50% do valor do imóvel")
+    if (params.saldo_devedor > saldoDevedorMaximoHomeEquity(params.valor_imovel)) {
+      motivos.push(
+        `Saldo devedor superior a ${Math.round(cfg.saldoDevedorMaximoPercentual * 100)}% do valor do imóvel`
+      )
     }
   }
 
+  // O LTV incide sobre o CRÉDITO TOTAL: o saldo devedor é quitado dentro da
+  // operação e soma ao valor que o cliente recebe. Imóvel quitado → total =
+  // valor solicitado.
   const ltv = ltvParaTipoImovel(params.tipo_imovel)
   const ltvMaximo = params.valor_imovel * ltv
-  if (params.valor_solicitado > ltvMaximo) {
-    motivos.push(`Valor solicitado superior a ${Math.round(ltv * 100)}% do valor do imóvel`)
+  const creditoTotal = creditoTotalHomeEquity(params.valor_solicitado, saldoDevedor)
+  if (creditoTotal > ltvMaximo) {
+    motivos.push(
+      saldoDevedor > 0
+        ? `Crédito total (solicitado + saldo devedor) superior a ${Math.round(ltv * 100)}% do valor do imóvel`
+        : `Valor solicitado superior a ${Math.round(ltv * 100)}% do valor do imóvel`
+    )
   }
 
   // Trava de seguro habitacional: idade + prazo (anos) ≤ 80. Substitui o teto

@@ -9,7 +9,12 @@ import {
 import { BRAND } from "./brand"
 
 export interface DadosPdfHomeEquity {
+  /** Crédito total financiado: valor solicitado + saldo devedor quitado. */
   valorCredito: number
+  /** O que o cliente recebe líquido. Ausente = igual ao crédito total. */
+  valorSolicitado?: number
+  /** Saldo devedor quitado dentro da operação (imóvel financiado). */
+  saldoDevedor?: number
   valorImovel: number
   prazoMeses: number
   tomador: "PF" | "PJ"
@@ -69,6 +74,9 @@ export async function gerarPdfHomeEquity(
   const margem = 40
   let y = 48
 
+  const saldoDevedor = Math.max(0, dados.saldoDevedor ?? 0)
+  const valorSolicitado = dados.valorSolicitado ?? dados.valorCredito
+
   // Logo da marca no topo
   const logo = await carregarLogo(BRAND.logos.full)
   if (logo) {
@@ -107,7 +115,15 @@ export async function gerarPdfHomeEquity(
     body: [
       ...(nome ? [["Cliente", nome]] : []),
       ["Data da simulação", (dados.dataSimulacao ?? new Date()).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })],
-      ["Crédito solicitado", formatarMoeda(dados.valorCredito)],
+      // Imóvel financiado: o PDF abre a composição — o cliente recebe o valor
+      // solicitado e a quitação entra por cima, formando o crédito total.
+      ...(saldoDevedor > 0
+        ? [
+            ["Crédito solicitado (você recebe)", formatarMoeda(valorSolicitado)],
+            ["Quitação do financiamento", formatarMoeda(saldoDevedor)],
+            ["Crédito total", formatarMoeda(dados.valorCredito)],
+          ]
+        : [["Crédito solicitado", formatarMoeda(dados.valorCredito)]]),
       ["Valor do imóvel", formatarMoeda(dados.valorImovel)],
       ["Prazo", `${dados.prazoMeses} meses`],
       ["Tomador", dados.tomador === "PF" ? "Pessoa Física" : "Pessoa Jurídica"],
